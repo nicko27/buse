@@ -1,236 +1,83 @@
-class HidePlugin {
-    constructor(config = {}) {
-        this.config = {
-            hiddenClass: 'hidden-column',
-            togglerClass: 'column-toggler',
-            togglerContainerClass: 'column-toggler-container',
-            persistKey: 'tableflow-hidden-columns',
-            showToggler: true,
-            defaultHidden: [],
-            onToggle: null,
-            ...config
-        };
-        
-        this.context = null;
-        this.hiddenColumns = new Set();
-        this.togglerContainer = null;
-    }
-
-    async init(context) {
-        this.context = context;
-        
-        // Charger l'état persisté
-        this.loadPersistedState();
-        
-        // Cacher les colonnes par défaut
-        this.config.defaultHidden.forEach(columnId => {
-            this.hideColumn(columnId);
-        });
-        
-        // Créer le toggler si nécessaire
-        if (this.config.showToggler) {
-            this.createToggler();
-        }
-        
-        // Appliquer l'état initial
-        this.applyHiddenState();
-    }
-
-    loadPersistedState() {
-        if (!this.config.persistKey) return;
-        
-        try {
-            const stored = localStorage.getItem(this.config.persistKey);
-            if (stored) {
-                const hiddenColumns = JSON.parse(stored);
-                this.hiddenColumns = new Set(hiddenColumns);
+(function() {
+    if (typeof window.hidePlugin === 'undefined') {
+        window.hidePlugin = class hideplugin {
+            constructor(config = {}) {
+                this.name = 'hide';
+                this.version = '1.0.0';
+                this.table = null;
+                this.config = {
+                    hideAttribute: 'th-hide',
+                    ...config
+                };
             }
-        } catch (error) {
-            console.error('Erreur lors du chargement de l\'état persisté:', error);
-        }
-    }
 
-    saveState() {
-        if (!this.config.persistKey) return;
-        
-        try {
-            localStorage.setItem(
-                this.config.persistKey,
-                JSON.stringify(Array.from(this.hiddenColumns))
-            );
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde de l\'état:', error);
-        }
-    }
-
-    createToggler() {
-        // Créer le conteneur
-        this.togglerContainer = document.createElement('div');
-        this.togglerContainer.className = this.config.togglerContainerClass;
-        
-        // Ajouter les boutons pour chaque colonne
-        const headers = this.context.getHeaders();
-        headers.forEach(header => {
-            if (!header.id) return;
-            
-            const button = document.createElement('button');
-            button.className = this.config.togglerClass;
-            button.dataset.column = header.id;
-            button.title = `Afficher/Masquer ${header.textContent}`;
-            
-            // Ajouter l'icône et le label
-            const icon = document.createElement('span');
-            icon.className = 'toggler-icon';
-            icon.textContent = '👁️';
-            
-            const label = document.createElement('span');
-            label.className = 'toggler-label';
-            label.textContent = header.textContent;
-            
-            button.appendChild(icon);
-            button.appendChild(label);
-            
-            // Mettre à jour l'état initial
-            if (this.isColumnHidden(header.id)) {
-                button.classList.add('toggled');
+            init(tableHandler) {
+                if (!tableHandler) {
+                    throw new Error('TableHandler instance is required');
+                }
+                this.table = tableHandler;
+                this.hideColumns();
+                this.setupEventListeners();
+                this.debug('Plugin initialisé');
             }
-            
-            // Ajouter l'écouteur de clic
-            button.addEventListener('click', () => {
-                this.toggleColumn(header.id);
-            });
-            
-            this.togglerContainer.appendChild(button);
-        });
-        
-        // Ajouter le conteneur au tableau
-        this.context.container.insertBefore(
-            this.togglerContainer,
-            this.context.table
-        );
-    }
 
-    isColumnHidden(columnId) {
-        return this.hiddenColumns.has(columnId);
-    }
+            setupEventListeners() {
+                if (!this.table || !this.table.table) return;
 
-    hideColumn(columnId) {
-        if (this.isColumnHidden(columnId)) return;
-        
-        this.hiddenColumns.add(columnId);
-        this.applyHiddenState();
-        this.saveState();
-        
-        if (typeof this.config.onToggle === 'function') {
-            this.config.onToggle({
-                columnId,
-                hidden: true,
-                hiddenColumns: Array.from(this.hiddenColumns)
-            });
-        }
-    }
-
-    showColumn(columnId) {
-        if (!this.isColumnHidden(columnId)) return;
-        
-        this.hiddenColumns.delete(columnId);
-        this.applyHiddenState();
-        this.saveState();
-        
-        if (typeof this.config.onToggle === 'function') {
-            this.config.onToggle({
-                columnId,
-                hidden: false,
-                hiddenColumns: Array.from(this.hiddenColumns)
-            });
-        }
-    }
-
-    toggleColumn(columnId) {
-        if (this.isColumnHidden(columnId)) {
-            this.showColumn(columnId);
-        } else {
-            this.hideColumn(columnId);
-        }
-    }
-
-    applyHiddenState() {
-        const headers = this.context.getHeaders();
-        const columnMap = new Map();
-        
-        // Créer un mapping des colonnes
-        headers.forEach((header, index) => {
-            if (header.id) {
-                columnMap.set(header.id, index);
+                this.table.table.addEventListener('row:added', () => {
+                    this.hideColumns();
+                });
             }
-        });
-        
-        // Appliquer les classes aux cellules
-        const rows = [
-            ...this.context.getHeaders(),
-            ...this.context.getRows()
-        ];
-        
-        rows.forEach(row => {
-            Array.from(row.cells).forEach((cell, index) => {
-                const header = headers[index];
-                if (header && header.id) {
-                    if (this.isColumnHidden(header.id)) {
-                        cell.classList.add(this.config.hiddenClass);
-                    } else {
-                        cell.classList.remove(this.config.hiddenClass);
+
+            hideColumns() {
+                if (!this.table || !this.table.table) return;
+
+                const tableId = this.table.table.id;
+                const headers = this.table.table.querySelectorAll('th');
+                headers.forEach((header, index) => {
+                    if (header.hasAttribute(this.config.hideAttribute)) {
+                        // Cache le header
+                        header.style.display = 'none';
+                        
+                        // Cache les cellules correspondantes
+                        const rows = this.table.table.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            const cell = row.cells[index];
+                            if (cell) {
+                                cell.style.display = 'none';
+                            }
+                        });
                     }
+                });
+
+                this.debug('Colonnes masquées');
+            }
+
+            destroy() {
+                if (!this.table || !this.table.table) return;
+
+                // Réaffiche toutes les colonnes cachées
+                const headers = this.table.table.querySelectorAll('th[style*="display: none"]');
+                headers.forEach((header, index) => {
+                    header.style.display = '';
+                    const rows = this.table.table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const cell = row.cells[index];
+                        if (cell) {
+                            cell.style.display = '';
+                        }
+                    });
+                });
+
+                this.table = null;
+                this.debug('Plugin détruit');
+            }
+
+            debug(message, data = null) {
+                if (this.table?.options?.debug) {
+                    console.log(`[${this.name}] ${message}`, data || '');
                 }
-            });
-        });
-        
-        // Mettre à jour les boutons du toggler
-        if (this.togglerContainer) {
-            const buttons = this.togglerContainer.querySelectorAll(`.${this.config.togglerClass}`);
-            buttons.forEach(button => {
-                const columnId = button.dataset.column;
-                if (columnId) {
-                    button.classList.toggle('toggled', this.isColumnHidden(columnId));
-                }
-            });
+            }
         }
     }
-
-    getHiddenColumns() {
-        return Array.from(this.hiddenColumns);
-    }
-
-    setHiddenColumns(columns) {
-        this.hiddenColumns = new Set(columns);
-        this.applyHiddenState();
-        this.saveState();
-    }
-
-    showAllColumns() {
-        this.hiddenColumns.clear();
-        this.applyHiddenState();
-        this.saveState();
-    }
-
-    refresh() {
-        this.applyHiddenState();
-    }
-
-    destroy() {
-        // Supprimer le toggler
-        if (this.togglerContainer) {
-            this.togglerContainer.remove();
-            this.togglerContainer = null;
-        }
-        
-        // Afficher toutes les colonnes
-        this.showAllColumns();
-        
-        this.context = null;
-    }
-}
-
-// Enregistrer le plugin
-if (typeof window !== 'undefined') {
-    window.HidePlugin = HidePlugin;
-}
+})();

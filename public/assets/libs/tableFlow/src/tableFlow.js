@@ -32,46 +32,7 @@ class TableFlow {
             error: console.error
         };
 
-        // Créer le contexte du tableau
-        this.tableContext = this.createTableContext();
-
         this.initialize();
-    }
-
-    createTableContext() {
-        return {
-            table: this.table,
-            container: this.table.parentElement,
-            getRows: () => this.table.querySelectorAll('tbody tr'),
-            getCells: () => this.table.querySelectorAll('td'),
-            getHeaders: () => this.table.querySelectorAll('th'),
-            getColumnById: (id) => this.table.querySelector(`th#${id}`),
-            getCellsByColumn: (columnId) => {
-                const index = this.getColumnIndex(columnId);
-                return Array.from(this.table.querySelectorAll(`tbody tr td:nth-child(${index + 1})`));
-            },
-            getColumnIndex: (columnId) => {
-                const headers = Array.from(this.table.querySelectorAll('th'));
-                return headers.findIndex(th => th.id === columnId);
-            },
-            getCell: (rowId, columnId) => {
-                const row = this.table.querySelector(`tr#${rowId}`);
-                const columnIndex = this.getColumnIndex(columnId);
-                return row ? row.cells[columnIndex] : null;
-            },
-            getCellValue: (rowId, columnId) => {
-                const rowValues = this.initialValues.get(rowId);
-                return rowValues ? rowValues.get(columnId) : null;
-            },
-            initialValues: this.initialValues,
-            options: this.options,
-            notify: (type, message) => this.notifications[type](message)
-        };
-    }
-
-    getColumnIndex(columnId) {
-        const headers = Array.from(this.table.querySelectorAll('th'));
-        return headers.findIndex(th => th.id === columnId);
     }
 
     storeInitialValues() {
@@ -95,129 +56,110 @@ class TableFlow {
         if (!this.options.plugins) return;
 
         // Extraire la liste des plugins à charger
-        let pluginsToLoad = this.extractPluginsToLoad();
-
-        // Charger chaque plugin
-        for (const plugin of pluginsToLoad) {
-            try {
-                await this.loadAndInitializePlugin(plugin);
-            } catch (error) {
-                this.notifications.error(`Error loading plugin ${plugin.name}: ${error.message}`);
-            }
-        }
-    }
-
-    extractPluginsToLoad() {
+        let pluginsToLoad = [];
+        
         if (this.options.plugins.names && Array.isArray(this.options.plugins.names)) {
             const { names, ...configs } = this.options.plugins;
-            return names.map(name => ({
+            pluginsToLoad = names.map(name => ({
                 name,
                 config: configs[name.toLowerCase()] || {}
             }));
         } else if (Array.isArray(this.options.plugins)) {
-            return this.options.plugins.map(plugin => ({
+            pluginsToLoad = this.options.plugins.map(plugin => ({
                 name: typeof plugin === 'string' ? plugin : plugin.name,
                 config: typeof plugin === 'string' ? {} : (plugin.config || {})
             }));
         } else if (typeof this.options.plugins === 'object') {
-            return Object.entries(this.options.plugins)
+            pluginsToLoad = Object.entries(this.options.plugins)
                 .filter(([_, value]) => value !== false)
                 .map(([name, value]) => ({
                     name,
                     config: typeof value === 'object' ? value : {}
                 }));
         }
-        return [];
-    }
 
-    async loadAndInitializePlugin(plugin) {
-        const pluginPath = plugin.path || 
-            `${this.options.pluginsPath}/${plugin.name.toLowerCase()}.js`;
+        // Charger chaque plugin
+        for (const plugin of pluginsToLoad) {
+            try {
+                const pluginPath = plugin.path || 
+                    `${this.options.pluginsPath}/${plugin.name.toLowerCase()}.js`;
 
-        // Charger le code du plugin
-        const response = await fetch(pluginPath);
-        if (!response.ok) {
-            throw new Error(`Failed to load plugin ${plugin.name}`);
-        }
-        const pluginCode = await response.text();
+                // Charger le code du plugin
+                const response = await fetch(pluginPath);
+                if (!response.ok) {
+                    throw new Error(`Failed to load plugin ${plugin.name}`);
+                }
+                const pluginCode = await response.text();
 
-        // Évaluer le code du plugin
-        try {
-            eval(pluginCode);
-        } catch (evalError) {
-            throw new Error(`Failed to evaluate plugin ${plugin.name}: ${evalError.message}`);
-        }
+                // Évaluer le code du plugin directement
+                try {
+                    eval(pluginCode);
+                } catch (evalError) {
+                    throw new Error(`Failed to evaluate plugin ${plugin.name}: ${evalError.message}`);
+                }
 
-        // Créer et initialiser l'instance du plugin
-        const pluginClass = window[plugin.name];
-        if (!pluginClass) {
-            throw new Error(`Plugin class ${plugin.name} not found`);
-        }
+                // Vérifier que le plugin est bien défini
+                const pluginClassName = `${plugin.name.toLowerCase()}Plugin`;
+                const pluginClass = window[pluginClassName];
+                if (!pluginClass) {
+                    throw new Error(`Plugin class ${pluginClassName} not found after evaluation`);
+                }
 
-        const pluginInstance = new pluginClass(plugin.config);
-        const pluginContext = this.createPluginContext(plugin.name);
-        await pluginInstance.init(pluginContext);
-        this.plugins.set(plugin.name, pluginInstance);
-    }
+                // Instancier le plugin
+                const pluginInstance = new pluginClass(plugin.config);
+                if (typeof pluginInstance.init === 'function') {
+                    await Promise.resolve(pluginInstance.init(this));
+                }
+                this.plugins.set(plugin.name, { instance: pluginInstance });
 
-    createPluginContext(pluginName) {
-        return {
-            ...this.tableContext,
-            pluginName,
-            getPlugin: (name) => this.plugins.get(name),
-            attachToElement: (element) => {
-                element.dataset.plugin = pluginName;
-                return element;
+            } catch (error) {
+                console.error(`Error loading plugin ${plugin.name}:`, error);
+                this.plugins.set(plugin.name, { error });
             }
-        };
+        }
+    }
+
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load script ${src}`));
+            document.head.appendChild(script);
+        });
     }
 
     initializeWrappers() {
-        // Wrapper pour les en-têtes
-        const headers = this.table.querySelectorAll('th');
-        headers.forEach(header => {
-            if (!header.querySelector(`.${this.options.headWrapperClass}`)) {
+        // Initialize header wrappers
+        const headerCells = this.table.querySelectorAll('thead th');
+        headerCells.forEach(cell => {
+            if (!cell.querySelector('.' + this.options.headWrapperClass)) {
                 const wrapper = document.createElement('div');
                 wrapper.className = this.options.headWrapperClass;
-                wrapper.innerHTML = header.innerHTML;
-                header.innerHTML = '';
-                header.appendChild(wrapper);
-            }
-        });
-
-        // Wrapper pour les cellules
-        const cells = this.table.querySelectorAll('td');
-        cells.forEach(cell => {
-            if (!cell.querySelector(`.${this.options.cellWrapperClass}`)) {
-                const wrapper = document.createElement('div');
-                wrapper.className = this.options.cellWrapperClass;
-                wrapper.innerHTML = cell.innerHTML;
-                cell.innerHTML = '';
+                while (cell.firstChild) {
+                    wrapper.appendChild(cell.firstChild);
+                }
                 cell.appendChild(wrapper);
             }
         });
-    }
 
-    getPluginContext(pluginName) {
-        return this.createPluginContext(pluginName);
-    }
-
-    attachPluginToElement(element, pluginName) {
-        const plugin = this.plugins.get(pluginName);
-        if (plugin && typeof plugin.attachTo === 'function') {
-            element.dataset.plugin = pluginName;
-            plugin.attachTo(element, this.getPluginContext(pluginName));
-        }
-    }
-
-    destroy() {
-        // Détruire tous les plugins
-        for (const [name, plugin] of this.plugins) {
-            if (typeof plugin.destroy === 'function') {
-                plugin.destroy();
+        // Initialize cell wrappers
+        const bodyCells = this.table.querySelectorAll('tbody td');
+        bodyCells.forEach(cell => {
+            if (!cell.querySelector('.' + this.options.cellWrapperClass)) {
+                const wrapper = document.createElement('div');
+                wrapper.className = this.options.cellWrapperClass;
+                while (cell.firstChild) {
+                    wrapper.appendChild(cell.firstChild);
+                }
+                cell.appendChild(wrapper);
             }
-        }
-        this.plugins.clear();
+        });
     }
 
     hasPlugin(name) {
@@ -226,7 +168,7 @@ class TableFlow {
 
     getPlugin(name) {
         const plugin = this.plugins.get(name);
-        return plugin ? plugin : null;
+        return plugin ? plugin.instance : null;
     }
 
     refreshPlugins() {
@@ -240,8 +182,8 @@ class TableFlow {
             if (!pluginInfo) return;
 
             // Puis rafraîchit le plugin lui-même
-            if (typeof pluginInfo.refresh === 'function') {
-                pluginInfo.refresh();
+            if (typeof pluginInfo.instance.refresh === 'function') {
+                pluginInfo.instance.refresh();
             }
             refreshed.add(pluginName);
         };
@@ -343,8 +285,8 @@ class TableFlow {
         
         // Use edit plugin to update data-initial-value attributes
         const editPlugin = this.getPlugin('edit');
-        if (editPlugin && editPlugin.refresh) {
-            editPlugin.refresh();
+        if (editPlugin && editPlugin.instance) {
+            editPlugin.instance.markRowAsSaved(row);
         } else {
             // Fallback if edit plugin is not available
             row.removeAttribute('data-modified');
@@ -435,6 +377,33 @@ class TableFlow {
             return true;
         }
         return false;
+    }
+
+    destroy() {
+        if (this.options.plugins) {
+            const plugins = Array.isArray(this.options.plugins) 
+                ? this.options.plugins 
+                : this.options.plugins.names.map(name => ({ name }));
+
+            plugins.forEach(plugin => {
+                if (typeof plugin.destroy === 'function') {
+                    plugin.destroy();
+                }
+            });
+        }
+        // Détruire tous les plugins
+        this.plugins.forEach(plugin => {
+            if (plugin.instance && typeof plugin.instance.destroy === 'function') {
+                plugin.instance.destroy();
+            }
+        });
+        this.plugins.clear();
+
+        // Nettoyer la table
+        if (this.table) {
+            this.table.innerHTML = '';
+            this.table.remove();
+        }
     }
 
     notify(type, message) {

@@ -1,201 +1,378 @@
 (function() {
     if (typeof window.filterandpaginatePlugin === 'undefined') {
-        window.filterandpaginatePlugin = class FilterAndPaginatePlugin {
+        window.filterandpaginatePlugin = class filterandpaginateplugin {
             constructor(config = {}) {
-                this.config = {
-                    pageSize: 10,
-                    pageSizes: [5, 10, 25, 50, 100],
-                    filterDelay: 300,
-                    filterInputClass: 'filter-input',
-                    paginationContainerClass: 'pagination-container',
-                    filterContainerClass: 'filter-container',
-                    pageSizeContainerClass: 'pagesize-container',
-                    ...config
-                };
-                
-                this.context = null;
+                this.name = 'filterandpaginate';
+                this.version = '1.0.0';
+                this.type = 'filter';
+                this.table = null;
+                this.config = {...this.getDefaultConfig(), ...config};
+
                 this.currentPage = 1;
-                this.filterTimer = null;
+                this.totalPages = 1;
+                this.container = null;
                 this.filterValue = '';
-                this.filteredRows = [];
+                this.filterTimeout = null;
+
+                this.debug('Plugin créé avec la config:', this.config);
             }
 
-            async init(context) {
-                this.context = context;
-                
-                // Créer les conteneurs UI
-                this.createFilterContainer();
-                this.createPaginationContainer();
-                this.createPageSizeContainer();
-                
-                // Initialiser le filtrage et la pagination
-                this.setupEventListeners();
-                this.applyFilterAndPagination();
+            getDefaultConfig() {
+                return {
+                    globalFilter: null,
+                    debounceTime: 300,
+                    pageSize: 10,
+                    pageSizes: [10, 25, 50, 100],
+                    containerClass: 'pagination-container',
+                    paginationClass: 'pagination',
+                    activeClass: 'active',
+                    disabledClass: 'disabled',
+                    selectClass: 'form-select',
+                    btnClass: 'btn btn-outline-secondary',
+                    showPageSizes: true,
+                    showInfo: true,
+                    labels: {
+                        first: '«',
+                        prev: '‹',
+                        next: '›',
+                        last: '»',
+                        info: 'Affichage de {start} à {end} sur {total} entrées',
+                        pageSize: 'Entrées par page:'
+                    },
+                    backwardIcon: '<i class="fas fa-chevron-left"></i>',
+                    forwardIcon: '<i class="fas fa-chevron-right"></i>',
+                    fastBackwardIcon: '<i class="fas fa-angle-double-left"></i>',
+                    fastForwardIcon: '<i class="fas fa-angle-double-right"></i>'
+                };
             }
 
-            createFilterContainer() {
-                const { table, container } = this.context;
-                
-                const filterContainer = document.createElement('div');
-                filterContainer.className = this.config.filterContainerClass;
-                
-                const filterInput = document.createElement('input');
-                filterInput.type = 'text';
-                filterInput.className = this.config.filterInputClass;
-                filterInput.placeholder = 'Filtrer...';
-                
-                filterContainer.appendChild(filterInput);
-                container.insertBefore(filterContainer, table);
-            }
+            init(tableHandler) {
+                this.table = tableHandler;
+                this.debug('Initialisation avec la table:', this.table);
 
-            createPaginationContainer() {
-                const { container, table } = this.context;
-                
-                const paginationContainer = document.createElement('div');
-                paginationContainer.className = this.config.paginationContainerClass;
-                
-                container.insertBefore(paginationContainer, table.nextSibling);
-            }
-
-            createPageSizeContainer() {
-                const { container, table } = this.context;
-                
-                const pageSizeContainer = document.createElement('div');
-                pageSizeContainer.className = this.config.pageSizeContainerClass;
-                
-                const select = document.createElement('select');
-                this.config.pageSizes.forEach(size => {
-                    const option = document.createElement('option');
-                    option.value = size;
-                    option.textContent = `${size} lignes`;
-                    if (size === this.config.pageSize) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
-                
-                pageSizeContainer.appendChild(select);
-                container.insertBefore(pageSizeContainer, table);
-            }
-
-            setupEventListeners() {
-                const { container } = this.context;
-                
-                // Écouteur pour le filtre
-                const filterInput = container.querySelector(`.${this.config.filterInputClass}`);
-                filterInput.addEventListener('input', () => {
-                    clearTimeout(this.filterTimer);
-                    this.filterTimer = setTimeout(() => {
-                        this.filterValue = filterInput.value.toLowerCase();
-                        this.currentPage = 1;
-                        this.applyFilterAndPagination();
-                    }, this.config.filterDelay);
-                });
-                
-                // Écouteur pour la taille de page
-                const pageSizeSelect = container.querySelector(`.${this.config.pageSizeContainerClass} select`);
-                pageSizeSelect.addEventListener('change', () => {
-                    this.config.pageSize = parseInt(pageSizeSelect.value);
-                    this.currentPage = 1;
-                    this.applyFilterAndPagination();
-                });
-            }
-
-            applyFilterAndPagination() {
-                const rows = Array.from(this.context.getRows());
-                
-                // Appliquer le filtre
-                this.filteredRows = this.filterValue
-                    ? rows.filter(row => this.rowMatchesFilter(row))
-                    : rows;
-                
-                // Calculer la pagination
-                const totalPages = Math.ceil(this.filteredRows.length / this.config.pageSize);
-                const start = (this.currentPage - 1) * this.config.pageSize;
-                const end = start + this.config.pageSize;
-                
-                // Afficher les lignes de la page courante
-                rows.forEach(row => row.style.display = 'none');
-                this.filteredRows.slice(start, end).forEach(row => row.style.display = '');
-                
-                // Mettre à jour la pagination
-                this.updatePaginationUI(totalPages);
-            }
-
-            rowMatchesFilter(row) {
-                const cells = Array.from(row.cells);
-                return cells.some(cell => {
-                    const text = cell.textContent.toLowerCase();
-                    return text.includes(this.filterValue);
-                });
-            }
-
-            updatePaginationUI(totalPages) {
-                const { container } = this.context;
-                const paginationContainer = container.querySelector(`.${this.config.paginationContainerClass}`);
-                paginationContainer.innerHTML = '';
-                
-                // Bouton précédent
-                const prevButton = document.createElement('button');
-                prevButton.textContent = '←';
-                prevButton.disabled = this.currentPage === 1;
-                prevButton.addEventListener('click', () => {
-                    if (this.currentPage > 1) {
-                        this.currentPage--;
-                        this.applyFilterAndPagination();
-                    }
-                });
-                paginationContainer.appendChild(prevButton);
-                
-                // Pages
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.textContent = i;
-                    pageButton.classList.toggle('active', i === this.currentPage);
-                    pageButton.addEventListener('click', () => {
-                        this.currentPage = i;
-                        this.applyFilterAndPagination();
-                    });
-                    paginationContainer.appendChild(pageButton);
+                // Setup du filtre si activé
+                if (this.config.enableFilter) {
+                    this.setupFilter();
                 }
-                
-                // Bouton suivant
-                const nextButton = document.createElement('button');
-                nextButton.textContent = '→';
-                nextButton.disabled = this.currentPage === totalPages;
-                nextButton.addEventListener('click', () => {
-                    if (this.currentPage < totalPages) {
-                        this.currentPage++;
-                        this.applyFilterAndPagination();
-                    }
+
+                // Création et insertion du conteneur
+                this.createContainer();
+
+                // Écoute de l'événement de tri
+                this.table.table.addEventListener('sortAppened', () => {
+                    this.refresh();
                 });
-                paginationContainer.appendChild(nextButton);
+
+                // Rafraîchissement initial
+                this.refresh();
+            }
+
+            setupFilter() {
+                if (!this.config.globalFilter) {
+                    this.debug('Pas de filtre global configuré');
+                    return;
+                }
+
+                const input = document.querySelector(this.config.globalFilter);
+                if (!input) {
+                    this.debug('Input filtre non trouvé:', this.config.globalFilter);
+                    return;
+                }
+
+                this.debug('Configuration du filtre sur l\'input:', input);
+
+                input.addEventListener('input', (e) => {
+                    this.debug('Événement input déclenché:', e.target.value);
+
+                    if (this.filterTimeout) {
+                        clearTimeout(this.filterTimeout);
+                    }
+
+                    this.filterTimeout = setTimeout(() => {
+                        this.filterValue = e.target.value.toLowerCase().trim();
+                        this.debug('Filtrage avec la valeur:', this.filterValue);
+                        this.currentPage = 1;
+                        this.refresh();
+
+                        // Déclencher l'événement onFilter s'il existe
+                        if (this.table.options.onFilter) {
+                            this.table.options.onFilter(this.filterValue);
+                        }
+                    }, this.config.debounceTime);
+                });
+            }
+
+            createContainer() {
+                if (!this.table?.table) {
+                    this.debug('Table non disponible');
+                    return null;
+                }
+
+                const tableId = this.table.table.id;
+                if (!tableId) {
+                    this.debug('Table sans ID');
+                    return null;
+                }
+
+                // Créer le conteneur principal s'il n'existe pas déjà
+                let container = document.getElementById(tableId + '-pagination');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = tableId + '-pagination';
+                    container.className = 'pagination-container';
+
+                    // Créer le sélecteur de taille de page
+                    if (this.config.showPageSizes) {
+                        const pageSizeContainer = document.createElement('div');
+                        pageSizeContainer.className = 'page-size-container';
+
+                        const label = document.createElement('label');
+                        label.textContent = this.config.labels.pageSize;
+                        pageSizeContainer.appendChild(label);
+
+                        const select = document.createElement('select');
+                        select.className = 'page-size-select';
+                        this.config.pageSizes.forEach(size => {
+                            const option = document.createElement('option');
+                            option.value = size;
+                            option.textContent = size;
+                            if (size === this.config.pageSize) {
+                                option.selected = true;
+                            }
+                            select.appendChild(option);
+                        });
+
+                        select.addEventListener('change', (e) => {
+                            this.config.pageSize = parseInt(e.target.value, 10);
+                            this.currentPage = 1;
+                            this.refresh();
+                        });
+
+                        pageSizeContainer.appendChild(select);
+                        container.appendChild(pageSizeContainer);
+                    }
+
+                    // Créer la pagination
+                    const paginationContainer = document.createElement('div');
+                    paginationContainer.className = 'pagination-buttons';
+                    container.appendChild(paginationContainer);
+
+                    // Créer l'info
+                    if (this.config.showInfo) {
+                        const infoContainer = document.createElement('div');
+                        infoContainer.className = 'pagination-info';
+                        container.appendChild(infoContainer);
+                    }
+
+                    // Insérer après la table
+                    const parent = this.table.table.parentNode;
+                    if (parent && this.table.table.nextSibling) {
+                        parent.insertBefore(container, this.table.table.nextSibling);
+                    } else if (parent) {
+                        parent.appendChild(container);
+                    }
+                }
+
+                this.container = container;
+                this.debug('Conteneur créé:', container);
+                return container;
+            }
+
+            createPageButton(text, page, isDisabled = false) {
+                const button = document.createElement('button');
+                button.innerHTML = text; 
+                button.className = `${this.config.btnClass} page-button`;
+
+                if (isDisabled) {
+                    button.classList.add(this.config.disabledClass);
+                } else {
+                    button.addEventListener('click', () => this.goToPage(page));
+                }
+
+                if (page === this.currentPage) {
+                    button.classList.add(this.config.activeClass);
+                }
+
+                return button;
+            }
+
+            updatePagination() {
+                if (!this.container) return;
+
+                const paginationContainer = this.container.querySelector('.pagination-buttons');
+                if (!paginationContainer) return;
+
+                // Vider le conteneur de pagination
+                paginationContainer.innerHTML = '';
+
+                // Ajouter les boutons de navigation
+                const buttons = [];
+
+                // Bouton première page
+                buttons.push(this.createPageButton(this.config.labels.first, 1, this.currentPage === 1));
+
+                // Bouton précédent
+                buttons.push(this.createPageButton(this.config.labels.prev, this.currentPage - 1, this.currentPage === 1));
+
+                // Calculer les pages à afficher
+                let startPage = Math.max(1, this.currentPage - 2);
+                let endPage = Math.min(this.totalPages, startPage + 4);
+                
+                // Ajuster si on est proche de la fin
+                if (endPage - startPage < 4) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+
+                // Ajouter les boutons de page
+                for (let i = startPage; i <= endPage; i++) {
+                    buttons.push(this.createPageButton(i.toString(), i, false));
+                }
+
+                // Bouton suivant
+                buttons.push(this.createPageButton(this.config.labels.next, this.currentPage + 1, this.currentPage === this.totalPages));
+
+                // Bouton dernière page
+                buttons.push(this.createPageButton(this.config.labels.last, this.totalPages, this.currentPage === this.totalPages));
+
+                // Ajouter tous les boutons au conteneur
+                buttons.forEach(button => paginationContainer.appendChild(button));
+            }
+
+            updateInfo() {
+                if (!this.container) return;
+
+                const infoContainer = this.container.querySelector('.pagination-info');
+                if (!infoContainer) return;
+
+                const filteredRows = this.getFilteredRows();
+                const start = (this.currentPage - 1) * this.config.pageSize + 1;
+                const end = Math.min(start + this.config.pageSize - 1, filteredRows.length);
+                const total = filteredRows.length;
+
+                const info = this.config.labels.info
+                    .replace('{start}', start)
+                    .replace('{end}', end)
+                    .replace('{total}', total);
+
+                infoContainer.textContent = info;
+            }
+
+            getFilteredRows() {
+                if (!this.table) {
+                    this.debug('Table non disponible');
+                    return [];
+                }
+
+                const allRows = this.table.getAllRows();
+                this.debug('Lignes totales:', allRows.length);
+
+                if (!this.filterValue) {
+                    this.debug('Pas de valeur de filtre, retour de toutes les lignes', this.filterValue);
+                    return allRows;
+                }
+
+                return allRows.filter(row => {
+                    const cells = Array.from(row.cells);
+                    return cells.some(cell => {
+                        const value = this.getCellValue(cell);
+                        return value.toLowerCase().includes(this.filterValue);
+                    });
+                });
+            }
+
+            getCellValue(cell) {
+                if (!cell) return '';
+                const wrapper = cell.querySelector('.cell-wrapper');
+                return (wrapper ? wrapper.textContent : cell.textContent).trim();
+            }
+
+            goToPage(page) {
+                if (page < 1 || page > this.totalPages) return;
+                this.currentPage = page;
+                this.refresh();
             }
 
             refresh() {
-                this.applyFilterAndPagination();
+                if (!this.table || !this.container) {
+                    this.debug('Table ou conteneur non disponible');
+                    return;
+                }
+
+                // Récupérer les lignes filtrées
+                const filteredRows = this.getFilteredRows();
+                this.debug('Refresh - Lignes filtrées:', filteredRows.length);
+
+                // Calculer la pagination
+                const totalRows = filteredRows.length;
+                this.totalPages = Math.max(1, Math.ceil(totalRows / this.config.pageSize));
+                this.currentPage = Math.min(this.currentPage, this.totalPages);
+
+                // Appliquer la pagination
+                const start = (this.currentPage - 1) * this.config.pageSize;
+                const end = Math.min(start + this.config.pageSize, totalRows);
+                const visibleRows = filteredRows.slice(start, end);
+
+                // Masquer toutes les lignes d'abord
+                const allRows = this.table.getAllRows();
+                allRows.forEach(row => {
+                    row.style.display = 'none';
+                });
+
+                // Afficher uniquement les lignes visibles
+                visibleRows.forEach(row => {
+                    row.style.display = '';
+                });
+
+                // Mettre à jour l'interface de pagination
+                this.updatePagination();
+                if (this.config.showInfo) {
+                    this.updateInfo();
+                }
+
+                // Émettre un événement de mise à jour
+                const event = new CustomEvent('paginationUpdated', {
+                    detail: {
+                        currentPage: this.currentPage,
+                        totalPages: this.totalPages,
+                        pageSize: this.config.pageSize,
+                        totalRows: totalRows,
+                        visibleRows: visibleRows.length
+                    },
+                    bubbles: true
+                });
+                this.table.table.dispatchEvent(event);
             }
 
             destroy() {
-                const { container } = this.context;
-                
-                // Supprimer les conteneurs UI
-                container.querySelector(`.${this.config.filterContainerClass}`)?.remove();
-                container.querySelector(`.${this.config.paginationContainerClass}`)?.remove();
-                container.querySelector(`.${this.config.pageSizeContainerClass}`)?.remove();
-                
-                // Réinitialiser l'affichage des lignes
-                this.context.getRows().forEach(row => row.style.display = '');
-                
-                this.context = null;
+                if (this.container) {
+                    this.container.remove();
+                }
+
+                // Réinitialiser toutes les lignes
+                if (this.table?.table) {
+                    const rows = this.table.table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        row.style.display = '';
+                    });
+                }
+
+                this.table = null;
+                this.container = null;
+                this.debug('Plugin détruit');
+            }
+
+            debug(message, data = null) {
+                if (this.table?.options?.debug) {
+                    console.log(`[filterandpaginate] ${message}`, data || '');
+                }
             }
         };
     }
 
     // Export pour ES modules
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = FilterAndPaginatePlugin;
+        module.exports = filterandpaginateplugin;
     } else if (typeof exports !== 'undefined') {
-        exports.FilterAndPaginatePlugin = FilterAndPaginatePlugin;
+        exports.filterandpaginateplugin = filterandpaginateplugin;
     }
 })();

@@ -1,4 +1,9 @@
-<div class="glass-timeline timeline__block-content" id="timeline__block-{{ suId }}" tm-id="#tooltip__content-{{ suId }}" data-su-id="{{ suId }}" ondblclick="showUpdateBlock('{{WEB_PAGES}}',{{suId}})">
+<div class="glass-timeline timeline__block-content"
+    id="timeline__block-{{ suId }}"
+    data-tooltip-content="tooltip__content-{{ suId }}"
+    data-tooltip-interactive="true"
+    data-su-id="{{ suId }}"
+    ondblclick="showUpdateBlock('{{WEB_PAGES}}',{{suId}})">
     {% if merged==0 %}
         <div class="timeline__block-service">
                 {{ shortName }}

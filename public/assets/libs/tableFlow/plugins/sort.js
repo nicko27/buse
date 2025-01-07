@@ -1,237 +1,270 @@
-class SortPlugin {
-    constructor(config = {}) {
-        this.config = {
-            sortableClass: 'sortable',
-            ascClass: 'sort-asc',
-            descClass: 'sort-desc',
-            sortIconClass: 'sort-icon',
-            multiSort: false,
-            defaultSort: [],
-            customSorts: {},
-            ...config
-        };
-        
-        this.context = null;
-        this.currentSort = [];
-    }
-
-    async init(context) {
-        this.context = context;
-        
-        // Initialiser le tri par défaut
-        this.currentSort = [...this.config.defaultSort];
-        
-        // Configurer les en-têtes triables
-        this.setupSortableHeaders();
-        
-        // Appliquer le tri initial
-        if (this.currentSort.length > 0) {
-            this.applySort();
-        }
-    }
-
-    setupSortableHeaders() {
-        const headers = this.context.getHeaders();
-        headers.forEach(header => {
-            if (this.isHeaderSortable(header)) {
-                this.setupSortableHeader(header);
+(function() {
+    if (typeof window.sortPlugin === 'undefined') {
+        window.sortPlugin = class sortplugin {
+            constructor(config = {}) {
+                this.options = {
+                    sortableAttribute: 'th-sort',
+                    showIcons: true,
+                    icons: {
+                        asc: '<i class="fa fa-sort-asc"></i>',
+                        desc: '<i class="fa fa-sort-desc"></i>',
+                        none: '<i class="fa fa-sort"></i>'
+                    },
+                    ignoreCase: true,
+                    ...config
+                };
+                
+                this.table = null;
+                this.currentSortColumn = null;
+                this.currentDirection = null;
+                this.sortableColumns = new Map();
+                this.originalOrder = [];
             }
-        });
-    }
 
-    isHeaderSortable(header) {
-        return header.classList.contains(this.config.sortableClass) || 
-               header.hasAttribute('data-sortable');
-    }
+            init(tableHandler) {
+                this.table = tableHandler;
+                console.log('[SortPlugin] Initializing...');
 
-    setupSortableHeader(header) {
-        // Ajouter l'icône de tri
-        const wrapper = header.querySelector('.head-wrapper');
-        const icon = document.createElement('span');
-        icon.className = this.config.sortIconClass;
-        wrapper.appendChild(icon);
+                if (!this.table?.table) {
+                    console.error('[SortPlugin] Table not available');
+                    return;
+                }
 
-        // Ajouter l'écouteur de clic
-        header.addEventListener('click', (event) => this.handleHeaderClick(event));
-    }
+                // Stocker les indices originaux
+                const rows = this.table.getAllRows();
+                rows.forEach((row, index) => {
+                    row.setAttribute('data-original-index', index.toString());
+                });
 
-    handleHeaderClick(event) {
-        const header = event.target.closest('th');
-        if (!header || !this.isHeaderSortable(header)) return;
+                // Trouver les en-têtes triables
+                const headers = Array.from(this.table.table.querySelectorAll('th'));
+                const sortableHeaders = headers.filter(header => header.hasAttribute(this.options.sortableAttribute));
+                console.log('[SortPlugin] Found sortable headers:', sortableHeaders.length);
 
-        event.preventDefault();
-        
-        const columnId = header.id;
-        const currentSortIndex = this.currentSort.findIndex(sort => sort.column === columnId);
-        
-        if (currentSortIndex !== -1) {
-            // Inverser la direction si la colonne est déjà triée
-            if (this.currentSort[currentSortIndex].direction === 'asc') {
-                this.currentSort[currentSortIndex].direction = 'desc';
-            } else {
-                // Retirer le tri si on clique une troisième fois
-                this.currentSort.splice(currentSortIndex, 1);
+                // Créer un mapping des colonnes triables
+                this.sortableColumns = new Map();
+                sortableHeaders.forEach(header => {
+                    const columnIndex = Array.from(header.parentElement.children).indexOf(header);
+                    console.log('Column', header.id, 'has index', columnIndex);
+                    this.sortableColumns.set(header, columnIndex);
+                    this.setupSortColumn(header, columnIndex);
+                });
             }
-        } else {
-            // Ajouter un nouveau tri
-            const newSort = {
-                column: columnId,
-                direction: 'asc'
-            };
-            
-            if (this.config.multiSort && event.shiftKey) {
-                this.currentSort.push(newSort);
-            } else {
-                this.currentSort = [newSort];
+
+            setupSortColumn(header, index) {
+                if (!header || header.hasAttribute('data-sort-initialized')) {
+                    return;
+                }
+
+                // Ajouter la classe de style
+                header.classList.add('sortable');
+                
+                // Ajouter l'indicateur de tri
+                const indicator = document.createElement('span');
+                indicator.className = 'sort-indicator';
+                indicator.innerHTML = this.options.icons.none;
+                header.appendChild(indicator);
+
+                // Gérer le clic
+                const clickHandler = () => this.handleHeaderClick(header, index);
+                header.addEventListener('click', clickHandler);
+                header._sortClickHandler = clickHandler; // Stocker pour pouvoir le retirer plus tard
+                
+                // Marquer comme initialisé
+                header.setAttribute('data-sort-initialized', 'true');
+                header.setAttribute('data-sort-direction', 'none');
             }
-        }
 
-        this.applySort();
-    }
+            handleHeaderClick(header, columnIndex) {
+                if (!header || typeof columnIndex !== 'number') {
+                    console.error('[SortPlugin] Invalid header click parameters');
+                    return;
+                }
 
-    applySort() {
-        if (this.currentSort.length === 0) {
-            this.resetSort();
-            return;
-        }
+                // Déterminer la direction
+                const currentDirection = header.getAttribute('data-sort-direction') || 'none';
+                let newDirection;
+                
+                switch (currentDirection) {
+                    case 'none':
+                        newDirection = 'asc';
+                        break;
+                    case 'asc':
+                        newDirection = 'desc';
+                        break;
+                    default:
+                        newDirection = 'none';
+                }
 
-        // Mettre à jour les classes des en-têtes
-        this.updateHeaderClasses();
+                // Réinitialiser tous les autres en-têtes
+                const allHeaders = this.table.table.querySelectorAll(`th[${this.options.sortableAttribute}]`);
+                allHeaders.forEach(h => {
+                    if (h !== header) {
+                        h.setAttribute('data-sort-direction', 'none');
+                        h.classList.remove('asc', 'desc');
+                        const indicator = h.querySelector('.sort-indicator');
+                        if (indicator) {
+                            indicator.innerHTML = this.options.icons.none;
+                        }
+                    }
+                });
 
-        // Trier les lignes
-        const rows = Array.from(this.context.getRows());
-        const sortedRows = this.sortRows(rows);
+                // Mettre à jour l'en-tête actuel
+                header.setAttribute('data-sort-direction', newDirection);
+                header.classList.remove('asc', 'desc');
+                
+                // Mettre à jour l'indicateur
+                const indicator = header.querySelector('.sort-indicator');
+                if (indicator) {
+                    indicator.innerHTML = this.options.icons[newDirection] || this.options.icons.none;
+                }
 
-        // Réorganiser les lignes dans le tableau
-        const tbody = rows[0].parentNode;
-        sortedRows.forEach(row => tbody.appendChild(row));
-    }
+                if (newDirection !== 'none') {
+                    header.classList.add(newDirection);
+                    this.sortColumn(columnIndex, newDirection);
+                } else {
+                    this.resetSort();
+                }
 
-    sortRows(rows) {
-        return rows.sort((rowA, rowB) => {
-            for (const sort of this.currentSort) {
-                const result = this.compareRows(rowA, rowB, sort);
-                if (result !== 0) {
-                    return sort.direction === 'asc' ? result : -result;
+                // Mettre à jour l'état interne
+                this.currentSortColumn = newDirection !== 'none' ? columnIndex : null;
+                this.currentDirection = newDirection;
+            }
+
+            normalizeString(str) {
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+
+            sortColumn(columnIndex, direction) {
+                if (!this.table || typeof columnIndex !== 'number') return;
+
+                const allRows = this.table.getAllRows();
+                if (!allRows || !allRows.length) return;
+
+                const header = this.table.getHeaderCell(columnIndex);
+                if (!header) return;
+
+                // Préparer les données pour le tri
+                const rowsWithData = allRows.map(row => {
+                    const cell = row.cells[columnIndex];
+                    let value = cell ? cell.textContent.trim() : '';
+                    
+                    // Debug
+                    console.log('Raw value for row', row.id, ':', value);
+                    
+                    return [row, value];
+                });
+
+                // Tri avec gestion spéciale des colonnes
+                rowsWithData.sort(([, a], [, b]) => {
+                    if (a === b) return 0;
+                    return direction === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+                });
+
+                // Réorganiser les lignes
+                const tbody = this.table.table.querySelector('tbody');
+                if (!tbody) return;
+
+                const fragment = document.createDocumentFragment();
+                rowsWithData.forEach(([row]) => fragment.appendChild(row));
+                tbody.innerHTML = '';
+                tbody.appendChild(fragment);
+
+                this.table.table.dispatchEvent(new CustomEvent('sortAppened', {
+                    detail: { column: columnIndex, direction },
+                    bubbles: true
+                }));
+            }
+
+            resetSort() {
+                if (!this.table) {
+                    console.error('[SortPlugin] Table not available');
+                    return;
+                }
+
+                const allRows = this.table.getAllRows();
+                if (!allRows || !allRows.length) {
+                    console.error('[SortPlugin] No rows to reset');
+                    return;
+                }
+
+                // Trier par l'index original
+                const rowsWithIndices = allRows.map(row => {
+                    const index = parseInt(row.getAttribute('data-original-index') || '0', 10);
+                    return [row, index];
+                });
+
+                rowsWithIndices.sort(([, indexA], [, indexB]) => indexA - indexB);
+
+                // Réorganiser les lignes dans le DOM en utilisant un fragment
+                const tbody = this.table.table.querySelector('tbody');
+                if (!tbody) {
+                    console.error('[SortPlugin] Table body not found');
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                rowsWithIndices.forEach(([row]) => {
+                    fragment.appendChild(row);
+                });
+                tbody.innerHTML = '';
+                tbody.appendChild(fragment);
+
+                // Réinitialiser les en-têtes
+                const headers = this.table.table.querySelectorAll(`th[${this.options.sortableAttribute}]`);
+                headers.forEach(header => {
+                    header.setAttribute('data-sort-direction', 'none');
+                    header.classList.remove('asc', 'desc');
+                    const indicator = header.querySelector('.sort-indicator');
+                    if (indicator) {
+                        indicator.innerHTML = this.options.icons.none;
+                    }
+                });
+
+                // Réinitialiser l'état interne
+                this.currentSortColumn = null;
+                this.currentDirection = null;
+
+                // Émettre l'événement de réinitialisation
+                const event = new CustomEvent('sortAppened', {
+                    detail: {
+                        column: null,
+                        direction: 'none'
+                    },
+                    bubbles: true
+                });
+                this.table.table.dispatchEvent(event);
+            }
+
+            destroy() {
+                if (!this.table?.table) return;
+
+                // Supprimer les gestionnaires d'événements et les indicateurs
+                const headers = this.table.table.querySelectorAll(`th[${this.options.sortableAttribute}]`);
+                headers.forEach(header => {
+                    if (header._sortClickHandler) {
+                        header.removeEventListener('click', header._sortClickHandler);
+                        delete header._sortClickHandler;
+                    }
+                    header.removeAttribute('data-sort-initialized');
+                    header.removeAttribute('data-sort-direction');
+                    header.classList.remove('sortable', 'asc', 'desc');
+                    const indicator = header.querySelector('.sort-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                });
+
+                // Réinitialiser l'état
+                this.currentSortColumn = null;
+                this.currentDirection = null;
+            }
+
+            debug(message, data = null) {
+                if (this.table?.options?.debug) {
+                    console.log(`[${this.name}] ${message}`, data || '');
                 }
             }
-            return 0;
-        });
-    }
-
-    compareRows(rowA, rowB, sort) {
-        const columnIndex = this.getColumnIndex(sort.column);
-        const cellA = rowA.cells[columnIndex];
-        const cellB = rowB.cells[columnIndex];
-        
-        // Utiliser un comparateur personnalisé s'il existe
-        if (this.config.customSorts[sort.column]) {
-            return this.config.customSorts[sort.column](cellA, cellB);
-        }
-
-        // Détecter le type de données
-        const valueA = this.getCellValue(cellA);
-        const valueB = this.getCellValue(cellB);
-        
-        if (this.isNumeric(valueA) && this.isNumeric(valueB)) {
-            return parseFloat(valueA) - parseFloat(valueB);
-        }
-        
-        if (this.isDate(valueA) && this.isDate(valueB)) {
-            return new Date(valueA) - new Date(valueB);
-        }
-        
-        return valueA.localeCompare(valueB);
-    }
-
-    getCellValue(cell) {
-        return cell.getAttribute('data-sort-value') || 
-               cell.textContent.trim();
-    }
-
-    isNumeric(value) {
-        return !isNaN(parseFloat(value)) && isFinite(value);
-    }
-
-    isDate(value) {
-        const date = new Date(value);
-        return date instanceof Date && !isNaN(date);
-    }
-
-    getColumnIndex(columnId) {
-        const headers = this.context.getHeaders();
-        return Array.from(headers).findIndex(header => header.id === columnId);
-    }
-
-    updateHeaderClasses() {
-        // Réinitialiser toutes les classes de tri
-        const headers = this.context.getHeaders();
-        headers.forEach(header => {
-            header.classList.remove(this.config.ascClass, this.config.descClass);
-        });
-
-        // Appliquer les classes pour le tri actuel
-        this.currentSort.forEach(sort => {
-            const header = this.context.getColumnById(sort.column);
-            if (header) {
-                header.classList.add(
-                    sort.direction === 'asc' ? 
-                    this.config.ascClass : 
-                    this.config.descClass
-                );
-            }
-        });
-    }
-
-    resetSort() {
-        // Réinitialiser les classes des en-têtes
-        const headers = this.context.getHeaders();
-        headers.forEach(header => {
-            header.classList.remove(this.config.ascClass, this.config.descClass);
-        });
-
-        // Restaurer l'ordre initial des lignes
-        const rows = Array.from(this.context.getRows());
-        rows.sort((a, b) => {
-            return parseInt(a.dataset.initialIndex || '0') - 
-                   parseInt(b.dataset.initialIndex || '0');
-        });
-
-        // Réorganiser les lignes
-        const tbody = rows[0].parentNode;
-        rows.forEach(row => tbody.appendChild(row));
-    }
-
-    refresh() {
-        if (this.currentSort.length > 0) {
-            this.applySort();
         }
     }
-
-    destroy() {
-        // Réinitialiser le tri
-        this.currentSort = [];
-        this.resetSort();
-        
-        // Nettoyer les en-têtes
-        const headers = this.context.getHeaders();
-        headers.forEach(header => {
-            const icon = header.querySelector(`.${this.config.sortIconClass}`);
-            if (icon) {
-                icon.remove();
-            }
-            header.classList.remove(
-                this.config.sortableClass,
-                this.config.ascClass,
-                this.config.descClass
-            );
-        });
-        
-        this.context = null;
-    }
-}
-
-// Enregistrer le plugin
-if (typeof window !== 'undefined') {
-    window.SortPlugin = SortPlugin;
-}
+})();

@@ -7,7 +7,6 @@ export class InstancePluginManager {
      */
     constructor(instance) {
         this.instance = instance;
-        this.tableContext = instance.tableContext;
         /** @type {Map<string, Plugin>} */
         this.activePlugins = new Map();
     }
@@ -35,30 +34,10 @@ export class InstancePluginManager {
             config: mergedConfig
         };
 
-        // Créer le contexte spécifique au plugin
-        const pluginContext = this.createPluginContext(name);
-
         // Initialisation du plugin pour cette instance
-        await instancePlugin.init(pluginContext);
+        await instancePlugin.init(this.instance);
         
         this.activePlugins.set(name, instancePlugin);
-    }
-
-    /**
-     * Crée un contexte spécifique pour un plugin
-     * @param {string} pluginName - Nom du plugin
-     * @returns {PluginContext}
-     */
-    createPluginContext(pluginName) {
-        return {
-            ...this.tableContext,
-            pluginName,
-            getPlugin: (name) => this.getPlugin(name),
-            attachToElement: (element) => {
-                element.dataset.plugin = pluginName;
-                return element;
-            }
-        };
     }
 
     /**
@@ -72,7 +51,7 @@ export class InstancePluginManager {
         }
 
         // Utilisation du chemin configuré ou du chemin par défaut
-        const pluginsPath = this.instance.config.pluginsPath || '/buse/public/assets/libs/tableFlow/plugins';
+        const pluginsPath = this.instance.config.pluginsPath || '/buse/public/assets/libs/nvTblHandler/plugins';
         const url = `${pluginsPath}/${name}.js`;
         return pluginRegistry.load(name, url);
     }
@@ -84,8 +63,7 @@ export class InstancePluginManager {
     async deactivate(name) {
         const plugin = this.activePlugins.get(name);
         if (plugin) {
-            const pluginContext = this.createPluginContext(name);
-            await plugin.destroy(pluginContext);
+            await plugin.destroy();
             this.activePlugins.delete(name);
         }
     }
@@ -123,24 +101,12 @@ export class InstancePluginManager {
     }
 
     /**
-     * Rafraîchit tous les plugins actifs
+     * Désactive tous les plugins
      */
-    async refreshAll() {
-        for (const [name, plugin] of this.activePlugins) {
-            if (typeof plugin.refresh === 'function') {
-                const pluginContext = this.createPluginContext(name);
-                await plugin.refresh(pluginContext);
-            }
-        }
-    }
-
-    /**
-     * Détruit tous les plugins actifs
-     */
-    async destroyAll() {
-        for (const [name, plugin] of this.activePlugins) {
-            await this.deactivate(name);
-        }
-        this.activePlugins.clear();
+    async deactivateAll() {
+        const deactivatePromises = Array.from(this.activePlugins.keys())
+            .map(name => this.deactivate(name));
+        
+        await Promise.all(deactivatePromises);
     }
 }

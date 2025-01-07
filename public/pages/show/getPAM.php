@@ -5,6 +5,7 @@ use Commun\Config\Config;
 use Commun\Database\SqlManager;
 use Commun\Logger\Logger;
 use Commun\Utils\StringUtils;
+use Commun\Utils\TphUtils;
 
 $config     = Config::getInstance();
 $logger     = Logger::getInstance()->getLogger();
@@ -57,7 +58,7 @@ try {
     $stmt->execute();
     $resultat = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($resultat) {
-        $tph         = $resultat["tph"];
+        $tph         = TphUtils::formatPhoneWithZeros($resultat["tph"]);
         $nom         = StringUtils::truncateMiddle($resultat["nom"], $config->get("TRUNCATE_PAM_LEN"));
         $returnValue = array("nom" => $nom, "tph" => $tph, "erreur" => 0, "msgError" => "", "cu" => $cu);
     } else {

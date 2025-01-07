@@ -83,19 +83,26 @@ function getLastCaseTime(case_pos_now, interval, nb_quart_heure, debug_hour) {
  * Met à jour les heures sur la grille.
  */
 function updateHours(nb_quart_heure, case_pos_now, interval, debug_hour) {
-    document.querySelectorAll('.grid_hours').forEach(hour => hour.remove());
+    const grids = document.querySelectorAll('.grid__cie');
+    
+    // Supprimer les anciens overlays
+    document.querySelectorAll('.overlay.grid_hours').forEach(overlay => overlay.remove());
+    
     const first_case_time = getFirstCaseTime(case_pos_now, interval, debug_hour);
-
+    
+    // Créer les nouveaux overlays pour chaque quart d'heure
     for (let i = 0; i < nb_quart_heure; i++) {
         const case_time = new Date(first_case_time.getTime() + i * interval * 60000);
         const case_hour = case_time.getHours();
         const case_minute = case_time.getMinutes();
 
-        const overlay = document.createElement('div');
-        overlay.className = `overlay grid_hours gpc-${i + 1}`;
-        overlay.textContent = case_minute === 0 ? `${case_hour}h` : '';
-
-        document.querySelector('.grid__cie').appendChild(overlay);
+        // Pour chaque grille, créer un overlay
+        grids.forEach(grid => {
+            const overlay = document.createElement('div');
+            overlay.className = `overlay grid_hours gpc-${i + 1}`;
+            overlay.textContent = case_minute === 0 ? `${case_hour}h` : '';
+            grid.appendChild(overlay);
+        });
     }
 }
 
