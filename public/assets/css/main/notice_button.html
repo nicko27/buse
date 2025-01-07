@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide des Styles de Boutons</title>
+    <link rel="stylesheet" href="buttons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0f172a;
+            margin-bottom: 3rem;
+        }
+
+        .section {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: #334155;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .demo-item {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            background: #f8fafc;
+        }
+
+        .demo-item h3 {
+            margin: 0;
+            color: #475569;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .code-example {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+        }
+
+        .glass-background {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-background::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Guide des Styles de Boutons</h1>
+
+    <!-- Bouton Minimal -->
+    <section class="section">
+        <h2>Style Minimal</h2>
+        <div class="demo-grid">
+            <div class="demo-item">
+                <h3>Bouton Minimal avec Icône</h3>
+                <button class="btn btn-minimal">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Envoyer</span>
+                </button>
+                <div class="code-example">
+&lt;button class="btn btn-minimal"&gt;
+    &lt;i class="fas fa-paper-plane"&gt;&lt;/i&gt;
+    &lt;span&gt;Envoyer&lt;/span&gt;
+&lt;/button&gt;</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Boutons Glass -->
+    <section class="section">
+        <h2>Effets Glass</h2>
+        <div class="glass-background">
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>Bouton Glass Standard</h3>
+                    <button class="btn btn-glass">
+                        <i class="fas fa-star"></i>
+                        <span>Standard</span>
+                    </button>
+                    <div class="code-example">&lt;button class="btn btn-glass"&gt;
+    &lt;i class="fas fa-star"&gt;&lt;/i&gt;
+    &lt;span&gt;Standard&lt;/span&gt;
+&lt;/button&gt;</div>
+                </div>
+                <div class="demo-item">
+                    <h3>Bouton Glass Bleu</h3>
+                    <button class="btn btn-glass btn-glass-blue">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Information</span>
+                    </button>
+                    <div class="code-example">&lt;button class="btn btn-glass btn-glass-blue"&gt;
+    &lt;i class="fas fa-info-circle"&gt;&lt;/i&gt;
+    &lt;span&gt;Information&lt;/span&gt;
+&lt;/button&gt;</div>
+                </div>
+                <div class="demo-item">
+                    <h3>Bouton Glass Vert</h3>
+                    <button class="btn btn-glass btn-glass-green">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Succès</span>
+                    </button>
+                    <div class="code-example">&lt;button class="btn btn-glass btn-glass-green"&gt;
+    &lt;i class="fas fa-check-circle"&gt;&lt;/i&gt;
+    &lt;span&gt;Succès&lt;/span&gt;
+&lt;/button&gt;</div>
+                </div>
+                <div class="demo-item">
+                    <h3>Bouton Glass Jaune</h3>
+                    <button class="btn btn-glass btn-glass-yellow">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Attention</span>
+                    </button>
+                    <div class="code-example">&lt;button class="btn btn-glass btn-glass-yellow"&gt;
+    &lt;i class="fas fa-exclamation-triangle"&gt;&lt;/i&gt;
+    &lt;span&gt;Attention&lt;/span&gt;
+&lt;/button&gt;</div>
+                </div>
+                <div class="demo-item">
+                    <h3>Bouton Glass Rouge</h3>
+                    <button class="btn btn-glass btn-glass-red">
+                        <i class="fas fa-times-circle"></i>
+                        <span>Erreur</span>
+                    </button>
+                    <div class="code-example">&lt;button class="btn btn-glass btn-glass-red"&gt;
+    &lt;i class="fas fa-times-circle"&gt;&lt;/i&gt;
+    &lt;span&gt;Erreur&lt;/span&gt;
+&lt;/button&gt;</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 2rem;">
+            <h3>Caractéristiques des Boutons en Verre</h3>
+            <ul style="line-height: 1.6;">
+                <li>Effet de flou (blur) de 10px pour un effet de verre</li>
+                <li>Bordures avec opacité variable pour un effet de profondeur</li>
+                <li>Animation de brillance au survol</li>
+                <li>Translation Y et ombres dynamiques</li>
+                <li>Variantes de couleurs avec effets de dégradé</li>
+                <li>Compatible avec les icônes Font Awesome</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Boutons avec Dégradés -->
+    <section class="section">
+        <h2>Boutons avec Dégradés</h2>
+        <div class="demo-grid">
+            <div class="demo-item">
+                <h3>Forest (avec effet de survol vertical)</h3>
+                <button class="btn btn-gradient-forest hover-lift">
+                    <i class="fas fa-leaf"></i>
+                    <span>Nature</span>
+                </button>
+                <div class="code-example">
+&lt;button class="btn btn-gradient-forest hover-lift"&gt;
+    &lt;i class="fas fa-leaf"&gt;&lt;/i&gt;
+    &lt;span&gt;Nature&lt;/span&gt;
+&lt;/button&gt;</div>
+            </div>
+            <div class="demo-item">
+                <h3>Ocean (sans effet de survol vertical)</h3>
+                <button class="btn btn-gradient-ocean">
+                    <i class="fas fa-water"></i>
+                    <span>Ocean</span>
+                </button>
+                <div class="code-example">
+&lt;button class="btn btn-gradient-ocean"&gt;
+    &lt;i class="fas fa-water"&gt;&lt;/i&gt;
+    &lt;span&gt;Ocean&lt;/span&gt;
+&lt;/button&gt;</div>
+            </div>
+            <div class="demo-item">
+                <h3>Lavender</h3>
+                <button class="btn btn-gradient-lavender hover-lift">
+                    <i class="fas fa-spa"></i>
+                    <span>Zen</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Sunset</h3>
+                <button class="btn btn-gradient-sunset">
+                    <i class="fas fa-sun"></i>
+                    <span>Sunset</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Rose</h3>
+                <button class="btn btn-gradient-rose hover-lift">
+                    <i class="fas fa-heart"></i>
+                    <span>Love</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Mint</h3>
+                <button class="btn btn-gradient-mint">
+                    <i class="fas fa-leaf"></i>
+                    <span>Fresh</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Royal</h3>
+                <button class="btn btn-gradient-royal hover-lift">
+                    <i class="fas fa-crown"></i>
+                    <span>Royal</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- États des Boutons -->
+    <section class="section">
+        <h2>États des Boutons</h2>
+        <div class="demo-grid">
+            <div class="demo-item">
+                <h3>Bouton Désactivé</h3>
+                <button class="btn btn-gradient-ocean" disabled>
+                    <i class="fas fa-ban"></i>
+                    <span>Désactivé</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Bouton Chargement</h3>
+                <button class="btn btn-gradient-forest loading">
+                    <span>Chargement...</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tailles -->
+    <section class="section">
+        <h2>Variations de Taille</h2>
+        <div class="demo-grid">
+            <div class="demo-item">
+                <h3>Petit</h3>
+                <button class="btn btn-gradient-mint btn-sm">
+                    <i class="fas fa-check"></i>
+                    <span>Petit</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Normal</h3>
+                <button class="btn btn-gradient-ocean">
+                    <i class="fas fa-check"></i>
+                    <span>Normal</span>
+                </button>
+            </div>
+            <div class="demo-item">
+                <h3>Grand</h3>
+                <button class="btn btn-gradient-royal btn-lg">
+                    <i class="fas fa-check"></i>
+                    <span>Grand</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2>Boutons Bannière en Verre</h2>
+        <div class="demo-grid">
+            <div class="demo-item">
+                <h3>Bannière Standard</h3>
+                <div class="button-container" style="background: linear-gradient(45deg, #2d3748, #1a202c); padding: 2rem; border-radius: 1rem;">
+                    <button class="btn btn-glass-banner">
+                        <div class="banner-content">
+                            <span class="banner-title">Notification</span>
+                            <span class="banner-description">Cliquez pour voir les détails</span>
+                        </div>
+                        <i class="fas fa-chevron-right banner-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <h3>Bannière Succès</h3>
+                <div class="button-container" style="background: linear-gradient(45deg, #2d3748, #1a202c); padding: 2rem; border-radius: 1rem;">
+                    <button class="btn btn-glass-banner success">
+                        <div class="banner-content">
+                            <span class="banner-title">Opération Réussie</span>
+                            <span class="banner-description">Le fichier a été téléchargé</span>
+                        </div>
+                        <i class="fas fa-check-circle banner-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <h3>Bannière Information</h3>
+                <div class="button-container" style="background: linear-gradient(45deg, #2d3748, #1a202c); padding: 2rem; border-radius: 1rem;">
+                    <button class="btn btn-glass-banner info">
+                        <div class="banner-content">
+                            <span class="banner-title">Mise à Jour</span>
+                            <span class="banner-description">Une nouvelle version est disponible</span>
+                        </div>
+                        <i class="fas fa-info-circle banner-icon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="demo-item">
+                <h3>Bannière Avertissement</h3>
+                <div class="button-container" style="background: linear-gradient(45deg, #2d3748, #1a202c); padding: 2rem; border-radius: 1rem;">
+                    <button class="btn btn-glass-banner warning">
+                        <div class="banner-content">
+                            <span class="banner-title">Attention</span>
+                            <span class="banner-description">Action requise de votre part</span>
+                        </div>
+                        <i class="fas fa-exclamation-triangle banner-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

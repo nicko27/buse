@@ -1,0 +1,258 @@
+body {
+    font-family: Roboto, sans-serif;
+}
+
+#permanences {
+    display: flex;
+    flex-direction: column;
+    height: 5000px;
+}
+
+.sites__blk,
+.memos__blk,
+.permanences__blk {
+    display: flex;
+    flex-direction: column;
+    margin-left: 5px;
+    margin-right: 5px;
+    font-size: 22px;
+    margin-top: 5px;
+    cursor: default;
+}
+
+.sites__title,
+.memos__title,
+.permanences__title {
+    font-weight: bold;
+    background: rgb(10, 104, 134);
+    color: white;
+    padding: 5px;
+    border-radius: 5px 5px 0 0;
+    box-shadow: 0 1px 6px black;
+}
+
+.sites__title {
+    background: #ff4d4d;
+}
+
+.memos__title {
+    background: #ff2634;
+}
+
+.sites__content {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    margin: 10px;
+    gap: 10px;
+    color: white;
+    font-weight: bold;
+
+}
+
+.sites__element {
+    text-align: center;
+    text-transform: lowercase;
+    font-variant: small-caps;
+    padding: 10px;
+    box-shadow: 0 1px 5px black;
+    border-radius: 5px 5px 5px 5px;
+}
+
+.memos__content,
+.permanences__content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    height: 280px;
+}
+
+.perm_element {
+    background: #dff4ff;
+    margin-top: 2px;
+    border-radius: 5px;
+    padding: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    display: flex;
+    grid-gap: 10px;
+    justify-content: space-between;
+}
+
+.perm_element:nth-child(2n) {
+    margin-left: 5px;
+}
+
+.perm_element__left {
+    font-weight: bold;
+    align-content: center;
+}
+
+.perm_element__right {}
+
+.perm_element__right-top {
+    font-weight: bold;
+    text-align: right;
+}
+
+.perm_element__right-bottom {
+    text-align: right;
+}
+
+.memos__content {
+    margin: 5px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.memo_element {
+    margin: 5px;
+    background: #da9797;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 1px 6px black;
+}
+
+.memo_element__top {}
+
+.memo_element__top-left {
+    font-style: italic;
+    font-size: 0.8em;
+    grid-column: 1/11;
+}
+
+.memo_element__top-right {
+    grid-column: 12;
+    display: flex;
+}
+
+.memo_element__top-right i {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.memo_element__bottom {
+    font-weight: bold;
+    padding-top: 5px;
+}
+
+
+
+
+.modal__window {
+    position: fixed;
+    background: rgba(50, 50, 50, 1);
+    color: white;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10000;
+    border-radius: 5px;
+}
+
+.modal__permanent,
+.modal__title,
+.modal__hours,
+.modal__block,
+.modal__service,
+.modal__color,
+.modal__memo {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid white;
+    padding: 5px;
+    font-weight: bold;
+    font-variant: small-caps;
+    text-align: center;
+    margin-bottom: 5px;
+    justify-content: space-between;
+}
+
+
+.modal__user {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 100%;
+}
+
+
+
+.modal__user-line {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    width: 100%;
+    min-width: 100%;
+}
+
+.modal__service *,
+.modal__memo * {
+    align-self: center;
+}
+
+
+
+.modal__date {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    margin-top: 5px;
+    padding-right: 5px;
+}
+
+.modal__date label {
+    align-self: center;
+    font-weight: bold;
+    font-variant: small-caps;
+}
+
+.modal__memo {
+    border: none;
+}
+
+.modal__memo textarea {
+    width: 300px;
+}
+
+#modal-overlay {
+    width: 100%;
+    height: 100%;
+    background: gray;
+    position: fixed;
+    left: 0;
+    top: 0;
+    opacity: 0.8;
+    z-index: 9999;
+}
+
+.modal__delete {
+    display: flex;
+    justify-content: center;
+    padding-top: 5px;
+    margin-top: 5px;
+    padding-bottom: 5px;
+    border-top: 1px solid white;
+    font-weight: bold;
+    font-variant: small-caps;
+    color: rgb(184, 78, 78);
+    cursor: default
+}
+
+a {
+    text-decoration: none;
+    color: white;
+}
+
+.perm_element__right-top {
+    line-height: 20px;
+}
+
+.glass {
+    box-shadow: rgba(255, 255, 255, 0.5) -20px -20px 45px inset,
+        rgba(0, 0, 0, 0.1) 10px 10px 20px, rgba(0, 0, 0, 0.06) 5px 5px 10px;
+}

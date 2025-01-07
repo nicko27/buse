@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentation ActionsPlugin - nvTblHandler</title>
+</head>
+<body>
+
+<h1>Documentation ActionsPlugin - nvTblHandler</h1>
+
+<p>Le plugin <code>ActionsPlugin</code> ajoute des boutons d'action aux cellules de votre tableau HTML. Il permet de définir des actions personnalisées avec gestion automatique des états et des confirmations.</p>
+
+<h2>Caractéristiques Principales</h2>
+<ul>
+    <li>Actions personnalisables par colonne</li>
+    <li>Support des icônes et labels</li>
+    <li>Gestion des confirmations</li>
+    <li>Auto-sauvegarde configurable</li>
+    <li>Suivi des modifications</li>
+    <li>Actions conditionnelles</li>
+    <li>Intégration avec les autres plugins</li>
+    <li>Support des actions asynchrones</li>
+</ul>
+
+<h2>Configuration</h2>
+<p>Exemple de configuration du plugin :</p>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Actions: {
+            actionAttribute: 'th-actions',
+            buttonClass: 'th-action-btn',
+            containerClass: 'th-actions',
+            useIcons: true,
+            debug: false,
+            actions: {
+                edit: {
+                    handler: async ({ row, data }) => {
+                        console.log('Edition de la ligne:', data);
+                    },
+                    autoSave: true
+                },
+                delete: {
+                    handler: async ({ row }) => {
+                        await api.deleteRow(row.id);
+                        row.remove();
+                    }
+                },
+                view: (context) => {
+                    showDetails(context.data);
+                }
+            },
+            icons: {
+                edit: '✏️',
+                delete: '🗑️',
+                view: '👁️',
+                add: '➕',
+                save: '💾',
+                cancel: '❌'
+            },
+            labels: {
+                edit: 'Modifier',
+                delete: 'Supprimer',
+                view: 'Voir',
+                add: 'Ajouter',
+                save: 'Enregistrer',
+                cancel: 'Annuler'
+            },
+            confirmMessages: {
+                delete: 'Êtes-vous sûr de vouloir supprimer cet élément ?'
+            }
+        }
+    }
+});</code></pre>
+
+<h2>Options de Configuration</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Défaut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>actionAttribute</code></td>
+            <td>string</td>
+            <td>Attribut HTML pour marquer les colonnes d'actions</td>
+            <td>'th-actions'</td>
+        </tr>
+        <tr>
+            <td><code>buttonClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les boutons d'action</td>
+            <td>'th-action-btn'</td>
+        </tr>
+        <tr>
+            <td><code>containerClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour le conteneur des boutons</td>
+            <td>'th-actions'</td>
+        </tr>
+        <tr>
+            <td><code>useIcons</code></td>
+            <td>boolean</td>
+            <td>Utiliser des icônes pour les boutons</td>
+            <td>true</td>
+        </tr>
+        <tr>
+            <td><code>debug</code></td>
+            <td>boolean</td>
+            <td>Active les logs de débogage</td>
+            <td>false</td>
+        </tr>
+        <tr>
+            <td><code>actions</code></td>
+            <td>object</td>
+            <td>Configuration des actions disponibles</td>
+            <td>{}</td>
+        </tr>
+        <tr>
+            <td><code>icons</code></td>
+            <td>object</td>
+            <td>Icônes pour chaque action</td>
+            <td>{ edit: '✏️', ... }</td>
+        </tr>
+        <tr>
+            <td><code>labels</code></td>
+            <td>object</td>
+            <td>Labels pour chaque action</td>
+            <td>{ edit: 'Modifier', ... }</td>
+        </tr>
+        <tr>
+            <td><code>confirmMessages</code></td>
+            <td>object</td>
+            <td>Messages de confirmation par action</td>
+            <td>{ delete: '...' }</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Actions Disponibles</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Action</th>
+            <th>Description</th>
+            <th>Options</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>edit</td>
+            <td>Mode édition de la ligne</td>
+            <td>autoSave</td>
+        </tr>
+        <tr>
+            <td>delete</td>
+            <td>Suppression de la ligne</td>
+            <td>confirmation</td>
+        </tr>
+        <tr>
+            <td>view</td>
+            <td>Affichage des détails</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>add</td>
+            <td>Ajout d'une nouvelle ligne</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td>save</td>
+            <td>Sauvegarde des modifications</td>
+            <td>autoSave</td>
+        </tr>
+        <tr>
+            <td>cancel</td>
+            <td>Annulation des modifications</td>
+            <td>-</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Méthodes Publiques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Méthode</th>
+            <th>Arguments</th>
+            <th>Description</th>
+            <th>Retour</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>init(tableHandler)</code></td>
+            <td>tableHandler: object</td>
+            <td>Initialise le plugin</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>handleButtonClick(actionName, event)</code></td>
+            <td>actionName: string, event: Event</td>
+            <td>Gère le clic sur un bouton</td>
+            <td>Promise</td>
+        </tr>
+        <tr>
+            <td><code>getRowData(row)</code></td>
+            <td>row: HTMLElement</td>
+            <td>Récupère les données d'une ligne</td>
+            <td>object</td>
+        </tr>
+        <tr>
+            <td><code>destroy()</code></td>
+            <td>-</td>
+            <td>Nettoie les actions</td>
+            <td>void</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Structure HTML</h2>
+<p>Exemple de structure HTML avec colonne d'actions :</p>
+<pre><code>&lt;table id="monTableau"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;ID&lt;/th&gt;
+            &lt;th&gt;Nom&lt;/th&gt;
+            &lt;th&gt;Email&lt;/th&gt;
+            &lt;th th-actions="edit,delete,view"&gt;Actions&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td&gt;1&lt;/td&gt;
+            &lt;td&gt;Jean Dupont&lt;/td&gt;
+            &lt;td&gt;jean@example.com&lt;/td&gt;
+            &lt;td&gt;
+                &lt;div class="th-actions"&gt;
+                    &lt;button class="th-action-btn edit" title="Modifier"&gt;✏️&lt;/button&gt;
+                    &lt;button class="th-action-btn delete" title="Supprimer"&gt;🗑️&lt;/button&gt;
+                    &lt;button class="th-action-btn view" title="Voir"&gt;👁️&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+<h2>Styles CSS</h2>
+<p>Styles recommandés pour les boutons d'action :</p>
+<pre><code>.th-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.th-action-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.th-action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.th-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* États spécifiques */
+.th-action-btn.edit:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.th-action-btn.delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.th-action-btn.view:hover {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+/* Style pour les lignes modifiées */
+tr.modified {
+    background-color: rgba(255, 193, 7, 0.1);
+}</code></pre>
+
+<h2>Intégration avec d'autres plugins</h2>
+<ul>
+    <li><strong>Plugin Edit</strong> :
+        <ul>
+            <li>Synchronisation automatique avec le mode édition</li>
+            <li>Gestion des boutons save/cancel</li>
+            <li>Support de l'auto-sauvegarde</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Validate</strong> :
+        <ul>
+            <li>Validation avant les actions</li>
+            <li>Désactivation des actions si invalide</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Filter</strong> :
+        <ul>
+            <li>Actions disponibles sur les lignes filtrées</li>
+            <li>Mise à jour des filtres après action</li>
+        </ul>
+    </li>
+</ul>
+
+<h2>Gestion des Actions</h2>
+<p>Exemple d'implémentation d'actions personnalisées :</p>
+<pre><code>actions: {
+    // Action simple
+    view: ({ data }) => {
+        showDetailsModal(data);
+    },
+
+    // Action avec auto-save
+    edit: {
+        handler: async ({ row, data }) => {
+            await api.updateRow(data);
+            notifySuccess('Modifications enregistrées');
+        },
+        autoSave: true
+    },
+
+    // Action avec confirmation
+    delete: {
+        handler: async ({ row }) => {
+            try {
+                await api.deleteRow(row.id);
+                row.remove();
+                notifySuccess('Élément supprimé');
+            } catch (error) {
+                notifyError('Erreur lors de la suppression');
+                throw error;
+            }
+        }
+    },
+
+    // Action conditionnelle
+    archive: {
+        handler: ({ data }) => {
+            if (data.status === 'active') {
+                return api.archiveRow(data.id);
+            }
+            return api.unarchiveRow(data.id);
+        }
+    }
+}</code></pre>
+
+<div class="note">
+<h3>Notes Importantes</h3>
+<ul>
+    <li>Les actions sont désactivées pendant leur exécution</li>
+    <li>Les modifications sont suivies automatiquement</li>
+    <li>Les actions peuvent être asynchrones (Promise)</li>
+    <li>Les confirmations sont personnalisables par action</li>
+    <li>L'auto-save peut être activé par action</li>
+</ul>
+</div>
+
+</body>

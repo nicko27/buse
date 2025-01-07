@@ -1,0 +1,104 @@
+<div class="block" id="sites">
+	<div class="block__title glass">
+		<div class="block__title-left">
+			<span>Sites web préenregistrés</span>
+			<a onclick="table.addRow([],'start')">
+				<i class="fa fa-circle-plus"></i>
+			</a>
+		</div>
+	</div>
+	<div class="block__content flex-h">
+		<div id="pagination-controls"></div>
+		<table id="sitesTbl">
+			<thead>
+				<tr>
+					<th id="id" th-hide th-text-default="0">id</th>
+					<th th-edit th-sort th-validate='{"required": true}' th-class="small-caps-under" id="nom">
+						<span>Nom du raccourci</span>
+					</th>
+					<th th-edit th-validate='{"required": true, "type": "url"}' th-text-trim="auto" id="url">URL du site</th>
+					<th th-color id="color">Couleur du raccourci</th>
+					<th  th-actions="delete,save">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for sites in sites_tbl %}
+					<tr id="{{sites.id}}" name="{{ sites.id }}">
+						<td id="id_{{ sites.id }}" name="id_{{  sites.id }}">{{ sites.id }}</td>
+						<td id="nom_{{ sites.id }}" name="nom_{{  sites.id }}">{{ sites.nom }}</td>
+						<td id="url_{{ sites.id }}" name="url_{{  sites.id }}">{{ sites.url }}</td>
+						<td id="color_{{ sites.id }}" name="color_{{  sites.id }}">{{ sites.color|upper }}</td>
+						<td id="actions_{{ sites.id }}" name="actions_{{  sites.id }}"></td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script>
+
+    const table = new TableFlow({
+        tableId: 'sitesTbl',
+        debug: false,
+        cellWrapper: true,
+        plugins: {
+            names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
+            color: {
+                colorAttribute: 'th-color',
+                customClass: 'glass'
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                actions: {
+                    delete: function(context) {
+                        const url = "{{ WEB_PAGES }}/main/actions.php";
+                        actionRow(url, context.data, "services", "delete").then(result => {
+                            if (result) {
+                                successNotice('Ligne mise à jour avec succès');
+                                context.tableHandler.markRowAsSaved(context.row);
+                            } else {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                // Ne pas marquer comme sauvegardé en cas d'erreur
+                            }
+                        }).catch(error => {
+                            errorNotice('Erreur lors de la mise à jour de la ligne');
+                            console.error('Error:', error);
+                        });
+                    },
+                    save: function(context) {
+                        const url = "{{ WEB_PAGES }}/main/actions.php";
+                        actionRow(url, context.data, "sites", "addUpdate").then(result => {
+                            if (result) {
+                                successNotice('Ligne mise à jour avec succès');
+                                context.tableHandler.markRowAsSaved(context.row);
+                            } else {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                // Ne pas marquer comme sauvegardé en cas d'erreur
+                            }
+                        }).catch(error => {
+                            errorNotice('Erreur lors de la mise à jour de la ligne');
+                            console.error('Error:', error);
+                        });
+                    }
+                },
+                icons: {
+                    delete: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>',
+                    save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                },
+                confirmMessages: {
+                    delete: 'Êtes-vous sûr de vouloir supprimer cette ligne ?'
+                },
+                showOnChange: ["save"]
+
+            }
+        },
+        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+    });
+</script>

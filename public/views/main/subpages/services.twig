@@ -1,0 +1,126 @@
+<div class="block" id="services">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Types de services
+        </div>
+    </div>
+    <div class="block__content flex-h">
+        <table id="servicesTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide>id</th>
+                    <th id="name" th-sort><span>Nom du service</span></th>
+                    <th id="shortName" th-sort th-edit th-validate='{"maxLength": 3}' th-class="toupper">Raccourci</th>
+                    <th id="color" th-color>Couleur du raccourci</th>
+                    <th id="invisible" th-sort th-choice>Visibilité</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services_tbl %}
+                    <tr id="{{service.id}}" name="{{ service.id }}">
+                        <td id="id_{{ service.id }}" name="id_{{  service.id }}">{{ service.id }}</td>
+                        <td id="name_{{ service.id }}" tf-tooltip="Valeur non modifiable" name="name_{{  service.id }}">{{ service.name }}</td>
+                        <td id="shortName_{{ service.id }}" name="shortName_{{  service.id }}">{{ service.shortName }}</td>
+                        <td id="color_{{ service.id }}" name="color_{{  service.id }}">{{ service.color|upper }}</td>
+                        <td id="invisible_{{ service.id }}" name="invisible_{{  service.id }}">{{ service.invisible }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="block__buttons">
+            <div class="block__search">
+                <div class="filter-group">
+                    <span>Rechercher dans le tableau</span>
+                    <input type="text" id="search" placeholder="Texte à Rechercher" class="filter-input">
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const servicesTable = new TableFlow({
+        tableId: 'servicesTbl',
+        debug: true,
+        plugins: {
+            names: ['FilterAndPaginate','Edit', 'Hide', 'Color', 'Sort', 'Actions', 'Choice'],
+            filterandpaginate: {
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                backwardIcon: '<i class="fas fa-chevron-left"></i>',
+                forwardIcon: '<i class="fas fa-chevron-right"></i>',
+                fastBackwardIcon: '<i class="fas fa-angle-double-left"></i>',
+                fastForwardIcon: '<i class="fas fa-angle-double-right"></i>'
+            },
+            color: {
+                colorAttribute: 'th-color',
+                customClass: 'glass'
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: false,
+                ignoreCase: true,
+            },
+            choice: {
+                choiceAttribute: 'th-choice',
+                choices: {
+                    'invisible': [
+                        { value: '-1', label: '<span style="color: gray">Visible (Verrouillé)</span>',readOnly: true  },
+                        { value: '0', label: '<span style="color: green">Visible</span>' },
+                        { value: '1', label: '<span style="color: red">Masquée</span>',readOnly: false}
+                    ]
+                }
+            },
+            edit: {
+                debug: true,
+                validators: {
+                    maxLength: (value, config) => {
+                        if (value && value.length > config.maxLength) {
+                            return `Maximum ${config.maxLength} caractères`;
+                        }
+                        return true;
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                actions: {
+                    save: {
+                        autoSave: true,
+                        handler: function(context) {
+                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            actionRow(url, context.data, "services", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        }
+                    }
+                },
+                icons: {
+                     save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                },
+                showOnChange: ["save"]
+
+            }
+        },
+        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+    });
+</script>

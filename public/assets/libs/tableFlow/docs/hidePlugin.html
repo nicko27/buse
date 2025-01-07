@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - HidePlugin pour nvTblHandler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f7f7f9;
+            color: #333;
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+        h1, h2, h3 {
+            color: #1d72b8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        th {
+            background-color: #f4f4f4;
+            text-align: left;
+        }
+        pre {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .example {
+            background-color: #e8f4fd;
+            border-left: 4px solid #1d72b8;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Documentation HidePlugin - nvTblHandler</h1>
+
+<p>Le plugin <code>HidePlugin</code> permet de gérer la visibilité des colonnes d'un tableau de manière dynamique. Il offre des fonctionnalités pour masquer ou afficher des colonnes individuellement ou en groupe.</p>
+
+<h2>Caractéristiques Principales</h2>
+<ul>
+    <li>Masquage/affichage dynamique des colonnes</li>
+    <li>Support pour les groupes de colonnes</li>
+    <li>Persistance de l'état (optionnel)</li>
+    <li>API publique pour le contrôle programmatique</li>
+    <li>Événements personnalisables</li>
+    <li>Support des colonnes responsives</li>
+    <li>Intégration avec d'autres plugins</li>
+</ul>
+
+<h2>Configuration</h2>
+<p>Exemple de configuration du plugin :</p>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Hide: {
+            // Colonnes masquées par défaut
+            hiddenColumns: ['colonne3', 'colonne4'],
+            
+            // Attribut pour identifier les colonnes
+            columnIdentifier: 'data-column-id',
+            
+            // Persistance des états
+            persistState: true,
+            storageKey: 'tableHideState',
+            
+            // Classes CSS
+            hiddenClass: 'th-hidden',
+            togglerClass: 'th-column-toggler',
+            
+            // Groupes de colonnes
+            columnGroups: {
+                'groupe1': ['colonne1', 'colonne2'],
+                'groupe2': ['colonne3', 'colonne4']
+            },
+            
+            // Colonnes responsives
+            responsiveHide: {
+                sm: ['colonne5', 'colonne6'],
+                md: ['colonne7'],
+                lg: []
+            },
+            
+            // Événements
+            onColumnHide: (columnId) => {
+                console.log(`Colonne ${columnId} masquée`);
+            },
+            onColumnShow: (columnId) => {
+                console.log(`Colonne ${columnId} affichée`);
+            }
+        }
+    }
+});</code></pre>
+
+<h2>Options de Configuration</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Défaut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>hiddenColumns</code></td>
+            <td>array</td>
+            <td>Liste des colonnes masquées par défaut</td>
+            <td>[]</td>
+        </tr>
+        <tr>
+            <td><code>columnIdentifier</code></td>
+            <td>string</td>
+            <td>Attribut HTML pour identifier les colonnes</td>
+            <td>'data-column-id'</td>
+        </tr>
+        <tr>
+            <td><code>persistState</code></td>
+            <td>boolean</td>
+            <td>Activer la persistance de l'état</td>
+            <td>false</td>
+        </tr>
+        <tr>
+            <td><code>storageKey</code></td>
+            <td>string</td>
+            <td>Clé pour le stockage local</td>
+            <td>'nvTblHandler_hide'</td>
+        </tr>
+        <tr>
+            <td><code>hiddenClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les éléments masqués</td>
+            <td>'th-hidden'</td>
+        </tr>
+        <tr>
+            <td><code>columnGroups</code></td>
+            <td>object</td>
+            <td>Définition des groupes de colonnes</td>
+            <td>{}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Méthodes Publiques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Méthode</th>
+            <th>Arguments</th>
+            <th>Description</th>
+            <th>Retour</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>hideColumn(columnId)</code></td>
+            <td>columnId: string</td>
+            <td>Masque une colonne spécifique</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>showColumn(columnId)</code></td>
+            <td>columnId: string</td>
+            <td>Affiche une colonne spécifique</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>toggleColumn(columnId)</code></td>
+            <td>columnId: string</td>
+            <td>Inverse l'état de visibilité d'une colonne</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>hideGroup(groupId)</code></td>
+            <td>groupId: string</td>
+            <td>Masque un groupe de colonnes</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>showGroup(groupId)</code></td>
+            <td>groupId: string</td>
+            <td>Affiche un groupe de colonnes</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>getHiddenColumns()</code></td>
+            <td>-</td>
+            <td>Retourne la liste des colonnes masquées</td>
+            <td>array</td>
+        </tr>
+        <tr>
+            <td><code>resetState()</code></td>
+            <td>-</td>
+            <td>Réinitialise l'état à la configuration par défaut</td>
+            <td>void</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Structure HTML</h2>
+<p>Exemple de structure HTML avec support de masquage :</p>
+<pre><code>&lt;table id="monTableau"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th data-column-id="col1"&gt;ID&lt;/th&gt;
+            &lt;th data-column-id="col2"&gt;Nom&lt;/th&gt;
+            &lt;th data-column-id="col3"&gt;Email&lt;/th&gt;
+            &lt;th data-column-id="col4"&gt;Téléphone&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td data-column-id="col1"&gt;1&lt;/td&gt;
+            &lt;td data-column-id="col2"&gt;Jean Dupont&lt;/td&gt;
+            &lt;td data-column-id="col3"&gt;jean@example.com&lt;/td&gt;
+            &lt;td data-column-id="col4"&gt;+33 1 23 45 67 89&lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;!-- Exemple de boutons de contrôle --&gt;
+&lt;div class="column-controls"&gt;
+    &lt;button onclick="table.plugins.Hide.toggleColumn('col3')"&gt;
+        Toggle Email
+    &lt;/button&gt;
+    &lt;button onclick="table.plugins.Hide.hideGroup('contact')"&gt;
+        Masquer Contacts
+    &lt;/button&gt;
+&lt;/div&gt;</code></pre>
+
+<h2>Styles CSS</h2>
+<p>Styles recommandés pour le plugin Hide :</p>
+<pre><code>/* Style de base pour les éléments masqués */
+.th-hidden {
+    display: none !important;
+}
+
+/* Styles pour les contrôles de colonnes */
+.th-column-toggler {
+    cursor: pointer;
+    padding: 5px 10px;
+    margin: 2px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #f8f9fa;
+}
+
+.th-column-toggler:hover {
+    background: #e9ecef;
+}
+
+.th-column-toggler.active {
+    background: #007bff;
+    color: white;
+}
+
+/* Styles responsifs */
+@media (max-width: 576px) {
+    .th-hide-sm {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .th-hide-md {
+        display: none !important;
+    }
+}
+
+@media (max-width: 992px) {
+    .th-hide-lg {
+        display: none !important;
+    }
+}</code></pre>
+
+<h2>Intégration avec d'autres plugins</h2>
+<ul>
+    <li><strong>Plugin Sort</strong> :
+        <ul>
+            <li>Maintient le tri lors du masquage/affichage des colonnes</li>
+            <li>Met à jour les indicateurs de tri</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Filter</strong> :
+        <ul>
+            <li>Ajuste les filtres en fonction des colonnes visibles</li>
+            <li>Conserve les états de filtrage</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Edit</strong> :
+        <ul>
+            <li>Désactive l'édition pour les colonnes masquées</li>
+            <li>Restaure l'état d'édition lors de l'affichage</li>
+        </ul>
+    </li>
+</ul>
+
+<h2>Exemples d'Utilisation Avancée</h2>
+
+<h3>1. Gestion des Groupes de Colonnes</h3>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Hide: {
+            columnGroups: {
+                'infosPersonnelles': ['nom', 'prenom', 'dateNaissance'],
+                'contact': ['email', 'telephone', 'adresse'],
+                'professionnel': ['poste', 'departement', 'anciennete']
+            },
+            // Masquer un groupe par défaut
+            hiddenColumns: ['poste', 'departement', 'anciennete']
+        }
+    }
+});</code></pre>
+
+<h3>2. Configuration Responsive</h3>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Hide: {
+            responsiveHide: {
+                sm: ['adresse', 'dateNaissance', 'anciennete'],
+                md: ['telephone', 'departement'],
+                lg: ['email']
+            }
+        }
+    }
+});</code></pre>
+
+<h3>3. Persistance et Événements</h3>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Hide: {
+            persistState: true,
+            storageKey: 'employeesTableHideState',
+            onColumnHide: (columnId) => {
+                updateUIControls(columnId, false);
+                saveUserPreferences();
+            },
+            onColumnShow: (columnId) => {
+                updateUIControls(columnId, true);
+                saveUserPreferences();
+            }
+        }
+    }
+});</code></pre>
+
+<div class="note">
+<h3>Notes Importantes</h3>
+<ul>
+    <li>Le masquage des colonnes affecte à la fois l'en-tête et le corps du tableau</li>
+    <li>L'état peut être persisté dans le localStorage du navigateur</li>
+    <li>Les groupes permettent une gestion plus efficace des colonnes liées</li>
+    <li>Le support responsive s'adapte automatiquement à la taille de l'écran</li>
+    <li>Les événements permettent une personnalisation avancée du comportement</li>
+    <li>La configuration peut être modifiée dynamiquement après l'initialisation</li>
+</ul>
+</div>
+
+</body>
+</html>

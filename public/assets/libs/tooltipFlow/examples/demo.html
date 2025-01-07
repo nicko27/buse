@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TooltipFlow Demo</title>
+    <link rel="stylesheet" href="../src/tooltipFlow.css">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 2rem;
+            background: #f3f4f6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin: 0 0 2rem;
+            color: #1f2937;
+        }
+
+        h2 {
+            margin: 0 0 1rem;
+            color: #374151;
+            font-size: 1.25rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .demo-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .demo-item:hover {
+            background: #f3f4f6;
+        }
+
+        .config-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-bottom: 0.25rem;
+        }
+
+        select, input {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .interactive-demo {
+            height: 300px;
+            position: relative;
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .target-element {
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: ui-monospace, monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TooltipFlow Demo</h1>
+
+        <div class="demo-section">
+            <h2>Configuration</h2>
+            <div class="config-panel">
+                <div class="config-item">
+                    <label for="position">Position</label>
+                    <select id="position">
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label for="theme">Theme</label>
+                    <select id="theme">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="auto">Auto (System)</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label for="animation">Animation</label>
+                    <select id="animation">
+                        <option value="fade">Fade</option>
+                        <option value="shift">Shift</option>
+                        <option value="scale">Scale</option>
+                        <option value="flip">Flip</option>
+                    </select>
+                </div>
+                <div class="config-item">
+                    <label for="interactive">Interactive</label>
+                    <select id="interactive">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Basic Tooltips</h2>
+            <div class="demo-grid">
+                <div class="demo-item" data-tooltip="Simple tooltip">
+                    Hover me
+                </div>
+                <div class="demo-item" data-tooltip="Tooltip with HTML" data-tooltip-html="true">
+                    HTML Content
+                </div>
+                <div class="demo-item" data-tooltip="Click to toggle" data-tooltip-toggle="true">
+                    Click me
+                </div>
+                <div class="demo-item" data-tooltip="Interactive tooltip<br><button onclick='alert(\"clicked!\")'>Click me</button>" data-tooltip-html="true">
+                    Interactive
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Positions</h2>
+            <div class="interactive-demo">
+                <div class="target-element" 
+                     data-tooltip="This tooltip can be positioned anywhere!"
+                     data-tooltip-position="top">
+                    Move me around
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Content from HTML Element</h2>
+            <div class="demo-grid">
+                <div id="tooltip-template" style="display: none;">
+                    <h3 style="margin: 0 0 8px;">Complex Content</h3>
+                    <p style="margin: 0;">This content comes from a hidden HTML element.</p>
+                    <button onclick="alert('Clicked!')">Interactive Button</button>
+                </div>
+                <div class="demo-item" data-tooltip-content="#tooltip-template">
+                    HTML Template Content
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Dynamic Content</h2>
+            <div class="demo-grid">
+                <div class="demo-item" id="dynamic-tooltip" data-tooltip="Initial content">
+                    Content changes every 2s
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>Usage Example</h2>
+            <pre><code>// Initialize TooltipFlow
+const tooltip = new TooltipFlow({
+    defaultPosition: 'top',
+    theme: 'light',
+    animation: 'fade',
+    interactive: false
+});
+
+// HTML Usage
+&lt;div data-tooltip="Tooltip content"
+     data-tooltip-position="top"
+     data-tooltip-theme="light"&gt;
+    Hover me
+&lt;/div&gt;</code></pre>
+        </div>
+    </div>
+
+    <script src="../src/tooltipFlow.js"></script>
+    <script>
+        // Initialize TooltipFlow
+        let tooltip = new TooltipFlow({
+            defaultPosition: 'top',
+            theme: 'light',
+            animation: 'fade',
+            interactive: false
+        });
+
+        // Configuration panel
+        document.querySelectorAll('.config-panel select').forEach(select => {
+            select.addEventListener('change', updateConfig);
+        });
+
+        function updateConfig() {
+            const config = {
+                defaultPosition: document.getElementById('position').value,
+                theme: document.getElementById('theme').value,
+                animation: document.getElementById('animation').value,
+                interactive: document.getElementById('interactive').value === 'true'
+            };
+
+            // Recreate tooltip instance with new config
+            tooltip.destroyAll();
+            tooltip = new TooltipFlow(config);
+        }
+
+        // Dynamic content example
+        let count = 0;
+        const dynamicTooltip = document.getElementById('dynamic-tooltip');
+        setInterval(() => {
+            count++;
+            tooltip.updateContent(dynamicTooltip, `Content updated ${count} times`);
+        }, 2000);
+
+        // Interactive demo with draggable target
+        const target = document.querySelector('.target-element');
+        const demo = document.querySelector('.interactive-demo');
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        demo.addEventListener('mousedown', dragStart);
+        demo.addEventListener('mousemove', drag);
+        demo.addEventListener('mouseup', dragEnd);
+        demo.addEventListener('mouseleave', dragEnd);
+
+        function dragStart(e) {
+            if (e.target === target) {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                isDragging = true;
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, target);
+            }
+        }
+
+        function dragEnd(e) {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+    </script>
+</body>
+</html>

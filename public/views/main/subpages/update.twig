@@ -1,0 +1,72 @@
+<div class="block" id="update">
+  <div class="block__title glass">
+    <div class="block__title-left">Mise à jour</div>
+  </div>
+  <div class="block__content">
+    <div class="content__line">
+
+      <!-- Upload (patch) -->
+      <div class="update__elt">
+        <div class="update__elt-title">Mise à jour (patch)</div>
+        <div class="update__elt-text">
+          <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitPatch'))" class="commit" id="commitPatch" name="commitPatch">{{ nextPatchVersion }}</textarea>
+        </div>
+        <div class="update__elt-btnZone">
+          <button onclick="updateFlow.push(document.getElementById('commitPatch').value, 'patch')" class="btn btn-glass btn-glass-blue">
+            <i class="fa fa-cloud-arrow-up"></i>
+            <span>Sauvegarder les<br>modifications</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload (mineur) -->
+      <div class="update__elt">
+        <div class="update__elt-title">Upload (mineur)</div>
+        <div class="update__elt-text">
+          <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitMinor'))" class="commit" id="commitMinor" name="commitMinor">{{ nextMinorVersion }}</textarea>
+        </div>
+        <div class="update__elt-btnZone">
+          <button onclick="updateFlow.push(document.getElementById('commitMinor').value, 'minor')" class="btn btn-glass btn-glass-blue">
+            <i class="fa fa-cloud-arrow-up"></i>
+            <span>Sauvegarder les<br>modifications</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload (majeur) -->
+      <div class="update__elt">
+        <div class="update__elt-title">Upload (majeur)</div>
+        <div class="update__elt-text">
+          <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitMajor'))" class="commit" id="commitMajor" name="commitMajor">{{ nextMajorVersion }}</textarea>
+        </div>
+        <div class="update__elt-btnZone">
+          <button onclick="updateFlow.push(document.getElementById('commitMajor').value, 'major')" class="btn btn-glass btn-glass-blue">
+            <i class="fa fa-cloud-arrow-up"></i>
+            <span>Sauvegarder les<br>modifications</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Téléchargement de la mise à jour -->
+      <div class="update__elt">
+        <div class="update__elt-title">Téléchargement de la mise à jour</div>
+        <div class="update__elt-btnZone">
+          <button onclick="updateFlow.pull()" class="btn btn-glass btn-glass-blue">
+            <i class="fa fa-cloud-arrow-down"></i>
+            <span>Récupérer la dernière version</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript" src="{{WEB_ASSETS}}/js/main/subpages/update.js"></script>
+<script type="text/javascript">
+        const updateFlow = new UpdateFlow({
+            apiEndpoints: updateFlowConfig.apiEndpoints,
+            versionEndpoint: updateFlowConfig.versionEndpoint,
+            autoReload: false,
+            debug: {% if debug %}true{% else %}false{% endif %},
+            csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }, updateFlowConfig.getActionsForFunction('gitPull'));
+</script>

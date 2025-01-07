@@ -1,0 +1,159 @@
+/* TooltipFlow - Styles de base */
+.tooltip-flow {
+    position: absolute;
+    visibility: hidden;
+    opacity: 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+    pointer-events: none;
+    box-sizing: border-box;
+    font-variant: small-caps;
+    font-weight: bold;
+}
+
+/* Thèmes */
+.tooltip-flow.light {
+    background-color: #ffffff;
+    color: #1f2937;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.tooltip-flow.dark {
+    background-color: #1f2937;
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Flèche */
+.tooltip-flow-arrow {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.tooltip-flow.light .tooltip-flow-arrow {
+    background-color: #ffffff;
+}
+
+.tooltip-flow.dark .tooltip-flow-arrow {
+    background-color: #1f2937;
+}
+
+/* Positions */
+.tooltip-flow[data-position="top"] .tooltip-flow-arrow {
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.tooltip-flow[data-position="bottom"] .tooltip-flow-arrow {
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.tooltip-flow[data-position="left"] .tooltip-flow-arrow {
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.tooltip-flow[data-position="right"] .tooltip-flow-arrow {
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+/* Animations */
+.tooltip-flow.tooltip-flow-visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Fade */
+.tooltip-flow.tooltip-flow-fade {
+    transform: scale(0.95);
+}
+
+.tooltip-flow.tooltip-flow-fade.tooltip-flow-visible {
+    transform: scale(1);
+}
+
+/* Shift */
+.tooltip-flow.tooltip-flow-shift[data-position="top"] {
+    transform: translateY(8px);
+}
+.tooltip-flow.tooltip-flow-shift[data-position="bottom"] {
+    transform: translateY(-8px);
+}
+.tooltip-flow.tooltip-flow-shift[data-position="left"] {
+    transform: translateX(8px);
+}
+.tooltip-flow.tooltip-flow-shift[data-position="right"] {
+    transform: translateX(-8px);
+}
+
+.tooltip-flow.tooltip-flow-shift.tooltip-flow-visible {
+    transform: translate(0, 0);
+}
+
+/* Scale */
+.tooltip-flow.tooltip-flow-scale {
+    transform: scale(0.7);
+}
+
+.tooltip-flow.tooltip-flow-scale.tooltip-flow-visible {
+    transform: scale(1);
+}
+
+/* Flip */
+.tooltip-flow.tooltip-flow-flip {
+    transform: perspective(999px) scale(0.4) rotateX(45deg);
+    transform-origin: top;
+}
+
+.tooltip-flow.tooltip-flow-flip.tooltip-flow-visible {
+    transform: perspective(999px) scale(1) rotateX(0);
+}
+
+/* Contenu */
+.tooltip-flow-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Support du mode sombre système */
+@media (prefers-color-scheme: dark) {
+    .tooltip-flow.auto {
+        background-color: #1f2937;
+        color: #ffffff;
+    }
+    .tooltip-flow.auto .tooltip-flow-arrow {
+        background-color: #1f2937;
+    }
+}
+
+/* État interactif */
+.tooltip-flow.interactive {
+    pointer-events: auto;
+}
+
+/* Support des images et du contenu riche */
+.tooltip-flow img {
+    max-width: 100%;
+    height: auto;
+}
+
+.tooltip-flow pre,
+.tooltip-flow code {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 2px 4px;
+    border-radius: 2px;
+}

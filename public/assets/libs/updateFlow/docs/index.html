@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation UpdateFlow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f8f9fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .note {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 4px solid #03a9f4;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        th {
+            background: #f5f5f5;
+        }
+        
+        .nav {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .nav a {
+            color: #2c3e50;
+            text-decoration: none;
+        }
+        
+        .nav a:hover {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <ul>
+            <li><a href="#apercu">Aperçu</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#configuration">Configuration</a></li>
+            <li><a href="#utilisation">Utilisation</a></li>
+            <li><a href="#securite">Sécurité</a></li>
+            <li><a href="#gestion-erreurs">Gestion des Erreurs</a></li>
+            <li><a href="#bonnes-pratiques">Bonnes Pratiques</a></li>
+            <li><a href="#versionnement">Gestion des Versions</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Documentation UpdateFlow</h1>
+
+        <section id="apercu">
+            <h2>Aperçu</h2>
+            <p>UpdateFlow est un système moderne de gestion des mises à jour basé sur Git qui fournit une interface robuste pour gérer les opérations de contrôle de version en PHP (backend) et JavaScript (frontend).</p>
+        </section>
+
+        <section id="architecture">
+            <h2>Architecture</h2>
+
+            <h3>1. Backend (PHP)</h3>
+            <p>L'implémentation PHP est organisée en plusieurs composants :</p>
+
+            <h4>Classe Principale (UpdateFlow.php)</h4>
+            <ul>
+                <li>Gère les opérations Git et le contrôle de version</li>
+                <li>Gère la validation de la configuration</li>
+                <li>Fournit les interfaces principales pour les opérations pull/push</li>
+                <li>Inclut la gestion des erreurs et la journalisation</li>
+            </ul>
+
+            <h4>Composants</h4>
+            <ul>
+                <li><strong>Handlers/</strong>
+                    <ul>
+                        <li>PullHandler : Gère les opérations de pull</li>
+                        <li>PushHandler : Gère les opérations de push</li>
+                    </ul>
+                </li>
+                <li><strong>Managers/</strong>
+                    <ul>
+                        <li>GitManager : Gère les opérations Git</li>
+                        <li>VersionManager : Gère les numéros de version</li>
+                    </ul>
+                </li>
+                <li><strong>Utils/</strong>
+                    <ul>
+                        <li>Logger : Gère la journalisation</li>
+                        <li>Response : Standardise les réponses API</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h3>2. Frontend (JavaScript)</h3>
+            <p>L'implémentation JavaScript fournit une interface côté client avec :</p>
+            <ul>
+                <li>Communication API asynchrone</li>
+                <li>Mécanisme de réessai pour les requêtes échouées</li>
+                <li>Protection CSRF</li>
+                <li>Gestion des événements</li>
+                <li>Journalisation de débogage</li>
+                <li>Suivi des versions</li>
+            </ul>
+        </section>
+
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>Configuration Backend</h3>
+            <pre><code>{
+    'repoPath': string,      // Requis: Chemin vers le dépôt Git
+    'versionPath': string,   // Requis: Chemin vers le fichier de version
+    'logger': array,         // Requis: Configuration du logger
+    'versionFormat': string, // Optionnel: Format du fichier de version (défaut: 'json')
+    'maxRetries': int,       // Optionnel: Nombre maximum de tentatives (défaut: 3)
+    'retryDelay': int,       // Optionnel: Délai entre les tentatives en ms (défaut: 1000)
+    'timeout': int,          // Optionnel: Timeout des requêtes en ms (défaut: 30000)
+    'debug': bool,           // Optionnel: Mode debug (défaut: false)
+    'allowedBranches': array // Optionnel: Liste des branches autorisées
+}</code></pre>
+
+            <h3>Configuration Frontend</h3>
+            <pre><code>{
+    apiEndpoints: {           // Requis: URLs des endpoints API
+        pull: string,
+        push: string
+    },
+    versionEndpoint: string,  // Requis: Endpoint de vérification de version
+    autoReload: boolean,      // Optionnel: Rechargement auto après mise à jour
+    retryAttempts: number,    // Optionnel: Nombre de tentatives
+    retryDelay: number,       // Optionnel: Délai entre les tentatives
+    timeout: number,          // Optionnel: Timeout des requêtes
+    debug: boolean,           // Optionnel: Activation du debug
+    csrfToken: string        // Optionnel: Token CSRF
+}</code></pre>
+        </section>
+
+        <section id="utilisation">
+            <h2>Utilisation</h2>
+
+            <h3>Implémentation PHP</h3>
+            <pre><code>// Initialisation UpdateFlow
+$updateFlow = new UpdateFlow([
+    'repoPath' => '/chemin/vers/repo',
+    'versionPath' => '/chemin/vers/version.json',
+    'logger' => ['path' => '/chemin/vers/logs']
+]);
+
+// Obtenir la version actuelle
+$version = $updateFlow->getVersion();
+
+// Tirer les mises à jour
+$pullResult = $updateFlow->pull();
+
+// Pousser les changements
+$pushResult = $updateFlow->push('message de commit', 'patch|minor|major');</code></pre>
+
+            <h3>Implémentation JavaScript</h3>
+            <pre><code>// Initialisation UpdateFlow
+const updateFlow = new UpdateFlow({
+    apiEndpoints: {
+        pull: '/api/update/pull',
+        push: '/api/update/push'
+    },
+    versionEndpoint: '/api/version'
+}, {
+    success: (msg) => console.log(msg),
+    error: (msg) => console.error(msg)
+});
+
+// Tirer les mises à jour
+await updateFlow.pull();
+
+// Pousser les changements
+await updateFlow.push('message de commit', 'patch');</code></pre>
+        </section>
+
+        <section id="securite">
+            <h2>Sécurité</h2>
+            <ul>
+                <li>Protection CSRF</li>
+                <li>Validation des requêtes</li>
+                <li>Restrictions des branches</li>
+                <li>Support d'authentification</li>
+                <li>Assainissement des entrées</li>
+            </ul>
+        </section>
+
+        <section id="gestion-erreurs">
+            <h2>Gestion des Erreurs</h2>
+            <ul>
+                <li>Classes d'exception personnalisées</li>
+                <li>Mécanisme de réessai pour les requêtes échouées</li>
+                <li>Journalisation détaillée des erreurs</li>
+                <li>Réponses d'erreur standardisées</li>
+            </ul>
+        </section>
+
+        <section id="bonnes-pratiques">
+            <h2>Bonnes Pratiques</h2>
+            <ol>
+                <li>Toujours fournir des messages de commit explicites</li>
+                <li>Utiliser les types de version appropriés (patch/minor/major)</li>
+                <li>Activer le mode debug pendant le développement</li>
+                <li>Configurer une journalisation appropriée</li>
+                <li>Définir des valeurs de timeout appropriées</li>
+                <li>Implémenter une gestion d'erreurs adéquate</li>
+            </ol>
+        </section>
+
+        <section id="versionnement">
+            <h2>Gestion des Versions</h2>
+            <p>Suit le versionnement sémantique (MAJOR.MINOR.PATCH) :</p>
+            <ul>
+                <li><strong>PATCH</strong> : Corrections de bugs et petits changements</li>
+                <li><strong>MINOR</strong> : Nouvelles fonctionnalités (rétrocompatibles)</li>
+                <li><strong>MAJOR</strong> : Changements incompatibles</li>
+            </ul>
+            <div class="note">
+                <strong>Note :</strong> Assurez-vous de suivre strictement ces conventions de versionnement pour maintenir la cohérence du projet.
+            </div>
+        </section>
+    </div>
+</body>
+</html>

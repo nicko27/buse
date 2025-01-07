@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Affichage des permanences et mémos</title>
+    <link rel="stylesheet" href="path/to/font-awesome/css/font-awesome.min.css">
+    <style>
+        /* Ajouter ici les styles CSS nécessaires */
+    </style>
+</head>
+<body>
+    <audio controls id="beep" class="hidden">
+        <source src="{{ASSETS_DIR}}/sound/beep.wav" preload="auto" type="audio/wav"></source>
+    </audio>
+    <div id="permanences">
+        <div class="memos__blk">
+            <div class="memos__title glass">Mémos <a onclick="showAddMemo('{{ WEB_PAGES }}')"><i class="fa fa-circle-plus"></i></a></div>
+            <div class="memos__content">
+                {% set alarm=0 %}
+                {% for item in memos_tbl %}
+                    <a class="memo_element" ondblclick="showUpdateMemo('{{ WEB_PAGES }}',{{ item.id }})">
+                        <div class="memo_element__top">
+                            <div class="memo_element__top-left">
+                                {% if item.permanent == 0 %}
+                                    {{ item.startDate|date('d-m-Y') }} à {{ item.startTime }} <br />{{ item.endDate|date('d-m-Y') }} à {{ item.endTime }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="memo_element__bottom">{{ item.memo }}</div>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="sites__blk">
+            <div class="sites__title glass">Sites Web</div>
+            <div class="sites__content">
+                {% for item in sites_tbl %}
+                    <a class="sites__element glass" style="background-color: {{ item.color }};" href="{{item.url}}" >{{ item.nom }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="permanences__blk">
+            <div class="permanences__title glass">Permanences</div>
+            <div class="permanences__content">
+                {% for item in permanences_tbl %}
+                    <div class="perm_element">
+                        <div class="perm_element__left">{{ item.poste }}</div>
+                        <div class="perm_element__right">
+                            <div class="perm_element__right-top">{{ item.nom }}</div>
+                            <div class="perm_element__right-bottom">{{ item.tph }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div id="modal-overlay" class="hidden"></div>
+    <div id="modal" class="modal__window hidden"></div>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            setInterval(function() {
+                window.location.href=window.location.href;
+            }, 1000000);
+        });
+    </script>
+</body>
+</html>

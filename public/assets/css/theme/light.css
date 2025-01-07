@@ -1,0 +1,19 @@
+/* avec l'aimable participation de l'excellentissime Thomas Fleury*/
+:root {
+    --body-background: linear-gradient(to left top, #051937, #004d7a, #008793, #00bf72);
+    --body-font: "Poppins", sans-serif;
+    --primary-text-color: white;
+    --secondary-text-color: rgb(63, 63, 63);
+    --third-text-color: #06326b;
+    --forth-text-color: #eae9c9;
+    --hover-color: #22579b;
+    --first-border-color: white;
+    --secondary-bg-color: rgba(0, 0, 0, 0.2);
+
+    /*index*/
+    --denied-color: linear-gradient(90deg, #ed8c8e, #e44646);
+    --infos-color: linear-gradient(90deg, #4984ac, #32b6e2);
+    --success-color: linear-gradient(to right, #275, #8bca90);
+
+    --line-height: 35px;
+}

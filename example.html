@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nvTblHandler - Exemples Complets</title>
+    
+    <!-- Styles externes -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Styles personnalisés -->
+    <style>
+        /* Styles généraux */
+        .section {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        /* Styles pour les différentes tables */
+        .modern-table {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .modern-table thead {
+            background: #4a90e2;
+            color: white;
+        }
+        
+        .business-table {
+            border: 2px solid #28a745;
+        }
+        .business-table thead {
+            background: #28a745;
+            color: white;
+        }
+        
+        .minimal-table tbody tr {
+            border-bottom: 1px solid #eee;
+        }
+        .minimal-table th {
+            border-bottom: 2px solid #333;
+        }
+        
+        /* Classes pour le DefaultClassPlugin */
+        .currency {
+            text-align: right;
+            font-family: monospace;
+        }
+        .date-cell {
+            text-align: center;
+            color: #666;
+        }
+        .status-cell {
+            text-align: center;
+        }
+        .status-active {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-inactive {
+            color: #dc3545;
+        }
+        
+        /* Classes pour EditPlugin */
+        .editable {
+            cursor: pointer;
+            position: relative;
+        }
+        .editable:hover {
+            background-color: #f8f9fa;
+        }
+        .editing {
+            padding: 0 !important;
+        }
+        .edit-input {
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+            border: 2px solid #4a90e2;
+            border-radius: 4px;
+        }
+        
+        /* Classes pour ValidatePlugin */
+        .validate-cell.invalid {
+            background-color: #fff3f3;
+        }
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+        
+        /* Classes pour FilterPlugin */
+        .filter-container {
+            margin-bottom: 20px;
+        }
+        .column-filter {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        /* Classes pour ActionsPlugin */
+        .action-button {
+            padding: 4px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        .action-edit {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .action-delete {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .action-view {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h1 class="mb-4">Démonstration complète de nvTblHandler</h1>
+        
+        <!-- Table 1: Exemple avec tous les plugins de base -->
+        <div class="section">
+            <h2>Table Moderne avec Tous les Plugins</h2>
+            <div class="filter-container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="text" id="global-search" class="form-control" placeholder="Recherche globale...">
+                    </div>
+                    <div class="col-md-8">
+                        <button id="reset-filters" class="btn btn-secondary float-end">Réinitialiser les filtres</button>
+                    </div>
+                </div>
+            </div>
+            
+            <table id="table1" class="table modern-table">
+                <thead>
+                    <tr>
+                        <th th-sort th-filter th-validate="text" th-edit>Nom</th>
+                        <th th-sort th-filter th-validate="email" th-edit>Email</th>
+                        <th th-sort th-filter th-validate="number" th-edit th-default-class="currency">Budget</th>
+                        <th th-sort th-filter th-validate="date" th-edit th-default-class="date-cell">Date d'inscription</th>
+                        <th th-sort th-filter th-default-class="status-cell">Statut</th>
+                        <th th-actions>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Jean Dupont</td>
+                        <td>jean@example.com</td>
+                        <td>1500.00 €</td>
+                        <td>2023-01-15</td>
+                        <td class="status-active">Actif</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Marie Martin</td>
+                        <td>marie@example.com</td>
+                        <td>2300.00 €</td>
+                        <td>2023-02-20</td>
+                        <td class="status-inactive">Inactif</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table 2: Table Business avec validation avancée -->
+        <div class="section">
+            <h2>Table Business avec Validation Avancée</h2>
+            <table id="table2" class="table business-table">
+                <thead>
+                    <tr>
+                        <th th-validate="text" th-edit>Produit</th>
+                        <th th-validate="number" th-edit>Prix (€)</th>
+                        <th th-validate="number" th-edit>Stock</th>
+                        <th th-validate="text" th-edit>Catégorie</th>
+                        <th th-actions>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ordinateur portable</td>
+                        <td>999.99</td>
+                        <td>15</td>
+                        <td>Électronique</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Smartphone</td>
+                        <td>599.99</td>
+                        <td>25</td>
+                        <td>Électronique</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table 3: Table Minimale avec filtres personnalisés -->
+        <div class="section">
+            <h2>Table Minimale avec Filtres Personnalisés</h2>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <input type="text" id="name-filter" class="column-filter" placeholder="Filtrer par nom">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" id="role-filter" class="column-filter" placeholder="Filtrer par rôle">
+                </div>
+                <div class="col-md-3">
+                    <select id="status-filter" class="column-filter">
+                        <option value="">Tous les statuts</option>
+                        <option value="actif">Actif</option>
+                        <option value="inactif">Inactif</option>
+                    </select>
+                </div>
+            </div>
+            
+            <table id="table3" class="table minimal-table">
+                <thead>
+                    <tr>
+                        <th th-sort th-filter>Nom</th>
+                        <th th-sort th-filter>Rôle</th>
+                        <th th-sort th-filter>Statut</th>
+                        <th th-actions>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pierre Durand</td>
+                        <td>Administrateur</td>
+                        <td>Actif</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Sophie Bernard</td>
+                        <td>Utilisateur</td>
+                        <td>Inactif</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="nvTblHandler.js"></script>
+    
+    <script>
+        // Configuration Table 1: Tous les plugins
+        const table1 = new NvTblHandler({
+            tableId: 'table1',
+            plugins: {
+                Sort: {
+                    sortAttribute: 'th-sort'
+                },
+                Filter: {
+                    filterAttribute: 'th-filter',
+                    globalFilter: '#global-search',
+                    resetButton: '#reset-filters'
+                },
+                Edit: {
+                    editAttribute: 'th-edit',
+                    editableClass: 'editable',
+                    editingClass: 'editing',
+                    inputClass: 'edit-input',
+                    onSave: (cell, oldValue, newValue) => {
+                        console.log(`Valeur modifiée: ${oldValue} -> ${newValue}`);
+                        return true;
+                    }
+                },
+                Validate: {
+                    validateAttribute: 'th-validate',
+                    validators: {
+                        'text': {
+                            required: true,
+                            minLength: 3,
+                            requiredMessage: 'Ce champ est obligatoire'
+                        },
+                        'email': {
+                            type: 'email',
+                            required: true,
+                            requiredMessage: 'L\'email est obligatoire'
+                        },
+                        'number': {
+                            type: 'number',
+                            min: 0,
+                            required: true
+                        },
+                        'date': {
+                            type: 'date',
+                            required: true
+                        }
+                    }
+                },
+                DefaultClass: {
+                    defaultClassAttribute: 'th-default-class'
+                },
+                Actions: {
+                    actionsAttribute: 'th-actions',
+                    actions: [
+                        {
+                            name: 'view',
+                            icon: '<i class="fas fa-eye"></i>',
+                            class: 'action-button action-view',
+                            callback: (row) => {
+                                alert('Voir les détails');
+                            }
+                        },
+                        {
+                            name: 'edit',
+                            icon: '<i class="fas fa-edit"></i>',
+                            class: 'action-button action-edit',
+                            callback: (row) => {
+                                alert('Modifier l\'élément');
+                            }
+                        },
+                        {
+                            name: 'delete',
+                            icon: '<i class="fas fa-trash"></i>',
+                            class: 'action-button action-delete',
+                            confirm: 'Êtes-vous sûr de vouloir supprimer cet élément ?',
+                            callback: (row) => {
+                                alert('Élément supprimé');
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+
+        // Configuration Table 2: Validation avancée
+        const table2 = new NvTblHandler({
+            tableId: 'table2',
+            plugins: {
+                Validate: {
+                    validateAttribute: 'th-validate',
+                    validators: {
+                        'text': {
+                            required: true,
+                            minLength: 3
+                        },
+                        'number': {
+                            type: 'number',
+                            min: 0,
+                            required: true
+                        }
+                    }
+                },
+                Edit: {
+                    editAttribute: 'th-edit'
+                },
+                Actions: {
+                    actionsAttribute: 'th-actions',
+                    actions: [
+                        {
+                            name: 'edit',
+                            icon: '<i class="fas fa-edit"></i>',
+                            class: 'action-button action-edit'
+                        },
+                        {
+                            name: 'delete',
+                            icon: '<i class="fas fa-trash"></i>',
+                            class: 'action-button action-delete',
+                            confirm: 'Confirmer la suppression ?'
+                        }
+                    ]
+                }
+            }
+        });
+
+        // Configuration Table 3: Filtres personnalisés
+        const table3 = new NvTblHandler({
+            tableId: 'table3',
+            plugins: {
+                Sort: {
+                    sortAttribute: 'th-sort'
+                },
+                Filter: {
+                    filterAttribute: 'th-filter',
+                    columnFilters: {
+                        'name': '#name-filter',
+                        'role': '#role-filter',
+                        'status': '#status-filter'
+                    }
+                },
+                Actions: {
+                    actionsAttribute: 'th-actions',
+                    actions: [
+                        {
+                            name: 'edit',
+                            icon: '<i class="fas fa-edit"></i>',
+                            class: 'action-button action-edit'
+                        }
+                    ]
+                }
+            }
+        });
+    </script>
+</body>
+</html>

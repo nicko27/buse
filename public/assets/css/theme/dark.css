@@ -1,0 +1,7 @@
+.dark {
+    --body-background: #2b2b2b;
+    --primary-text-color: rgb(189, 186, 186);
+    --third-text-color: black;
+
+    --elt-darkmode-color: var(--secondary-text-color);
+}

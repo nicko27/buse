@@ -1,0 +1,68 @@
+/* Base table styles */
+table[id] {
+    width: 95%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+table[id] th,
+table[id] td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+table[id] th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    position: relative;
+}
+
+/* Sort indicators */
+th[th-sort] {
+    cursor: pointer;
+}
+
+th[th-sort]::after {
+    content: '⇅';
+    position: absolute;
+    right: 8px;
+    opacity: 0.5;
+}
+
+th[th-sort].asc::after {
+    content: '↑';
+    opacity: 1;
+}
+
+th[th-sort].desc::after {
+    content: '↓';
+    opacity: 1;
+}
+
+/* Color cells */
+td[style*="background-color"] {
+    cursor: pointer;
+}
+
+/* Modified rows */
+tr.modified {
+    background-color: rgba(255, 255, 0, 0.1);
+}
+
+/* Styles pour le plugin Color */
+.tf-color-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.tf-color-wrapper .color-input {
+    width: 80px;
+    text-align: center;
+}
+
+td.td-actions .cell-wrapper{
+    justify-content: space-around;
+}

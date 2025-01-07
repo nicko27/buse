@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentation ValidatePlugin - nvTblHandler</title>
+</head>
+<body>
+
+<h1>Documentation ValidatePlugin - nvTblHandler</h1>
+
+<p>Le plugin <code>ValidatePlugin</code> ajoute des fonctionnalités de validation aux cellules de votre tableau HTML. Il permet de définir des règles de validation par colonne et affiche des messages d'erreur en temps réel.</p>
+
+<h2>Caractéristiques Principales</h2>
+<ul>
+    <li>Validation en temps réel des données</li>
+    <li>Types de validation prédéfinis (nombre, email, date, regex)</li>
+    <li>Support des validations personnalisées</li>
+    <li>Messages d'erreur configurables</li>
+    <li>Validation par colonne ou par cellule</li>
+    <li>Intégration avec le plugin Edit</li>
+    <li>Affichage visuel des erreurs</li>
+    <li>Gestion des dépendances entre champs</li>
+</ul>
+
+<h2>Configuration</h2>
+<p>Exemple de configuration du plugin :</p>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Validate: {
+            validateAttribute: 'th-validate',
+            validateClass: 'validate-cell',
+            invalidClass: 'invalid',
+            errorClass: 'validation-error',
+            validators: {
+                'email': {
+                    type: 'email',
+                    required: true,
+                    requiredMessage: 'L\'email est obligatoire'
+                },
+                'age': {
+                    type: 'number',
+                    min: 18,
+                    max: 100,
+                    required: true
+                },
+                'date': {
+                    type: 'date',
+                    minDate: '2023-01-01',
+                    maxDate: '2023-12-31'
+                },
+                'code': {
+                    type: 'regex',
+                    pattern: '^[A-Z]{2}[0-9]{4}$',
+                    patternMessage: 'Format invalide (ex: AB1234)'
+                },
+                'custom': {
+                    type: 'custom',
+                    validate: (value, cell) => {
+                        return value.length > 5 || 'Minimum 6 caractères';
+                    }
+                }
+            },
+            onValidate: (isValid, context) => {
+                console.log('Validation:', { isValid, context });
+            }
+        }
+    }
+});</code></pre>
+
+<h2>Options de Configuration</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Défaut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>validateAttribute</code></td>
+            <td>string</td>
+            <td>Attribut HTML pour marquer les colonnes à valider</td>
+            <td>'th-validate'</td>
+        </tr>
+        <tr>
+            <td><code>validateClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les cellules validées</td>
+            <td>'validate-cell'</td>
+        </tr>
+        <tr>
+            <td><code>invalidClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les cellules invalides</td>
+            <td>'invalid'</td>
+        </tr>
+        <tr>
+            <td><code>errorClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour le conteneur d'erreur</td>
+            <td>'validation-error'</td>
+        </tr>
+        <tr>
+            <td><code>validators</code></td>
+            <td>object</td>
+            <td>Configuration des validateurs par type</td>
+            <td>{}</td>
+        </tr>
+        <tr>
+            <td><code>onValidate</code></td>
+            <td>function</td>
+            <td>Callback appelé après chaque validation</td>
+            <td>console.log</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Types de Validation</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Options</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>number</td>
+            <td>min, max</td>
+            <td>Valide les nombres dans une plage donnée</td>
+        </tr>
+        <tr>
+            <td>email</td>
+            <td>-</td>
+            <td>Valide le format email</td>
+        </tr>
+        <tr>
+            <td>date</td>
+            <td>minDate, maxDate</td>
+            <td>Valide les dates dans une plage donnée</td>
+        </tr>
+        <tr>
+            <td>regex</td>
+            <td>pattern, patternMessage</td>
+            <td>Valide selon une expression régulière</td>
+        </tr>
+        <tr>
+            <td>custom</td>
+            <td>validate(value, cell)</td>
+            <td>Validation personnalisée via fonction</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Méthodes Publiques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Méthode</th>
+            <th>Arguments</th>
+            <th>Description</th>
+            <th>Retour</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>init(tableHandler)</code></td>
+            <td>tableHandler: object</td>
+            <td>Initialise le plugin</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>validateAll()</code></td>
+            <td>-</td>
+            <td>Valide toutes les cellules</td>
+            <td>boolean</td>
+        </tr>
+        <tr>
+            <td><code>getErrors()</code></td>
+            <td>-</td>
+            <td>Retourne toutes les erreurs</td>
+            <td>Map</td>
+        </tr>
+        <tr>
+            <td><code>clearValidation()</code></td>
+            <td>-</td>
+            <td>Efface toutes les validations</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>refresh()</code></td>
+            <td>-</td>
+            <td>Rafraîchit les validations</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>destroy()</code></td>
+            <td>-</td>
+            <td>Nettoie les validations</td>
+            <td>void</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Structure HTML</h2>
+<p>Exemple de structure HTML avec validation :</p>
+<pre><code>&lt;table id="monTableau"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;ID&lt;/th&gt;
+            &lt;th th-validate="email"&gt;Email&lt;/th&gt;
+            &lt;th th-validate="age"&gt;Âge&lt;/th&gt;
+            &lt;th th-validate="date"&gt;Date&lt;/th&gt;
+            &lt;th th-validate="code"&gt;Code&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td&gt;1&lt;/td&gt;
+            &lt;td&gt;jean@example.com&lt;/td&gt;
+            &lt;td&gt;25&lt;/td&gt;
+            &lt;td&gt;2023-06-15&lt;/td&gt;
+            &lt;td&gt;AB1234&lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+<h2>Styles CSS</h2>
+<p>Styles recommandés pour la validation :</p>
+<pre><code>.validate-cell {
+    position: relative;
+}
+
+.invalid {
+    border: 1px solid #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.validation-error {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background-color: #dc3545;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    white-space: nowrap;
+}
+
+.validation-error::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 10px;
+    border: 5px solid transparent;
+    border-top-color: #dc3545;
+}</code></pre>
+
+<h2>Intégration avec d'autres plugins</h2>
+<ul>
+    <li><strong>Plugin Edit</strong> :
+        <ul>
+            <li>Validation automatique lors de l'édition</li>
+            <li>Empêche la sauvegarde des valeurs invalides</li>
+            <li>Affichage des erreurs pendant l'édition</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Filter</strong> :
+        <ul>
+            <li>Les filtres respectent les règles de validation</li>
+            <li>Possibilité de filtrer les lignes invalides</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Actions</strong> :
+        <ul>
+            <li>Validation avant les actions</li>
+            <li>Annulation possible en cas d'erreur</li>
+        </ul>
+    </li>
+</ul>
+
+<h2>Validation Personnalisée</h2>
+<p>Exemple de validation personnalisée avec dépendances :</p>
+<pre><code>validators: {
+    'password': {
+        type: 'custom',
+        validate: (value, cell) => {
+            if (value.length < 8) {
+                return 'Minimum 8 caractères';
+            }
+            if (!/[A-Z]/.test(value)) {
+                return 'Au moins une majuscule';
+            }
+            if (!/[0-9]/.test(value)) {
+                return 'Au moins un chiffre';
+            }
+            return true;
+        }
+    },
+    'confirm': {
+        type: 'custom',
+        validate: (value, cell) => {
+            const password = cell.parentElement
+                               .querySelector('td[data-field="password"]')
+                               .textContent;
+            return value === password || 'Les mots de passe ne correspondent pas';
+        }
+    }
+}</code></pre>
+
+<div class="note">
+<h3>Notes Importantes</h3>
+<ul>
+    <li>La validation est effectuée en temps réel via MutationObserver</li>
+    <li>Les messages d'erreur sont personnalisables par règle</li>
+    <li>Les validations personnalisées peuvent accéder au contexte complet</li>
+    <li>Le plugin supporte la validation asynchrone</li>
+    <li>Les erreurs sont stockées dans une Map pour référence</li>
+</ul>
+</div>
+
+</body>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>nvTblHandler - Table en Lecture Seule</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="../src/nvTblHandler.js"></script>
+</head>
+<body>
+    <!-- Documentation -->
+    <div class="block mb-3">
+        <div class="block__title">
+            <div class="block__title-left">
+                Documentation - Table en Lecture Seule
+            </div>
+        </div>
+        <div class="block__content">
+            <h3>Fonctionnalités</h3>
+            <ul>
+                <li>Tri sur plusieurs colonnes</li>
+                <li>Filtrage global</li>
+                <li>Pagination simple</li>
+                <li>Export des données</li>
+                <li>Affichage optimisé pour la lecture</li>
+            </ul>
+
+            <h3>Configuration minimale</h3>
+            <pre><code>
+const table = new NvTblHandler({
+    tableId: 'readonlyTable',
+    plugins: {
+        names: ['Sort', 'Filter', 'Pagination'],
+        sort: {
+            multiSort: true
+        }
+    }
+});
+            </code></pre>
+        </div>
+    </div>
+
+    <!-- Table d'exemple -->
+    <div class="block">
+        <div class="block__title">
+            <div class="block__title-left">
+                Données en Lecture Seule
+            </div>
+        </div>
+
+        <div class="block__content">
+            <!-- Contrôles -->
+            <div class="filter-group">
+                <input type="text" id="search-input" placeholder="Rechercher..." class="input">
+                <button id="exportBtn" class="button button-primary">
+                    <i class="fa fa-download"></i> Exporter
+                </button>
+            </div>
+
+            <!-- Contrôles de pagination -->
+            <div id="pagination-controls" class="pagination"></div>
+
+            <table id="readonlyTable">
+                <thead>
+                    <tr>
+                        <th th-sort id="id">ID</th>
+                        <th th-sort id="name">Nom</th>
+                        <th th-sort id="department">Département</th>
+                        <th th-sort id="lastLogin">Dernière Connexion</th>
+                        <th th-sort id="status">Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>John Doe</td>
+                        <td>IT</td>
+                        <td>2024-01-15 10:30</td>
+                        <td>Actif</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Jane Smith</td>
+                        <td>RH</td>
+                        <td>2024-01-14 15:45</td>
+                        <td>Actif</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>Bob Johnson</td>
+                        <td>Marketing</td>
+                        <td>2024-01-10 09:15</td>
+                        <td>Inactif</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Alice Brown</td>
+                        <td>Finance</td>
+                        <td>2024-01-13 11:20</td>
+                        <td>Actif</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Charlie Wilson</td>
+                        <td>IT</td>
+                        <td>2024-01-12 14:10</td>
+                        <td>Inactif</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation de la table
+            const table = new NvTblHandler({
+                tableId: 'readonlyTable',
+                plugins: {
+                    names: ['Sort', 'Filter', 'Pagination'],
+                    pagination: {
+                        controlsId: 'pagination-controls',
+                        itemsPerPage: 10
+                    },
+                    filter: {
+                        globalFilter: '#search-input',
+                        debounceTime: 300
+                    },
+                    sort: {
+                        sortableAttribute: 'th-sort',
+                        showIcons: true,
+                        multiSort: true,
+                        ignoreCase: true,
+                        icons: {
+                            asc: '<i class="fa fa-sort-up"></i>',
+                            desc: '<i class="fa fa-sort-down"></i>',
+                            none: '<i class="fa fa-sort"></i>'
+                        }
+                    }
+                }
+            });
+
+            // Fonction d'export
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                // Récupérer toutes les données visibles
+                const data = [];
+                const headers = [];
+                
+                // Récupérer les en-têtes
+                table.thead.querySelectorAll('th').forEach(th => {
+                    if (!th.hasAttribute('th-hide')) {
+                        headers.push(th.textContent.trim());
+                    }
+                });
+
+                // Récupérer les données
+                table.tbody.querySelectorAll('tr').forEach(tr => {
+                    const row = {};
+                    tr.querySelectorAll('td').forEach((td, index) => {
+                        if (headers[index]) {
+                            row[headers[index]] = td.textContent.trim();
+                        }
+                    });
+                    data.push(row);
+                });
+
+                // Convertir en CSV
+                const csv = [
+                    headers.join(','),
+                    ...data.map(row => headers.map(header => row[header]).join(','))
+                ].join('\n');
+
+                // Créer le blob et télécharger
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'export_table.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+        });
+    </script>
+</body>
+</html>

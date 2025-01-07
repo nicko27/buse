@@ -1,0 +1,252 @@
+<div class="flex-h w-available">
+    <div class="block" id="unites-ldap">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des unités LDAP
+            </div>
+            <div class="block__title-center">
+                <div id="maj__text-update" class="hidden progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+            <div class="block__title-right">
+                <button class="btn btn-glass" onclick="getUnits('{{ WEB_PAGES }}')" tf-tooltip="Télécharger la base des unités du département">
+                    <i id="maj__text-normal" class="fa fa-file-arrow-down"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="unitesLdapTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide th-text-default="0">id</th>
+                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
+                        <th id="cu" th-readonly>code Unité</th>
+                        <th th-hide id="parentCu">Cu parent</th>
+                        <th th-choice th-sort id="isCie">Compagnie</th>
+                        <th th-select id="mergedWithCu" data-tooltip="Sert pour que la COB et la BP mère soit fusionné dans l'affichage">Ligne fusionné avec Unité</th>
+                        <th th-choice th-sort id="invisible">Unité Visible</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unites in unites_ldap_tbl %}
+                        <tr id="{{unites.id}}" name="{{ unites.id }}">
+                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
+                            <td id="newName_{{ unites.id }}" name="newName_{{ unites.id }}">{{ unites.newName }}</td>
+                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                            <td id="parentCu_{{ unites.id }}" name="parentCu_{{ unites.id }}">{{unites.parentCu}}</td>
+                            <td id="isCie_{{ unites.id }}" name="isCie_{{ unites.id }}">{{unites.isCie}}</td>
+                            <td id="mergedWithCu_{{ unites.id }}" name="mergedWithCu_{{ unites.id }}">{{unites.mergedWithCu}}</td>
+                            <td id="invisible_{{ unites.id }}" name="invisible_{{ unites.id }}">{{ unites.invisible }}</td>
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>       
+             <div class="block__buttons">
+                <div class="block__search">
+                    <div class="filter-group">
+                        <span>Rechercher dans le tableau</span>
+                        <input type="text" id="search" placeholder="Texte à Rechercher" class="filter-input">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+    </div>
+    <div class="block" id="unites-manual">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des unités ajoutées manuellement
+                <a onclick="unitesManualTable.addRow([],'start')">
+                    <i class="fa fa-circle-plus"></i>
+                </a>
+            </div>
+            <div class="block__title-center">
+                <div id="maj__text-update" class="hidden progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <table id="unitesManualTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide th-text-default="0">id</th>
+                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="name">Unité</th>
+                        <th id="cu" th-hide>code Unité</th>
+                        <th th-choice id="cieId" th-sort>Compagnie</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unites in unites_manuelles_tbl %}
+                        <tr id="{{unites.id}}" name="{{ unites.id }}">
+                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
+                            <td id="name_{{ unites.id }}" name="name_{{ unites.id }}">{{ unites.name }}</td>
+                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                            <td id="cieId_{{ unites.id }}" name="cieId_{{ unites.id }}">{{unites.cieCu}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    const unitesLdapTable = new TableFlow({
+        tableId: 'unitesLdapTbl',
+        debug: true,
+        plugins: {
+            names: ['filterandpaginate', 'edit', 'hide', 'sort', 'actions','select', 'choice'],
+            filterandpaginate: {
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                backwardIcon: '<i class="fas fa-chevron-left"></i>',
+                forwardIcon: '<i class="fas fa-chevron-right"></i>',
+                fastBackwardIcon: '<i class="fas fa-angle-double-left"></i>',
+                fastForwardIcon: '<i class="fas fa-angle-double-right"></i>'
+            },
+            select: {
+                options: {
+                    'mergedWithCu': [
+                        { value: '0', label: '/' },
+                        {% for cob in cob_tbl %}
+                            { 
+                                value: '{{ cob.cu }}', 
+                                label: '{{ cob.newName }}'
+                            },
+                        {% endfor %}
+                    ]
+                }
+            },
+            color: {
+                colorAttribute: 'th-color',
+                customClass: 'glass'
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: false,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                choiceAttribute: 'th-choice',
+                choices: {
+                    'invisible': [
+                        { value: '0', label: '<span style="color: green">Visible</span>' },
+                        { value: '1', label: '<span style="color: red">Masquée</span>' }
+                    ],
+                    'isCie': [  // Pour la colonne "Est une compagnie"
+                        { value: '0', label: '<span style="color: red">Non</span>' },
+                        { value: '1', label: '<span style="color: green">Oui</span>' }
+                    ]
+                },
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                actions: {
+                    save: {
+                        autoSave: true,
+                        handler: function(context) {
+                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            actionRow(url, context.data, "unites_ldap", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        }
+                    }
+                },
+                labels: {
+                    save: ''
+                }
+            }
+        },
+        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+    });
+
+    const unitesManualTable = new TableFlow({
+        tableId: 'unitesManualTbl',
+        debug: true,
+        plugins: {
+            names: ['edit', 'hide', 'sort', 'actions',  'choice'],
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: false,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                choiceAttribute: 'th-choice',
+                choices: {
+                    'cieId': [
+                            {% for compagnie in cies_tbl %}
+                                { value: '{{ compagnie.cu }}', label: '<span style="color: {{compagnie.color}}">{{ compagnie.newName }}</span>' },
+                            {% endfor %}
+                    ]
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                actions: {
+                    save: {
+                        autoSave: true,
+                        handler: function(context) {
+                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            actionRow(url, context.data, "unites_manuelles", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        }
+                    }
+                },
+                labels: {
+                    save: ''
+                }
+            }
+        },
+        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+    });
+</script>

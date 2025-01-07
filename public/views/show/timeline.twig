@@ -1,0 +1,104 @@
+<div id="timeline">
+    <div class="column left">
+        {% set half = (cieList|length // 2) %}
+        {% for i in 0..half-1 %}
+            {% set cie = cieList[i] %}
+            <div class="cie__blk">
+                <div class="line_grid cie__title" style="background-color: {{ cie.color }};">
+                    <div class="cie__name">{{ cie.newName }}</div>
+                    <div class="pam__tph">Tél PAM</div>
+                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>
+                </div>
+                <div class="cie__content">
+                    {% for unit in cieContent[i] %}
+                        {% include 'show/macros/grid_template.twig' with {'unit': unit, 'cie': cie} %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="column right">
+        {% for i in half..cieList|length-1 %}
+            {% set cie = cieList[i] %}
+            <div class="cie__blk">
+                <div class="line_grid cie__title" style="background-color: {{ cie.color }};">
+                    <div class="cie__name">{{ cie.name }}</div>
+                    <div class="pam__tph">Tél PAM</div>
+                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>
+                </div>
+                <div class="cie__content">
+                    {% for unit in cieContent[i] %}
+                        {% include 'show/macros/grid_template.twig' with {'unit': unit, 'cie': cie} %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# Suppression des anciens éléments de modal #}
+{# <div id="modal-overlay" class="hidden"></div> #}
+{# <div id="modal" class="modal__window hidden"></div> #}
+<script type="text/javascript" src="{{WEB_ASSETS}}/js/show/timeline.js"></script>
+<script type="text/javascript">
+    function show() {
+        // Assurez-vous que les variables interpolées sont correctement remplacées
+        showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }}, "{{ WEB_PAGES }}");
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ajouter des classes alternantes aux éléments .grid__unit
+        document.querySelectorAll('.grid__unit').forEach(function(element, index) {
+            element.classList.add(index % 2 === 0 ? 'line__even' : 'line__odd');
+        });
+
+        // Lire les paramètres d'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        let debug = 0;
+        let debug_hour = 0;
+        let debug_date = 0;
+
+        if (urlParams.has('debug')) {
+            debug = urlParams.get('debug');
+            if (debug != "1") {
+                if (urlParams.has('hour')) {
+                    debug_hour = urlParams.get('hour');
+                    const hourRegex = /^\d{2}:\d{2}$/;
+                    if (!hourRegex.test(debug_hour)) {
+                        errorNotice("Erreur", "Le paramètre hour doit être au format HH:MM");
+                        debug_hour = null;
+                    }
+                } else {
+                    infoNotice("debug", "Paramètre hour à utiliser via HH:MM<br>Paramètre (facultatif) date à utiliser YYYY-MM-DD");
+                }
+                if (urlParams.has('date')) {
+                    debug_date = urlParams.get('date');
+                    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                    if (!dateRegex.test(debug_date)) {
+                        errorNotice("Erreur", "Le paramètre date doit être au format YYYY-MM-DD");
+                        debug_date = null;
+                    }
+                }
+            }
+        }
+
+        // Appeler showFcts avec les paramètres de débogage
+        showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }},debug_date, debug_hour);
+
+        if (debug == 0) {
+            // Mettre à jour la barre rouge et les heures toutes les 60 secondes
+            setInterval(function() {
+                updateTimelineRedBar({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
+                updateHours({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
+            }, 60000);
+
+            // Mettre à jour showFcts toutes les 300 secondes (5 minutes)
+            setInterval(function() {
+                showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
+            }, 300000);
+        }
+
+        // Initialisation des tooltips
+        initializeTippy();
+    });
+</script>

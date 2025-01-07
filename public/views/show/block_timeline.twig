@@ -1,0 +1,57 @@
+<div class="glass-timeline timeline__block-content" id="timeline__block-{{ suId }}" tm-id="#tooltip__content-{{ suId }}" data-su-id="{{ suId }}" ondblclick="showUpdateBlock('{{WEB_PAGES}}',{{suId}})">
+    {% if merged==0 %}
+        <div class="timeline__block-service">
+                {{ shortName }}
+        </div>
+        {% if outdated==0%}
+            {% if end_column - start_column >LARGEUR_MIN_TPH %}
+                <div class="timeline__block-tph">
+                    {{ text|phone_format}}
+                    {% if memo|length >0 %}
+                        <i class="fa fa-message"></i>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <div class="timeline__block-service">
+            {% if end_column - start_column >LARGEUR_MIN_TPH %}
+                {{ shortName }} Multiples
+            {% else %}
+                {{ shortName }}
+            {% endif %}
+        </div>
+    {% endif %}
+
+</div>
+<div class="bulle__content hidden" id="tooltip__content-{{ suId }}">
+    <div class="bulle__services">
+        <div class="bulle__services-name">
+            {{name}}
+        </div>
+
+    </div>
+    <div class="bulle__horaires">
+        {{ date_debut|date('d-m-Y') }} à {{ debut|date("H:i") }} au {{ date_fin|date('d-m-Y') }} à {{ fin|date("H:i") }}
+    </div>
+    <div class="bulle__users">
+            {% for user in users %}
+                <div class="bulle__user-line">
+                    <div class="bulle__user-name">{{user.name}}</div>
+                    <div class="bulle__user-info">
+                        <div class="bulle__user-tph"><i class="fa fa-phone"></i>{{user.tph|phone_format}}</div>
+                        {% if user.rubis|length >0 %}
+                            <div class="bulle__user-rubis"><i class="fa fa-radio"></i>{{ user.rubis }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+    </div>
+    {% if memo|length >0 %}
+        <div class="bulle__memo">
+            <div class="bulle__memo-title">Informations complémentaires:</div>
+            <div class="bulle__user-content">{{ memo }}</div>
+            </div>
+        </div>
+    {% endif %}
+</div>

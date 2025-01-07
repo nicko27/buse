@@ -1,0 +1,41 @@
+<div class="modal__title">
+    <a onclick="$('#modal').html('');$('#modal').addClass('hidden');$('#modal-overlay').addClass('hidden')"><i class="fa fa-xmark"></i></a>
+    <div class="addPAM {{hiddenAdd}}">Ajouter un mémo</div>
+    <div class="updatePAM {{hiddenUpdate}}">Modifier les PAM</div>
+    <a onclick="{{fct}}('{{WEB_PAGES}}')"><i class="fa fa-check"></i></a>
+</div>
+<div class="modal__content">
+    <form id="modal-form">
+        <input type="hidden" name="cu" id="cu" value="{{cu}}">
+        <div class="modal__pam">
+            <div class="modal__user-line">
+                <label>Nom du PAM Matin ({{DEBUT_MATIN}} - {{FIN_MATIN}})</label>
+                <input type="text" class="text" name="nomPamMatin" id="nomPamMatin" value="{{nomPamMatin}}">
+            </div>
+            <div class="modal__user-line">
+                <label>TPH du PAM Matin</label>
+                <input type="text" class="text" name="tphPamMatin" id="tphPamMatin" value="{{tphPamMatin}}">
+            </div>
+        </div>
+        <div class="modal__pam">
+            <div class="modal__user-line">
+                <label>Nom du PAM Après-Midi ({{DEBUT_APREM}} - {{FIN_APREM}})</label>
+                <input type="text" class="text" name="nomPamAprem" id="nomPamAprem" value="{{nomPamAprem}}">
+            </div>
+            <div class="modal__user-line">
+                <label>TPH du PAM Après-Midi</label>
+                <input type="text" class="text" name="tphPamAprem" id="tphPamAprem" value="{{tphPamAprem}}">
+            </div>
+        </div>
+        <div class="modal__pam">
+            <div class="modal__user-line">
+                <label>Nom du PAM Nuit ({{DEBUT_NUIT}} - {{FIN_NUIT}})</label>
+                <input type="text" class="text" name="nomPamNuit" id="nomPamNuit" value="{{nomPamNuit}}">
+            </div>
+            <div class="modal__user-line">
+                <label>TPH du PAM Nuit</label>
+                <input type="text" class="text" name="tph-nuit" id="tph-nuit" value="{{tphPamNuit}}">
+            </div>
+        </div>
+    </form>
+</div>

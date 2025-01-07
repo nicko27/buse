@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation NotifyFlow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f8f9fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .demo {
+            background: #e1f5fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        th {
+            background: #f5f5f5;
+        }
+        
+        .note {
+            background: #fff3e0;
+            padding: 15px;
+            border-left: 4px solid #ff9800;
+            margin: 20px 0;
+        }
+        
+        .example {
+            background: #f1f8e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+    <link rel="stylesheet" href="../src/notifyFlow.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Documentation NotifyFlow</h1>
+        <p>NotifyFlow est une bibliothèque moderne de notifications pour les applications web, offrant une expérience utilisateur riche et personnalisable.</p>
+
+        <h2>Table des matières</h2>
+        <ul>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#configuration">Configuration</a></li>
+            <li><a href="#utilisation">Utilisation</a></li>
+            <li><a href="#themes">Thèmes</a></li>
+            <li><a href="#actions">Actions</a></li>
+            <li><a href="#animations">Animations</a></li>
+            <li><a href="#api">API</a></li>
+            <li><a href="#demo">Démonstration</a></li>
+        </ul>
+
+        <section id="installation">
+            <h2>Installation</h2>
+            <p>Incluez les fichiers CSS et JavaScript dans votre page HTML :</p>
+            <pre><code>&lt;link rel="stylesheet" href="notifyFlow.css"&gt;
+&lt;script src="notifyFlow.js"&gt;&lt;/script&gt;</code></pre>
+        </section>
+
+        <section id="configuration">
+            <h2>Configuration</h2>
+            <p>Initialisez NotifyFlow avec vos options personnalisées :</p>
+            <pre><code>const notifyFlow = new NotifyFlow({
+    position: 'top-right',      // Position des notifications
+    theme: 'light',            // Thème (light, dark, auto)
+    maxNotifications: 5,       // Nombre maximum de notifications
+    defaultDuration: 5000,     // Durée par défaut (ms)
+    containerClass: 'notify-flow', // Classe du conteneur
+    animations: {
+        in: 'slide-in',        // Animation d'entrée
+        out: 'fade-out'        // Animation de sortie
+    }
+});</code></pre>
+
+            <h3>Options de configuration</h3>
+            <table>
+                <tr>
+                    <th>Option</th>
+                    <th>Type</th>
+                    <th>Défaut</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>position</td>
+                    <td>string</td>
+                    <td>'top-right'</td>
+                    <td>Position des notifications (top-right, top-left, bottom-right, bottom-left, top-center, bottom-center)</td>
+                </tr>
+                <tr>
+                    <td>theme</td>
+                    <td>string</td>
+                    <td>'light'</td>
+                    <td>Thème des notifications (light, dark, auto)</td>
+                </tr>
+                <tr>
+                    <td>maxNotifications</td>
+                    <td>number</td>
+                    <td>5</td>
+                    <td>Nombre maximum de notifications affichées simultanément</td>
+                </tr>
+                <tr>
+                    <td>defaultDuration</td>
+                    <td>number</td>
+                    <td>5000</td>
+                    <td>Durée d'affichage par défaut en millisecondes</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="utilisation">
+            <h2>Utilisation</h2>
+            <p>Créez une notification avec différentes options :</p>
+            <pre><code>notifyFlow.notify({
+    title: 'Titre',           // Titre de la notification
+    message: 'Message',       // Contenu de la notification
+    type: 'info',            // Type (info, success, warning, error)
+    icon: '&lt;svg&gt;...&lt;/svg&gt;',  // Icône (HTML/SVG)
+    duration: 5000,          // Durée d'affichage
+    actions: [],             // Actions (boutons)
+    progress: true,          // Barre de progression
+    dismissible: true,       // Bouton de fermeture
+    autoAction: null,        // ID de l'action automatique
+    autoActionDelay: 5000,   // Délai avant action auto
+    customClass: ''          // Classe CSS personnalisée
+});</code></pre>
+
+            <div class="example">
+                <h4>Exemples d'utilisation</h4>
+                <pre><code>// Notification de succès simple
+notifyFlow.notify({
+    title: 'Succès',
+    message: 'Opération réussie !',
+    type: 'success'
+});
+
+// Notification avec actions
+notifyFlow.notify({
+    title: 'Confirmation',
+    message: 'Voulez-vous continuer ?',
+    type: 'warning',
+    duration: 0, // La notification ne disparaîtra pas automatiquement
+    actions: [
+        {
+            id: 'confirm',
+            text: 'Confirmer',
+            callback: () => console.log('Confirmé'),
+            class: 'primary'
+        },
+        {
+            id: 'cancel',
+            text: 'Annuler',
+            callback: () => console.log('Annulé'),
+            class: 'secondary'
+        }
+    ]
+});</code></pre>
+            </div>
+        </section>
+
+        <section id="themes">
+            <h2>Thèmes</h2>
+            <p>NotifyFlow supporte trois modes de thème :</p>
+            <ul>
+                <li><strong>light</strong> : Thème clair</li>
+                <li><strong>dark</strong> : Thème sombre</li>
+                <li><strong>auto</strong> : S'adapte aux préférences système</li>
+            </ul>
+            <div class="note">
+                <p>Le thème 'auto' utilise la media query <code>prefers-color-scheme</code> pour détecter les préférences de l'utilisateur.</p>
+            </div>
+        </section>
+
+        <section id="actions">
+            <h2>Actions</h2>
+            <p>Les notifications peuvent inclure des boutons d'action interactifs :</p>
+            <pre><code>const actions = [
+    {
+        id: 'action1',          // Identifiant unique
+        text: 'Cliquez-moi',    // Texte du bouton
+        callback: () => {},     // Fonction de callback
+        class: 'custom-class',  // Classe CSS personnalisée
+        dismiss: true           // Fermer après clic
+    }
+];</code></pre>
+
+            <h3>Actions automatiques</h3>
+            <p>Une action peut être exécutée automatiquement après un délai :</p>
+            <pre><code>notifyFlow.notify({
+    message: 'Redirection dans 5 secondes...',
+    autoAction: 'redirect',     // ID de l'action
+    autoActionDelay: 5000,     // Délai en ms
+    actions: [
+        {
+            id: 'redirect',
+            text: 'Rediriger',
+            callback: () => window.location.href = '/dashboard'
+        }
+    ]
+});</code></pre>
+        </section>
+
+        <section id="animations">
+            <h2>Animations</h2>
+            <p>NotifyFlow inclut plusieurs animations prédéfinies :</p>
+            <ul>
+                <li><strong>Entrée</strong> : slide-in, fade-in</li>
+                <li><strong>Sortie</strong> : fade-out, slide-out</li>
+            </ul>
+            <p>Personnalisez les animations via CSS :</p>
+            <pre><code>/* Animation personnalisée */
+@keyframes custom-animation {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+.notify-flow-item.custom-in {
+    animation: custom-animation 0.3s ease-out;
+}</code></pre>
+        </section>
+
+        <section id="api">
+            <h2>API</h2>
+            <h3>Méthodes</h3>
+            <table>
+                <tr>
+                    <th>Méthode</th>
+                    <th>Description</th>
+                    <th>Paramètres</th>
+                </tr>
+                <tr>
+                    <td>notify(options)</td>
+                    <td>Crée une nouvelle notification</td>
+                    <td>Object: options de la notification</td>
+                </tr>
+                <tr>
+                    <td>remove(notification)</td>
+                    <td>Supprime une notification spécifique</td>
+                    <td>Element: élément DOM de la notification</td>
+                </tr>
+                <tr>
+                    <td>removeAll()</td>
+                    <td>Supprime toutes les notifications</td>
+                    <td>-</td>
+                </tr>
+            </table>
+
+            <h3>Types de notifications</h3>
+            <table>
+                <tr>
+                    <th>Type</th>
+                    <th>Usage</th>
+                </tr>
+                <tr>
+                    <td>info</td>
+                    <td>Informations générales</td>
+                </tr>
+                <tr>
+                    <td>success</td>
+                    <td>Opérations réussies</td>
+                </tr>
+                <tr>
+                    <td>warning</td>
+                    <td>Avertissements</td>
+                </tr>
+                <tr>
+                    <td>error</td>
+                    <td>Erreurs</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="demo">
+            <h2>Démonstration</h2>
+            <div class="demo-buttons">
+                <button onclick="notifyFlow.success('Opération réussie !')">Notification Succès</button>
+                <button onclick="notifyFlow.info('Information importante')">Notification Info</button>
+                <button onclick="notifyFlow.warning('Attention !')">Notification Warning</button>
+                <button onclick="notifyFlow.error('Une erreur est survenue')">Notification Error</button>
+                <button onclick="showNotificationWithAction()">Notification avec Action</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="../src/notifyFlow.js"></script>
+    <script>
+        // Initialisation de NotifyFlow pour la démo
+        const notifyFlow = new NotifyFlow({
+            position: 'top-right',
+            theme: 'light',
+            maxNotifications: 5,
+            defaultDuration: 5000,
+            containerClass: 'notify-flow',
+            animations: {
+                in: 'slide-in',
+                out: 'fade-out'
+            }
+        });
+
+        // Fonction pour afficher une notification avec action
+        function showNotificationWithAction() {
+            notifyFlow.notify({
+                message: 'Voulez-vous continuer ?',
+                title: 'Confirmation',
+                type: 'info',
+                duration: 0,
+                customClass: 'my-custom-notification',
+                actions: [
+                    {
+                        id: 'confirm',
+                        text: 'Confirmer',
+                        class: 'primary',
+                        callback: () => {
+                            notifyFlow.success('Action confirmée !', null, {
+                                customClass: 'success-notification'
+                            });
+                        }
+                    },
+                    {
+                        id: 'cancel',
+                        text: 'Annuler',
+                        class: 'secondary',
+                        callback: () => {
+                            notifyFlow.info('Action annulée', null, {
+                                customClass: 'cancel-notification'
+                            });
+                        }
+                    }
+                ]
+            });
+        }
+
+        // Ajout d'une notification de bienvenue
+        document.addEventListener('DOMContentLoaded', () => {
+            notifyFlow.info('Bienvenue dans la documentation de NotifyFlow ! Testez les différents types de notifications.', 'Documentation NotifyFlow');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentation EditPlugin - nvTblHandler</title>
+</head>
+<body>
+
+<h1>Documentation EditPlugin - nvTblHandler</h1>
+
+<p>Le plugin <code>EditPlugin</code> ajoute des fonctionnalités d'édition en ligne à votre tableau HTML. Il permet de modifier le contenu des cellules directement dans le tableau avec validation et gestion des modifications.</p>
+
+<h2>Caractéristiques Principales</h2>
+<ul>
+    <li>Édition en ligne par double-clic</li>
+    <li>Validation des entrées en temps réel</li>
+    <li>Support des différents types d'input HTML5</li>
+    <li>Suivi des modifications avec état initial/actuel</li>
+    <li>Annulation des modifications avec la touche Escape</li>
+    <li>Validation avec la touche Enter</li>
+    <li>Intégration avec le système de validation</li>
+    <li>Notifications utilisateur</li>
+</ul>
+
+<h2>Configuration</h2>
+<p>Exemple de configuration du plugin :</p>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Edit: {
+            editAttribute: 'th-edit',
+            editableClass: 'editable',
+            editingClass: 'editing',
+            inputClass: 'edit-input'
+        }
+    }
+});</code></pre>
+
+<h2>Options de Configuration</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Défaut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>editAttribute</code></td>
+            <td>string</td>
+            <td>Attribut HTML pour marquer les colonnes éditables</td>
+            <td>'th-edit'</td>
+        </tr>
+        <tr>
+            <td><code>editableClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les cellules éditables</td>
+            <td>'editable'</td>
+        </tr>
+        <tr>
+            <td><code>editingClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les cellules en cours d'édition</td>
+            <td>'editing'</td>
+        </tr>
+        <tr>
+            <td><code>inputClass</code></td>
+            <td>string</td>
+            <td>Classe CSS pour les champs de saisie</td>
+            <td>'edit-input'</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Méthodes Publiques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Méthode</th>
+            <th>Arguments</th>
+            <th>Description</th>
+            <th>Retour</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>init(tableHandler)</code></td>
+            <td>tableHandler: object</td>
+            <td>Initialise le plugin avec l'instance de nvTblHandler</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>startEdit(cell)</code></td>
+            <td>cell: HTMLElement</td>
+            <td>Démarre l'édition d'une cellule</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>finishEdit(save)</code></td>
+            <td>save: boolean</td>
+            <td>Termine l'édition (sauvegarde si save=true)</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>destroy()</code></td>
+            <td>-</td>
+            <td>Nettoie les modifications et supprime les événements</td>
+            <td>void</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Événements</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Événement</th>
+            <th>Détail</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>edit:change</code></td>
+            <td>{ cell, value, previousValue, column }</td>
+            <td>Déclenché lors d'une modification validée</td>
+        </tr>
+        <tr>
+            <td><code>actions:change</code></td>
+            <td>{ row, source: 'edit', changes }</td>
+            <td>Déclenché pour intégration avec le plugin Actions</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Structure HTML</h2>
+<p>Exemple de structure HTML avec colonnes éditables et validation :</p>
+<pre><code>&lt;table id="monTableau"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;ID&lt;/th&gt;
+            &lt;th th-edit th-validate='{"type": "text", "maxLength": 50}'&gt;
+                Nom
+            &lt;/th&gt;
+            &lt;th th-edit th-validate='{"type": "email"}'&gt;
+                Email
+            &lt;/th&gt;
+            &lt;th th-edit th-validate='{"type": "number", "min": 0, "max": 100}'&gt;
+                Score
+            &lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td&gt;1&lt;/td&gt;
+            &lt;td&gt;
+                &lt;div class="cell-wrapper"&gt;Jean Dupont&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+                &lt;div class="cell-wrapper"&gt;jean@example.com&lt;/div&gt;
+            &lt;/td&gt;
+            &lt;td&gt;
+                &lt;div class="cell-wrapper"&gt;85&lt;/div&gt;
+            &lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+<h2>Validation des Entrées</h2>
+<p>Le plugin supporte la validation HTML5 via l'attribut <code>th-validate</code>. Voici les options disponibles :</p>
+<pre><code>{
+    "type": "text|number|email|tel|url|date",
+    "required": true|false,
+    "minLength": number,
+    "maxLength": number,
+    "pattern": "regex",
+    "min": number,
+    "max": number
+}</code></pre>
+
+<h2>Styles CSS</h2>
+<p>Styles recommandés pour personnaliser l'apparence des cellules éditables :</p>
+<pre><code>.editable {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.editable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.editing {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #007bff;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 4px 8px;
+    border: none;
+    outline: none;
+    background: transparent;
+}
+
+/* Style pour les lignes modifiées */
+tr.modified {
+    background-color: rgba(255, 255, 0, 0.1);
+}</code></pre>
+
+<h2>Intégration avec d'autres plugins</h2>
+<ul>
+    <li><strong>Plugin Validate</strong> :
+        <ul>
+            <li>Validation automatique des entrées selon les règles définies</li>
+            <li>Messages d'erreur personnalisés</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Actions</strong> :
+        <ul>
+            <li>Les modifications sont tracées via l'événement actions:change</li>
+            <li>Permet l'annulation/rétablissement des modifications</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Color</strong> :
+        <ul>
+            <li>Support de l'édition des valeurs de couleur</li>
+            <li>Mise à jour en temps réel des aperçus</li>
+        </ul>
+    </li>
+</ul>
+
+<h2>Raccourcis Clavier</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Touche</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Double-clic</td>
+            <td>Démarrer l'édition</td>
+        </tr>
+        <tr>
+            <td>Enter</td>
+            <td>Valider les modifications</td>
+        </tr>
+        <tr>
+            <td>Escape</td>
+            <td>Annuler les modifications</td>
+        </tr>
+        <tr>
+            <td>Clic en dehors</td>
+            <td>Valider les modifications</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">
+<h3>Notes Importantes</h3>
+<ul>
+    <li>Une seule cellule peut être éditée à la fois</li>
+    <li>Les modifications sont validées automatiquement avant sauvegarde</li>
+    <li>Les cellules éditables doivent contenir un élément .cell-wrapper</li>
+    <li>Les modifications sont indiquées visuellement sur la ligne</li>
+    <li>Le plugin émet des notifications pour les erreurs de validation</li>
+</ul>
+</div>
+
+</body>
+</html>

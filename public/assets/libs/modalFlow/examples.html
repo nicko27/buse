@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModalFlow Examples</title>
+    <link href="src/modalFlow.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            padding: 20px;
+        }
+        .example-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .example-title {
+            margin-top: 0;
+            color: #333;
+        }
+        .example-description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .code-block {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .try-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .try-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>ModalFlow Examples</h1>
+    <p>Démonstration des différentes fonctionnalités de ModalFlow et ses plugins.</p>
+
+    <!-- Modal Simple -->
+    <div class="example-section">
+        <h2 class="example-title">Modal Simple</h2>
+        <div class="example-description">
+            Une modal basique avec titre et contenu.
+        </div>
+        <div class="code-block">
+            <pre>
+modalFlow.create({
+    title: 'Modal Simple',
+    content: 'Contenu de la modal'
+});</pre>
+        </div>
+        <button class="try-button" onclick="showSimpleModal()">Essayer</button>
+    </div>
+
+    <!-- Modal avec Drag & Drop -->
+    <div class="example-section">
+        <h2 class="example-title">Modal Déplaçable</h2>
+        <div class="example-description">
+            Une modal que l'on peut déplacer en cliquant sur son header.
+        </div>
+        <div class="code-block">
+            <pre>
+// Initialiser le plugin
+modalFlow.use(new ModalFlowDragPlugin());
+
+// Créer la modal
+modalFlow.create({
+    title: 'Modal Déplaçable',
+    content: 'Cliquez sur le header pour déplacer la modal'
+});</pre>
+        </div>
+        <button class="try-button" onclick="showDraggableModal()">Essayer</button>
+    </div>
+
+    <!-- Modal Redimensionnable -->
+    <div class="example-section">
+        <h2 class="example-title">Modal Redimensionnable</h2>
+        <div class="example-description">
+            Une modal que l'on peut redimensionner avec les poignées sur les bords.
+        </div>
+        <div class="code-block">
+            <pre>
+// Initialiser le plugin
+modalFlow.use(new ModalFlowResizePlugin());
+
+// Créer la modal
+modalFlow.create({
+    title: 'Modal Redimensionnable',
+    content: 'Utilisez les poignées pour redimensionner la modal',
+    width: '400px',
+    height: '300px'
+});</pre>
+        </div>
+        <button class="try-button" onclick="showResizableModal()">Essayer</button>
+    </div>
+
+    <!-- Galerie d'Images -->
+    <div class="example-section">
+        <h2 class="example-title">Galerie d'Images</h2>
+        <div class="example-description">
+            Une modal pour afficher une galerie d'images avec navigation.
+        </div>
+        <div class="code-block">
+            <pre>
+// Initialiser le plugin
+modalFlow.use(new ModalFlowGalleryPlugin());
+
+// Ouvrir la galerie
+modalFlow.getPlugin('gallery').open([
+    'path/to/image1.jpg',
+    'path/to/image2.jpg',
+    'path/to/image3.jpg'
+]);</pre>
+        </div>
+        <button class="try-button" onclick="showGallery()">Essayer</button>
+    </div>
+
+    <!-- Formulaire avec Validation -->
+    <div class="example-section">
+        <h2 class="example-title">Formulaire avec Validation</h2>
+        <div class="example-description">
+            Un formulaire dans une modal avec validation en temps réel.
+        </div>
+        <div class="code-block">
+            <pre>
+// Initialiser le plugin
+modalFlow.use(new ModalFlowValidatePlugin());
+
+// Créer la modal avec formulaire
+modalFlow.create({
+    title: 'Inscription',
+    content: `
+        <form data-validate>
+            <input type="text" 
+                   data-validate="required minLength:3" 
+                   placeholder="Nom">
+            <input type="email" 
+                   data-validate="required email" 
+                   placeholder="Email">
+            <button type="submit">Envoyer</button>
+        </form>
+    `
+});</pre>
+        </div>
+        <button class="try-button" onclick="showValidationForm()">Essayer</button>
+    </div>
+
+    <!-- Modal AJAX -->
+    <div class="example-section">
+        <h2 class="example-title">Modal AJAX</h2>
+        <div class="example-description">
+            Charger du contenu dynamiquement via AJAX.
+        </div>
+        <div class="code-block">
+            <pre>
+modalFlow.ajax({
+    url: '/api/data',
+    method: 'GET',
+    onSuccess: (data) => `
+        <div>
+            <h3>${data.title}</h3>
+            <p>${data.content}</p>
+        </div>
+    `
+});</pre>
+        </div>
+        <button class="try-button" onclick="showAjaxModal()">Essayer</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/modalFlow.js"></script>
+    <script src="plugins/drag.js"></script>
+    <script src="plugins/resize.js"></script>
+    <script src="plugins/gallery.js"></script>
+    <script src="plugins/validate.js"></script>
+
+    <script>
+        // Initialiser ModalFlow avec les plugins
+        const modalFlow = new ModalFlow({
+            plugins: ['drag', 'resize', 'gallery', 'validate']
+        });
+
+        // Exemple avec configuration personnalisée
+        const modalFlowCustom = new ModalFlow({
+            plugins: {
+                resize: {
+                    minWidth: 300,
+                    minHeight: 200,
+                    handles: ['se', 'sw', 'ne', 'nw']
+                },
+                drag: {
+                    handle: '.modal-flow-header',
+                    bounds: 'window'
+                }
+            }
+        });
+
+        // Modal Simple
+        function showSimpleModal() {
+            const modalId = modalFlow.create({
+                title: 'Modal Simple',
+                content: 'Voici une modal simple avec un titre et du contenu.'
+            });
+            modalFlow.open(modalId);
+        }
+
+        // Modal Déplaçable
+        function showDraggableModal() {
+            const modalId = modalFlow.create({
+                title: 'Modal Déplaçable',
+                content: `
+                    <div style="padding: 20px;">
+                        <h3>Instructions :</h3>
+                        <p>1. Cliquez sur le header de la modal</p>
+                        <p>2. Maintenez le clic et déplacez la souris</p>
+                        <p>3. Relâchez pour poser la modal</p>
+                    </div>
+                `
+            });
+            modalFlow.open(modalId);
+        }
+
+        // Modal Redimensionnable
+        function showResizableModal() {
+            const modalId = modalFlow.create({
+                title: 'Modal Redimensionnable',
+                content: `
+                    <div style="padding: 20px;">
+                        <h3>Instructions :</h3>
+                        <p>1. Survolez les bords de la modal</p>
+                        <p>2. Cliquez et maintenez sur une poignée</p>
+                        <p>3. Déplacez la souris pour redimensionner</p>
+                    </div>
+                `,
+                width: '400px',
+                height: '300px'
+            });
+            modalFlow.open(modalId);
+        }
+
+        // Galerie
+        function showGallery() {
+            // Utiliser des images de placeholder pour l'exemple
+            const images = [
+                'https://picsum.photos/800/600?random=1',
+                'https://picsum.photos/800/600?random=2',
+                'https://picsum.photos/800/600?random=3',
+                'https://picsum.photos/800/600?random=4'
+            ];
+            modalFlow.getPlugin('gallery').open(images);
+        }
+
+        // Formulaire avec Validation
+        function showValidationForm() {
+            const modalId = modalFlow.create({
+                title: 'Inscription',
+                content: `
+                    <form data-validate style="padding: 20px;">
+                        <div class="modal-flow-form-group">
+                            <input type="text" 
+                                   class="form-control"
+                                   data-validate="required minLength:3" 
+                                   placeholder="Nom"
+                                   style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                        </div>
+                        <div class="modal-flow-form-group">
+                            <input type="email" 
+                                   class="form-control"
+                                   data-validate="required email" 
+                                   placeholder="Email"
+                                   style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                        </div>
+                        <div class="modal-flow-form-group">
+                            <input type="tel" 
+                                   class="form-control"
+                                   data-validate="required phone" 
+                                   placeholder="Téléphone"
+                                   style="width: 100%; padding: 8px; margin-bottom: 10px;">
+                        </div>
+                        <button type="submit" 
+                                style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                            Envoyer
+                        </button>
+                    </form>
+                `
+            });
+            modalFlow.open(modalId);
+        }
+
+        // Modal AJAX
+        function showAjaxModal() {
+            modalFlow.ajax({
+                url: 'https://jsonplaceholder.typicode.com/posts/1',
+                method: 'GET',
+                modalOptions: {
+                    title: 'Données AJAX'
+                },
+                onSuccess: (data) => `
+                    <div style="padding: 20px;">
+                        <h3>${data.title}</h3>
+                        <p>${data.body}</p>
+                    </div>
+                `,
+                onError: (error) => `
+                    <div style="color: red; padding: 20px;">
+                        Erreur: ${error.message}
+                    </div>
+                `
+            });
+        }
+    </script>
+</body>
+</html>

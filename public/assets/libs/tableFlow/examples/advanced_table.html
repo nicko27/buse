@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Table Avancée - nvTblHandler</title>
+    <link rel="stylesheet" href="/assets/css/table-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/assets/libs/nvTblHandler/nvTblHandler.js"></script>
+</head>
+<body>
+    <div class="block">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Table Avancée avec Filtres et Pagination
+            </div>
+        </div>
+
+        <div class="block__content">
+            <div class="block__buttons">
+                <div id="pagination-controls"></div>
+                <div class="block__search">
+                    <div class="filter-group">
+                        <input type="text" id="name-filter" placeholder="Filtrer par nom..." class="filter-input">
+                        <input type="text" id="search-input" placeholder="Recherche globale..." class="filter-input">
+                        <button id="search-reset">Réinitialiser les filtres</button>
+                    </div>
+                </div>
+            </div>
+
+            <table id="advancedTable">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide>ID</th>
+                        <th th-edit th-sort th-validate='{"required": true}' id="name">Nom</th>
+                        <th th-edit th-validate='{"type": "email"}' id="email">Email</th>
+                        <th th-choice id="role">Rôle</th>
+                        <th th-choice id="status">Statut</th>
+                        <th th-edit th-validate='{"type": "number"}' id="age">Age</th>
+                        <th th-actions="delete,save">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="1">
+                        <td>1</td>
+                        <td>John Doe</td>
+                        <td>john@example.com</td>
+                        <td>admin</td>
+                        <td>active</td>
+                        <td>30</td>
+                        <td></td>
+                    </tr>
+                    <tr id="2">
+                        <td>2</td>
+                        <td>Jane Smith</td>
+                        <td>jane@example.com</td>
+                        <td>user</td>
+                        <td>inactive</td>
+                        <td>25</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = new NvTblHandler({
+                tableId: 'advancedTable',
+                debug: true,
+                plugins: {
+                    names: ['Edit', 'Hide', 'Sort', 'Actions', 'Choice', 'Validate', 'Filter', 'Pagination'],
+                    pagination: {
+                        controlsId: 'pagination-controls',
+                        itemsPerPage: 10
+                    },
+                    filter: {
+                        globalFilter: '#search-input',
+                        columnFilters: {
+                            'name': '#name-filter'
+                        },
+                        debounceTime: 300
+                    },
+                    choice: {
+                        choiceAttribute: 'th-choice',
+                        choices: {
+                            'role': {
+                                values: [
+                                    { value: 'admin', label: 'Administrateur' },
+                                    { value: 'user', label: 'Utilisateur' }
+                                ]
+                            },
+                            'status': {
+                                values: [
+                                    { value: 'active', label: 'Actif' },
+                                    { value: 'inactive', label: 'Inactif' },
+                                    { value: 'pending', label: 'En attente' }
+                                ]
+                            }
+                        }
+                    },
+                    actions: {
+                        actionAttribute: 'th-actions',
+                        buttonClass: 'th-action-btn',
+                        containerClass: 'th-actions',
+                        useIcons: true,
+                        actions: {
+                            save: function(context) {
+                                if (!context.tableHandler.isRowModified(context.row)) {
+                                    alert('Aucune modification');
+                                    return;
+                                }
+                                console.log('Saving:', context.data);
+                                alert('Sauvegarde effectuée');
+                                context.tableHandler.markRowAsSaved(context.row);
+                            },
+                            delete: function(context) {
+                                if (confirm('Êtes-vous sûr de vouloir supprimer cette ligne ?')) {
+                                    console.log('Deleting:', context.data);
+                                    context.tableHandler.removeRow(context.row);
+                                }
+                            }
+                        },
+                        icons: {
+                            delete: '<i class="fa fa-trash"></i>',
+                            save: '<i class="fa fa-save"></i>'
+                        }
+                    }
+                }
+            });
+
+            // Reset button
+            document.getElementById('search-reset').addEventListener('click', function() {
+                document.getElementById('search-input').value = '';
+                document.getElementById('name-filter').value = '';
+                table.plugins.Filter.resetFilters();
+            });
+        });
+    </script>
+</body>
+</html>

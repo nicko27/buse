@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotifyFlow - Documentation</title>
+    <link rel="stylesheet" href="../src/notifyFlow.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 2em;
+        }
+
+        .demo-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .code-block {
+            background: #f1f3f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .attribute {
+            color: #e83e8c;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>NotifyFlow - Documentation</h1>
+    
+    <section>
+        <h2>Installation</h2>
+        <p>Pour utiliser NotifyFlow, incluez les fichiers CSS et JavaScript dans votre page HTML :</p>
+        <div class="code-block">
+            <pre>&lt;link rel="stylesheet" href="path/to/notifyFlow.css"&gt;
+&lt;script src="path/to/notifyFlow.js"&gt;&lt;/script&gt;</pre>
+        </div>
+    </section>
+
+    <section>
+        <h2>Initialisation</h2>
+        <p>Initialisez NotifyFlow en créant une nouvelle instance :</p>
+        <div class="code-block">
+            <pre>const notify = new NotifyFlow();</pre>
+        </div>
+    </section>
+
+    <section>
+        <h2>Options disponibles</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Option</th>
+                    <th>Description</th>
+                    <th>Valeurs possibles</th>
+                    <th>Défaut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="attribute">type</span></td>
+                    <td>Type de notification</td>
+                    <td>success, error, warning, info</td>
+                    <td>info</td>
+                </tr>
+                <tr>
+                    <td><span class="attribute">position</span></td>
+                    <td>Position de la notification</td>
+                    <td>top-right, top-left, bottom-right, bottom-left</td>
+                    <td>top-right</td>
+                </tr>
+                <tr>
+                    <td><span class="attribute">duration</span></td>
+                    <td>Durée d'affichage (ms)</td>
+                    <td>nombre ou 'infinite'</td>
+                    <td>3000</td>
+                </tr>
+                <tr>
+                    <td><span class="attribute">dismissible</span></td>
+                    <td>Peut être fermée</td>
+                    <td>true, false</td>
+                    <td>true</td>
+                </tr>
+                <tr>
+                    <td><span class="attribute">animation</span></td>
+                    <td>Type d'animation</td>
+                    <td>fade, slide, bounce</td>
+                    <td>fade</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Exemples d'utilisation</h2>
+
+        <div class="demo-section">
+            <h3>1. Notifications simples</h3>
+            <button class="button" onclick="notify.show('Opération réussie !', 'success')">Succès</button>
+            <button class="button" onclick="notify.show('Une erreur est survenue.', 'error')">Erreur</button>
+            <button class="button" onclick="notify.show('Attention !', 'warning')">Avertissement</button>
+            <button class="button" onclick="notify.show('Information importante.', 'info')">Information</button>
+            <div class="code-block">
+                <pre>notify.show('Opération réussie !', 'success');
+notify.show('Une erreur est survenue.', 'error');
+notify.show('Attention !', 'warning');
+notify.show('Information importante.', 'info');</pre>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>2. Positions différentes</h3>
+            <button class="button" onclick="notify.show('Top Right', 'info', { position: 'top-right' })">Top Right</button>
+            <button class="button" onclick="notify.show('Top Left', 'info', { position: 'top-left' })">Top Left</button>
+            <button class="button" onclick="notify.show('Bottom Right', 'info', { position: 'bottom-right' })">Bottom Right</button>
+            <button class="button" onclick="notify.show('Bottom Left', 'info', { position: 'bottom-left' })">Bottom Left</button>
+            <div class="code-block">
+                <pre>notify.show('Message', 'info', { position: 'top-right' });
+notify.show('Message', 'info', { position: 'top-left' });
+notify.show('Message', 'info', { position: 'bottom-right' });
+notify.show('Message', 'info', { position: 'bottom-left' });</pre>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>3. Durées personnalisées</h3>
+            <button class="button" onclick="notify.show('Disparaît après 1s', 'info', { duration: 1000 })">1 seconde</button>
+            <button class="button" onclick="notify.show('Disparaît après 5s', 'info', { duration: 5000 })">5 secondes</button>
+            <button class="button" onclick="notify.show('Ne disparaît pas', 'info', { duration: 'infinite' })">Infini</button>
+            <div class="code-block">
+                <pre>notify.show('Message', 'info', { duration: 1000 });
+notify.show('Message', 'info', { duration: 5000 });
+notify.show('Message', 'info', { duration: 'infinite' });</pre>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>4. Animations différentes</h3>
+            <button class="button" onclick="notify.show('Animation Fade', 'info', { animation: 'fade' })">Fade</button>
+            <button class="button" onclick="notify.show('Animation Slide', 'info', { animation: 'slide' })">Slide</button>
+            <button class="button" onclick="notify.show('Animation Bounce', 'info', { animation: 'bounce' })">Bounce</button>
+            <div class="code-block">
+                <pre>notify.show('Message', 'info', { animation: 'fade' });
+notify.show('Message', 'info', { animation: 'slide' });
+notify.show('Message', 'info', { animation: 'bounce' });</pre>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>5. Notification avec HTML</h3>
+            <button class="button" onclick="notify.show('<b>Texte en gras</b> et <i>italique</i>', 'info', { html: true })">Avec HTML</button>
+            <div class="code-block">
+                <pre>notify.show('&lt;b&gt;Texte en gras&lt;/b&gt; et &lt;i&gt;italique&lt;/i&gt;', 'info', { html: true });</pre>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>API JavaScript</h2>
+        <div class="code-block">
+            <pre>// Initialisation avec options globales
+const notify = new NotifyFlow({
+    position: 'top-right',
+    duration: 3000,
+    animation: 'fade'
+});
+
+// Méthodes disponibles
+notify.show(message, type, options);  // Affiche une notification
+notify.success(message, options);     // Raccourci pour type success
+notify.error(message, options);       // Raccourci pour type error
+notify.warning(message, options);     // Raccourci pour type warning
+notify.info(message, options);        // Raccourci pour type info
+notify.clear();                       // Efface toutes les notifications</pre>
+        </div>
+    </section>
+
+    <section>
+        <h2>Notes importantes</h2>
+        <div class="note">
+            <p>1. Les notifications sont automatiquement empilées.</p>
+            <p>2. Les notifications peuvent être fermées en cliquant dessus (si dismissible: true).</p>
+            <p>3. Le HTML est désactivé par défaut pour des raisons de sécurité.</p>
+            <p>4. Les animations peuvent être désactivées en définissant animation: false.</p>
+        </div>
+    </section>
+
+    <script src="../src/notifyFlow.js"></script>
+    <script>
+        const notify = new NotifyFlow();
+    </script>
+</body>
+</html>

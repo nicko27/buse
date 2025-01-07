@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentation CalculatePlugin - nvTblHandler</title>
+</head>
+<body>
+
+<h1>Documentation CalculatePlugin - nvTblHandler</h1>
+
+<p>Le plugin <code>CalculatePlugin</code> ajoute des fonctionnalités de calcul automatique aux colonnes de votre tableau HTML. Il permet d'effectuer des calculs en temps réel basés sur les valeurs d'autres colonnes.</p>
+
+<h2>Caractéristiques Principales</h2>
+<ul>
+    <li>Calculs automatiques basés sur des formules prédéfinies</li>
+    <li>Mise à jour en temps réel lors de la modification des données</li>
+    <li>Formules intégrées : sum, avg, min, max, count</li>
+    <li>Support des formules personnalisées</li>
+    <li>Détection automatique des colonnes de calcul</li>
+    <li>Gestion des entrées de type texte, nombre, et cases à cocher</li>
+</ul>
+
+<h2>Configuration</h2>
+<p>Exemple de configuration du plugin :</p>
+<pre><code>const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Calculate: {
+            calculateAttribute: 'th-calculate',
+            formulas: {
+                // Formules personnalisées
+                weightedAvg: (values) => {
+                    const [value1, weight1, value2, weight2] = values;
+                    return (parseFloat(value1) * parseFloat(weight1) + 
+                            parseFloat(value2) * parseFloat(weight2)) / 
+                           (parseFloat(weight1) + parseFloat(weight2));
+                }
+            }
+        }
+    }
+});</code></pre>
+
+<h2>Options de Configuration</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Défaut</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>calculateAttribute</code></td>
+            <td>string</td>
+            <td>Attribut HTML pour marquer les colonnes de calcul</td>
+            <td>'th-calculate'</td>
+        </tr>
+        <tr>
+            <td><code>formulas</code></td>
+            <td>object</td>
+            <td>Objet contenant les formules personnalisées</td>
+            <td>{}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Formules Intégrées</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Formule</th>
+            <th>Description</th>
+            <th>Exemple d'Utilisation</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>sum</code></td>
+            <td>Calcule la somme des valeurs</td>
+            <td><code>th-calculate="sum(prix, taxe)"</code></td>
+        </tr>
+        <tr>
+            <td><code>avg</code></td>
+            <td>Calcule la moyenne des valeurs</td>
+            <td><code>th-calculate="avg(note1, note2, note3)"</code></td>
+        </tr>
+        <tr>
+            <td><code>min</code></td>
+            <td>Trouve la valeur minimale</td>
+            <td><code>th-calculate="min(prix1, prix2)"</code></td>
+        </tr>
+        <tr>
+            <td><code>max</code></td>
+            <td>Trouve la valeur maximale</td>
+            <td><code>th-calculate="max(offre1, offre2)"</code></td>
+        </tr>
+        <tr>
+            <td><code>count</code></td>
+            <td>Compte les valeurs non vides</td>
+            <td><code>th-calculate="count(reponse1, reponse2)"</code></td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Méthodes Publiques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Méthode</th>
+            <th>Arguments</th>
+            <th>Description</th>
+            <th>Retour</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>init(tableHandler)</code></td>
+            <td>tableHandler: object</td>
+            <td>Initialise le plugin avec l'instance de nvTblHandler</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>setupCalculateColumns()</code></td>
+            <td>-</td>
+            <td>Configure les colonnes de calcul</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>applyCalculationsToColumn(columnIndex)</code></td>
+            <td>columnIndex: number</td>
+            <td>Applique les calculs à une colonne spécifique</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>calculateRow(row, targetColumnIndex)</code></td>
+            <td>row: HTMLElement, targetColumnIndex: number</td>
+            <td>Calcule une ligne spécifique</td>
+            <td>void</td>
+        </tr>
+        <tr>
+            <td><code>destroy()</code></td>
+            <td>-</td>
+            <td>Nettoie les modifications et supprime les calculs</td>
+            <td>void</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Structure HTML</h2>
+<p>Exemple de structure HTML avec différents types de calculs :</p>
+<pre><code>&lt;table id="monTableau"&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Prix HT&lt;/th&gt;
+            &lt;th&gt;TVA&lt;/th&gt;
+            &lt;th th-calculate="sum(Prix HT, TVA)"&gt;Prix TTC&lt;/th&gt;
+            &lt;th&gt;Note 1&lt;/th&gt;
+            &lt;th&gt;Note 2&lt;/th&gt;
+            &lt;th&gt;Note 3&lt;/th&gt;
+            &lt;th th-calculate="avg(Note 1, Note 2, Note 3)"&gt;Moyenne&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;td&gt;100&lt;/td&gt;
+            &lt;td&gt;20&lt;/td&gt;
+            &lt;td&gt;&lt;/td&gt; &lt;!-- Sera calculé automatiquement --&gt;
+            &lt;td&gt;15&lt;/td&gt;
+            &lt;td&gt;12&lt;/td&gt;
+            &lt;td&gt;18&lt;/td&gt;
+            &lt;td&gt;&lt;/td&gt; &lt;!-- Sera calculé automatiquement --&gt;
+        &lt;/tr&gt;
+    &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+
+<h2>Formules Personnalisées</h2>
+<p>Exemple de définition et utilisation d'une formule personnalisée :</p>
+<pre><code>// Configuration du plugin avec une formule personnalisée
+const table = new NvTblHandler({
+    tableId: 'monTableau',
+    plugins: {
+        Calculate: {
+            formulas: {
+                // Calcul de la moyenne pondérée
+                weightedAvg: (values) => {
+                    const [note1, coef1, note2, coef2] = values.map(v => parseFloat(v) || 0);
+                    const totalCoef = coef1 + coef2;
+                    return totalCoef ? (note1 * coef1 + note2 * coef2) / totalCoef : 0;
+                }
+            }
+        }
+    }
+});
+
+// Utilisation dans le HTML
+&lt;th th-calculate="weightedAvg(Note 1, Coefficient 1, Note 2, Coefficient 2)"&gt;
+    Moyenne Pondérée
+&lt;/th&gt;</code></pre>
+
+<h2>Intégration avec d'autres plugins</h2>
+<ul>
+    <li><strong>Plugin Edit</strong> :
+        <ul>
+            <li>Les calculs sont mis à jour automatiquement lors de l'édition des cellules</li>
+            <li>Support des champs de saisie et des cases à cocher</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Filter</strong> :
+        <ul>
+            <li>Les calculs restent cohérents même sur les lignes filtrées</li>
+            <li>Les colonnes calculées peuvent être utilisées comme critères de filtrage</li>
+        </ul>
+    </li>
+    <li><strong>Plugin Sort</strong> :
+        <ul>
+            <li>Les colonnes calculées peuvent être triées</li>
+            <li>Les calculs sont préservés lors du tri</li>
+        </ul>
+    </li>
+</ul>
+
+<div class="note">
+<h3>Notes Importantes</h3>
+<ul>
+    <li>Les calculs sont effectués en temps réel à chaque modification des données sources</li>
+    <li>Les valeurs non numériques sont traitées comme 0 dans les calculs</li>
+    <li>Les cases à cocher sont converties en 1 (cochée) ou 0 (non cochée)</li>
+    <li>Les colonnes sources sont identifiées par leur en-tête ou l'attribut data-column</li>
+    <li>Les formules personnalisées doivent toujours retourner une valeur numérique</li>
+</ul>
+</div>
+
+</body>
+</html>
