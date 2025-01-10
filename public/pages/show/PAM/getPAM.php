@@ -1,5 +1,5 @@
 <?php
-include_once dirname(__DIR__, 1) . "/commun/init.php";
+include_once dirname(__DIR__, 2) . "/commun/init.php";
 include_once "getPAMFcts.php";
 use Commun\Config\Config;
 use Commun\Database\SqlManager;

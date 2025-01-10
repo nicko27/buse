@@ -72,9 +72,7 @@ function textAreaWithoutQuote(textarea, options = {}) {
  * Ajuste automatiquement la hauteur d'un textarea en fonction de son contenu
  * @param {HTMLTextAreaElement} element - L'élément textarea à ajuster
  * @param {Object} options - Options d'ajustement
- * @param {number} [options.minHeight=60] - Hauteur minimum en pixels
  * @param {number} [options.maxHeight=300] - Hauteur maximum en pixels
- * @param {number} [options.padding=5] - Padding supplémentaire en pixels
  */
 function textAreaAdjust(element, options = {}) {
     if (!element || !(element instanceof HTMLTextAreaElement)) {
@@ -82,47 +80,33 @@ function textAreaAdjust(element, options = {}) {
         return;
     }
 
-    const {
-        minHeight = 60,
-        maxHeight = 300,
-        padding = 5
-    } = options;
+    const { maxHeight = 300 } = options;
 
-    // Sauvegarder la position du curseur
-    const cursorPosition = element.selectionStart;
+    // Récupérer la hauteur minimale depuis le CSS
+    const computedStyle = window.getComputedStyle(element);
+    const minHeight = parseInt(computedStyle.minHeight) || parseInt(computedStyle.height) || 60;
 
-    // Réinitialiser la hauteur
-    element.style.height = 'auto';
+    // Sauvegarder la hauteur actuelle
+    const currentHeight = element.offsetHeight;
 
-    // Calculer la nouvelle hauteur
-    const scrollHeight = element.scrollHeight + padding;
-    const newHeight = Math.max(
-        minHeight,
-        Math.min(scrollHeight, maxHeight)
-    );
+    // Vérifier si le contenu nécessite un défilement vertical
+    const hasVerticalScroll = element.scrollHeight > currentHeight;
 
-    // Appliquer la nouvelle hauteur
-    element.style.height = `${newHeight}px`;
-
-    // Ajouter/retirer la classe scrollable si nécessaire
-    if (scrollHeight > maxHeight) {
-        element.classList.add('scrollable');
-    } else {
-        element.classList.remove('scrollable');
+    // Ne rien faire si le contenu tient dans la hauteur actuelle
+    if (!hasVerticalScroll && currentHeight >= minHeight) {
+        return;
     }
 
-    // Restaurer la position du curseur
-    element.setSelectionRange(cursorPosition, cursorPosition);
+    // Si le contenu dépasse la hauteur maximale
+    if (element.scrollHeight > maxHeight) {
+        element.style.height = `${maxHeight}px`;
+        element.style.overflowY = 'auto';
+        return;
+    }
 
-    // Déclencher un événement personnalisé
-    element.dispatchEvent(new CustomEvent('heightAdjusted', {
-        detail: {
-            height: newHeight,
-            scrollHeight: scrollHeight,
-            isScrollable: scrollHeight > maxHeight
-        },
-        bubbles: true
-    }));
+    // Ajuster la hauteur uniquement si nécessaire
+    element.style.height = `${Math.max(minHeight, element.scrollHeight)}px`;
+    element.style.overflowY = 'hidden';
 }
 
 // Fonction pour afficher ou masquer un élément avec un id donné
