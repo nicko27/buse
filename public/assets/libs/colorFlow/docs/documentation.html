@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation ColorFlow</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .note {
+            background-color: #e1f5fe;
+            border-left: 4px solid #03a9f4;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Documentation ColorFlow</h1>
+    
+    <h2>Introduction</h2>
+    <p>ColorFlow est un gestionnaire de sélection de couleur simple et efficace pour les applications web. Il offre une interface intuitive pour la sélection des couleurs avec un support pour les couleurs prédéfinies et une palette de couleurs personnalisable.</p>
+
+    <h2>Installation</h2>
+    <p>Pour utiliser ColorFlow, incluez les fichiers CSS et JS dans votre page HTML :</p>
+    <pre>
+&lt;link rel="stylesheet" href="/assets/libs/colorFlow/src/colorFlow.css" /&gt;
+&lt;script src="/assets/libs/colorFlow/src/colorFlow.js"&gt;&lt;/script&gt;</pre>
+
+    <h2>Utilisation de base</h2>
+    <p>Pour créer un sélecteur de couleur, ajoutez l'attribut <code>cf-input</code> à votre input :</p>
+    <pre>
+&lt;input type="text" cf-input /&gt;</pre>
+
+    <h2>Configuration</h2>
+    <p>ColorFlow peut être configuré avec les options suivantes :</p>
+    <pre>
+const colorFlow = new ColorFlow({
+    presetColors: [
+        { color: '#FF0000', label: 'RED' },
+        { color: '#00FF00', label: 'GRN' },
+        // ... autres couleurs
+    ],
+    customClass: '', // classe CSS personnalisée
+    debug: false     // mode debug
+});</pre>
+
+    <h2>Attributs disponibles</h2>
+    <ul>
+        <li><code>cf-input</code> : Active le sélecteur de couleur sur l'input</li>
+        <li><code>cf-format</code> : Format de la couleur (hex par défaut)</li>
+        <li><code>cf-alpha</code> : Active le support de la transparence</li>
+        <li><code>cf-palette</code> : Active la palette de couleurs</li>
+        <li><code>cf-default</code> : Couleur par défaut (#000000 si non spécifié)</li>
+    </ul>
+
+    <h2>Styles CSS</h2>
+    <p>ColorFlow inclut plusieurs classes CSS personnalisables :</p>
+    <ul>
+        <li><code>.color-flow</code> : Conteneur principal</li>
+        <li><code>.color-preview</code> : Aperçu de la couleur</li>
+        <li><code>.nv-color-picker</code> : Conteneur du sélecteur de couleur</li>
+        <li><code>.nv-color-canvas</code> : Canvas pour la sélection de couleur</li>
+        <li><code>.nv-color-presets</code> : Section des couleurs prédéfinies</li>
+        <li><code>.nv-color-preset</code> : Bouton de couleur prédéfinie</li>
+    </ul>
+
+    <div class="note">
+        <h3>Note sur l'accessibilité</h3>
+        <p>ColorFlow supporte la navigation au clavier et inclut des étiquettes pour les lecteurs d'écran. Les couleurs peuvent être entrées manuellement dans l'input en format hexadécimal.</p>
+    </div>
+
+    <h2>Méthodes disponibles</h2>
+    <ul>
+        <li><code>init()</code> : Initialise le sélecteur de couleur</li>
+        <li><code>destroy()</code> : Nettoie et supprime le sélecteur de couleur</li>
+        <li><code>setCurrentColor(color)</code> : Définit la couleur actuelle</li>
+        <li><code>isValidColor(color)</code> : Vérifie si une couleur est valide</li>
+    </ul>
+
+    <h2>Exemple complet</h2>
+    <div class="example">
+    <pre>
+&lt;!-- HTML --&gt;
+&lt;input type="text" 
+       cf-input 
+       cf-format="hex" 
+       cf-default="#FF0000" 
+       value="#FF0000" /&gt;
+
+&lt;!-- JavaScript --&gt;
+&lt;script&gt;
+const colorFlow = new ColorFlow({
+    presetColors: [
+        { color: '#FF0000', label: 'RED' },
+        { color: '#00FF00', label: 'GRN' },
+        { color: '#0000FF', label: 'BLU' }
+    ],
+    customClass: 'my-theme'
+});
+
+// Écouter les changements de couleur
+document.querySelector('[cf-input]').addEventListener('change', (e) => {
+    console.log('Nouvelle couleur:', e.target.value);
+});
+&lt;/script&gt;</pre>
+    </div>
+</body>
+</html>

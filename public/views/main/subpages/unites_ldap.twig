@@ -26,6 +26,7 @@
                         <th id="id" th-hide th-text-default="0">id</th>
                         <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
                         <th id="cu" th-readonly>code Unité</th>
+                        <th id="cuCob" th-select>COB</th>
                         <th th-hide id="parentCu">Cu parent</th>
                         <th th-choice th-sort id="isCie">Compagnie</th>
                         <th th-select id="mergedWithCu" data-tooltip="Sert pour que la COB et la BP mère soit fusionné dans l'affichage">Ligne fusionné avec Unité</th>
@@ -38,6 +39,7 @@
                             <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
                             <td id="newName_{{ unites.id }}" name="newName_{{ unites.id }}">{{ unites.newName }}</td>
                             <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                            <td id="cuCob_{{ unites.id }}" name="cuCob_{{ unites.id }}" >{{unites.cuCob}}</td>
                             <td id="parentCu_{{ unites.id }}" name="parentCu_{{ unites.id }}">{{unites.parentCu}}</td>
                             <td id="isCie_{{ unites.id }}" name="isCie_{{ unites.id }}">{{unites.isCie}}</td>
                             <td id="mergedWithCu_{{ unites.id }}" name="mergedWithCu_{{ unites.id }}">{{unites.mergedWithCu}}</td>
@@ -69,6 +71,7 @@
         plugins: {
             names: ['filterandpaginate', 'edit', 'hide', 'sort', 'actions','select', 'choice'],
             filterandpaginate: {
+                enableFilter: true,
                 globalFilter: '#search',
                 debounceTime: 300,
                 pageSize: 10,
@@ -87,11 +90,24 @@
                 options: {
                     'mergedWithCu': [
                         { value: '0', label: '/' },
-                        {% for cob in cob_tbl %}
-                            {
-                                value: '{{ cob.cu }}',
-                                label: '{{ cob.newName }}'
-                            },
+                        {% for cob in unites_ldap_tbl %}
+                            {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu != cob.cuCob and cob.isCob == 1 %}
+                                {
+                                    value: '{{ cob.cu }}',
+                                    label: '{{ cob.newName }}'
+                                },
+                            {% endif %}
+                        {% endfor %}
+                    ],
+                    'cuCob': [
+                        { value: '0', label: '/' },
+                        {% for cob in unites_ldap_tbl %}
+                            {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu == cob.cuCob and cob.isCob == 1 %}
+                                {
+                                    value: '{{ cob.cu }}',
+                                    label: '{{ cob.newName }}'
+                                },
+                            {% endif %}
                         {% endfor %}
                     ]
                 }
@@ -132,7 +148,7 @@
                     save: {
                         autoSave: true,
                         handler: function(context) {
-                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            const url = "/main/actions.php";
                             actionRow(url, context.data, "unites_ldap", "addUpdate").then(result => {
                                 if (result) {
                                     successNotice('Ligne mise à jour avec succès');

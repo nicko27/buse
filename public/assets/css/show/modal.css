@@ -1,0 +1,58 @@
+.modal__buttons {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    border-top: 1px solid #eee;
+    padding-top: 25px;
+}
+
+.modal-flow-header {
+    display: flex;
+    font-size: 20px;
+    text-align: center;
+    font-weight: bold;
+    justify-content: center;
+}
+
+.modal-flow-header span {
+    align-self: center;
+}
+
+.modal__block {
+    margin: 10px;
+    margin-left: 20px;
+    margin-right: 20px;
+    padding-bottom: 5px;
+}
+
+
+.modal__block-select,
+.modal__block-input,
+.modal__block-textarea {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+
+.modal__block-select label,
+.modal__block-input label,
+.modal__block-textarea label {
+    align-self: center;
+    font-weight: bold;
+    font-variant: small-caps;
+}
+
+.modal__block-select select {
+    width: 400px;
+    text-align: center;
+}
+
+.modal__block-input input {
+    width: 374px;
+    text-align: center;
+}
+
+.modal__block-textarea textarea {
+    width: 374px;
+}

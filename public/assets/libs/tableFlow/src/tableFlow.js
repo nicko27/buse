@@ -272,7 +272,7 @@ class TableFlow {
         this.markRowAsModified(row);
     }
 
-    markRowAsSaved(row) {
+    markRowAsSaved(row, options = {}) {
         if (!row) return;
         
         // Update internal initialValues map
@@ -282,20 +282,35 @@ class TableFlow {
             rowValues.set(columnId, cell.textContent.trim());
         });
         this.initialValues.set(row.id, rowValues);
+
+        // Notifier tous les plugins avec l'objet d'options
+        this.plugins.forEach((pluginInfo, pluginName) => {
+            if (pluginInfo.instance && typeof pluginInfo.instance.markRowAsSaved === 'function') {
+                // Chaque plugin peut vérifier si options contient des informations qui le concernent
+                pluginInfo.instance.markRowAsSaved(row, options);
+            }
+        });
         
-        // Use edit plugin to update data-initial-value attributes
-        const editPlugin = this.getPlugin('edit');
-        if (editPlugin && editPlugin.instance) {
-            editPlugin.instance.markRowAsSaved(row);
-        } else {
-            // Fallback if edit plugin is not available
-            row.removeAttribute('data-modified');
-            row.classList.remove('modified');
-            this.table.dispatchEvent(new CustomEvent('row:saved', {
-                detail: { row },
-                bubbles: true
-            }));
-        }
+        // Nettoyer la ligne
+        row.removeAttribute('data-modified');
+        row.classList.remove('modified');
+        
+        // Émettre l'événement row:saved avec toutes les options
+        this.table.dispatchEvent(new CustomEvent('row:saved', {
+            detail: { 
+                row,
+                options,
+                rowId: row.id,
+                cells: Array.from(row.cells)
+                    .filter(cell => !cell.classList.contains(this.config?.cellClass))
+                    .map(cell => ({
+                        id: cell.id,
+                        value: cell.getAttribute('data-value'),
+                        initialValue: cell.getAttribute('data-initial-value')
+                    }))
+            },
+            bubbles: true
+        }));
     }
 
     updateRow(rowIndex, data) {

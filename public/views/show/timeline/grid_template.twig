@@ -1,0 +1,48 @@
+{% if unit.childrenUnits|length == 0 %}
+    <div id="line_{{ unit.code_unite }}" class="line_grid">
+        {% if unit.cieCu is defined %}
+            {% set name=unit.name|replace({'-': ' '}) %}
+        {% else %}
+            {% set name=unit.newName|replace({'-': ' '}) %}
+        {% endif %}
+        <div class="unit__name unite__double glass-unit-pam">
+            <div class="unit__name-label">{{ name }}</div>
+        </div>
+        <a ondblclick="showUpdatePAM({{unit.cu}})" class="pam__tph glass-unit-pam" id="pam_tph_{{unit.cu}}">
+            <input type="hidden" name="pam_tph_{{unit.cu}}" id="pam_tph_{{unit.cu}}" class="pam__tph-input" value="{{ unit.cu }}"></input>
+            <div class="flex-asc">
+                <div class="pam__tph-name"></div>
+                <div class="pam__tph-value"></div>
+            </div>
+        </a>
+        <div class="timeline__grid grid__unit gnbc_{{ NB_QUART_HEURE }} grid_{{ unit.cu }}" data-unit-code="{{ unit.cu }}"></div>
+    </div>
+{% else %}
+    {% set ucl = unit.childrenUnits|length %}
+    {% set firstChild = 0 %}
+    <div id="grp_line_{{ unit.code_unite }}" class="grp_line_grid ght_{{ ucl }}">
+        <div class="cob__name gr-{{ ucl }} glass-unit-pam">
+            <div class="flex-asc">{{ unit.newName|replace({'-': ' '}) }}</div>
+        </div>
+        {% set position=0 %}
+        {% for child in unit.childrenUnits %}
+            {% set position=position+1 %}
+                <div class="bp__name glass-unit-pam">
+                    <div class="bp__name-label">{{ child.newName|replace({'-': ' '}) }}</div>
+                </div>
+                <a ondblclick="showUpdatePAM({{child.cu}})" id="pam_tph_{{child.cu}}" class="pam__tph glass-unit-pam">
+                    <div class="flex-asc">
+                        <div class="pam__tph-name">
+                            <input type="hidden" name="pam_tph_{{child.cu}}" id="pam_tph_{{child.cu}}" class="pam__tph-input" value="{{ child.cu }}"></input>
+                        </div>
+                        <div class="pam__tph-value"></div>
+                    </div>
+                </a>
+                {% if child.mergedWithCu >0 %}
+                    <div class="timeline__grid  grid__unit grid_{{child.cu}} grid_{{child.mergedWithCu}}" data-unit-code="{{ child.cu}}"></div>
+                {% else %}
+                    <div class="timeline__grid  grid__unit gnbc_{{ NB_QUART_HEURE }} grid_{{child.cu}}"  data-unit-code="{{ child.cu }}"></div>
+                {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}

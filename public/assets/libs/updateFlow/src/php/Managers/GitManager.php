@@ -75,11 +75,46 @@ class GitManager
     private function configureGit(): void
     {
         // Configure les paramètres Git de base
-        if (!empty($this->config['userName'])) {
-            $this->execute('config', ['--local', 'user.name', $this->config['userName']]);
+        if (!empty($this->config['gitConfig']['userName'])) {
+            $this->execute('config', ['--local', 'user.name', $this->config['gitConfig']['userName']]);
         }
-        if (!empty($this->config['userEmail'])) {
-            $this->execute('config', ['--local', 'user.email', $this->config['userEmail']]);
+        if (!empty($this->config['gitConfig']['userEmail'])) {
+            $this->execute('config', ['--local', 'user.email', $this->config['gitConfig']['userEmail']]);
+        }
+    }
+
+    /**
+     * Ajoute tous les fichiers au suivi Git, y compris les nouveaux fichiers et les fichiers déplacés
+     * 
+     * @return string
+     * @throws GitException
+     */
+    public function addAll(): string
+    {
+        try {
+            // Configure l'environnement Git
+            $this->configureSafeDirectory();
+            $this->configureGit();
+
+            // Ajoute tous les fichiers, y compris les nouveaux et les déplacés
+            $output = $this->execute('add', ['-A', '.']);
+
+            // Log les fichiers ajoutés
+            $status = $this->execute('status', ['--porcelain']);
+            if (!empty($status)) {
+                $this->logger->info('Files added to Git:', [
+                    'status' => $status,
+                    'directory' => $this->repoPath
+                ]);
+            }
+
+            return $output;
+        } catch (GitException $e) {
+            throw new GitException(sprintf(
+                "Erreur lors de l'ajout des fichiers : %s\nRépertoire : %s",
+                $e->getMessage(),
+                $this->repoPath
+            ));
         }
     }
 
@@ -130,10 +165,21 @@ class GitManager
         try {
             // Configure l'environnement Git
             $this->configureSafeDirectory();
+            $this->configureGit();
+
+            // Ajoute d'abord tous les fichiers si configuré
+            if (!empty($this->config['gitOptions']['addAll'])) {
+                $this->addAll();
+            }
 
             $args = ['origin'];
             if (!empty($branch)) {
                 $args[] = $branch;
+            }
+
+            // Ajoute l'option --force si configurée
+            if (!empty($this->config['gitOptions']['force'])) {
+                $args[] = '--force';
             }
 
             return $this->execute('push', $args);

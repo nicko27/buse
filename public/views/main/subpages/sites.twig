@@ -58,14 +58,13 @@
                 debug: true,
                 actions: {
                     delete: function(context) {
-                        const url = "{{ WEB_PAGES }}/main/actions.php";
+                        const url = "/main/actions.php";
                         actionRow(url, context.data, "services", "delete").then(result => {
                             if (result) {
                                 successNotice('Ligne mise à jour avec succès');
-                                context.tableHandler.markRowAsSaved(context.row);
+                                context.tableHandler.markRowAsSaved(context.row, 'delete');
                             } else {
                                 errorNotice('Erreur lors de la mise à jour de la ligne');
-                                // Ne pas marquer comme sauvegardé en cas d'erreur
                             }
                         }).catch(error => {
                             errorNotice('Erreur lors de la mise à jour de la ligne');
@@ -73,14 +72,13 @@
                         });
                     },
                     save: function(context) {
-                        const url = "{{ WEB_PAGES }}/main/actions.php";
+                        const url = "/main/actions.php";
                         actionRow(url, context.data, "sites", "addUpdate").then(result => {
                             if (result) {
                                 successNotice('Ligne mise à jour avec succès');
-                                context.tableHandler.markRowAsSaved(context.row);
+                                context.tableHandler.markRowAsSaved(context.row, 'save');
                             } else {
                                 errorNotice('Erreur lors de la mise à jour de la ligne');
-                                // Ne pas marquer comme sauvegardé en cas d'erreur
                             }
                         }).catch(error => {
                             errorNotice('Erreur lors de la mise à jour de la ligne');

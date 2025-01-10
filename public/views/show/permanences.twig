@@ -1,28 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Affichage des permanences et mémos</title>
-    <link rel="stylesheet" href="path/to/font-awesome/css/font-awesome.min.css">
-    <style>
-        /* Ajouter ici les styles CSS nécessaires */
-    </style>
-</head>
-<body>
-    <audio controls id="beep" class="hidden">
-        <source src="{{ASSETS_DIR}}/sound/beep.wav" preload="auto" type="audio/wav"></source>
-    </audio>
+<html lang="fr">
     <div id="permanences">
         <div class="memos__blk">
-            <div class="memos__title glass">Mémos <a onclick="showAddMemo('{{ WEB_PAGES }}')"><i class="fa fa-circle-plus"></i></a></div>
+            <div class="memos__title glass">Mémos <a onclick="showAddMemo()"><i class="fa fa-circle-plus"></i></a></div>
             <div class="memos__content">
                 {% set alarm=0 %}
                 {% for item in memos_tbl %}
-                    <a class="memo_element" ondblclick="showUpdateMemo('{{ WEB_PAGES }}',{{ item.id }})">
+                    <a class="memo_element" ondblclick="showUpdateMemo({{ item.id }})">
                         <div class="memo_element__top">
                             <div class="memo_element__top-left">
                                 {% if item.permanent == 0 %}
-                                    {{ item.startDate|date('d-m-Y') }} à {{ item.startTime }} <br />{{ item.endDate|date('d-m-Y') }} à {{ item.endTime }}
+                                    {{ item.date_debut|date('d-m-Y') }} à {{ item.debut }} <br />
+                                    {{ item.date_fin|date('d-m-Y') }} à {{ item.fin }}
                                 {% endif %}
                             </div>
                         </div>
@@ -57,10 +46,31 @@
     <div id="modal-overlay" class="hidden"></div>
     <div id="modal" class="modal__window hidden"></div>
     <script type="text/javascript">
-        $(document).ready(function() {
-            setInterval(function() {
-                window.location.href=window.location.href;
-            }, 1000000);
+        function setupAutoRefresh() {
+            const REFRESH_INTERVAL = 600000; // 1000 secondes
+            let timeoutId;
+
+            function refresh() {
+                window.location.reload();
+            }
+
+            function resetTimer() {
+                if (timeoutId) clearTimeout(timeoutId);
+                timeoutId = setTimeout(refresh, REFRESH_INTERVAL);
+            }
+
+            // Démarrer le timer
+            resetTimer();
+
+            // Réinitialiser le timer lors des interactions utilisateur
+            ['click', 'touchstart', 'mousemove'].forEach(event => {
+                document.addEventListener(event, resetTimer);
+            });
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            setupAutoRefresh();
         });
     </script>
 </body>

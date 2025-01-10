@@ -1,17 +1,28 @@
 <div id="timeline">
     <div class="column left">
+        {% set cieBtn=0 %}
         {% set half = (cieList|length // 2) %}
         {% for i in 0..half-1 %}
             {% set cie = cieList[i] %}
             <div class="cie__blk">
                 <div class="line_grid cie__title" style="background-color: {{ cie.color }};">
-                    <div class="cie__name">{{ cie.newName }}</div>
+                    <div class="cie__name">{{ cie.newName }}
+                        {% if cieBtn==0 %}
+                            <a onclick="showAddBlock()">
+                                <i class="fa fa-circle-plus"></i>
+                            </a>
+                            <a onclick="showUpdatePAM(0)" class="cie__pam">
+                                PAM
+                            </a>
+                            {% set cieBtn=1 %}
+                        {% endif %}
+                    </div>
                     <div class="pam__tph">Tél PAM</div>
                     <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>
                 </div>
                 <div class="cie__content">
                     {% for unit in cieContent[i] %}
-                        {% include 'show/macros/grid_template.twig' with {'unit': unit, 'cie': cie} %}
+                        {% include 'show/timeline/grid_template.twig' with {'unit': unit, 'cie': cie} %}
                     {% endfor %}
                 </div>
             </div>
@@ -28,7 +39,7 @@
                 </div>
                 <div class="cie__content">
                     {% for unit in cieContent[i] %}
-                        {% include 'show/macros/grid_template.twig' with {'unit': unit, 'cie': cie} %}
+                        {% include 'show/timeline/grid_template.twig' with {'unit': unit, 'cie': cie} %}
                     {% endfor %}
                 </div>
             </div>
@@ -41,12 +52,22 @@
 {# <div id="modal" class="modal__window hidden"></div> #}
 <script type="text/javascript" src="{{WEB_ASSETS}}/js/show/timeline.js"></script>
 <script type="text/javascript">
-    function show() {
-        // Assurez-vous que les variables interpolées sont correctement remplacées
-        showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }}, "{{ WEB_PAGES }}");
-    }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation de ColorFlow
+        if (!window.colorFlow) {
+            window.colorFlow = new ColorFlow({
+                customClass: 'glass',
+                debug: false,
+                presetColors:[
+                    {# Les couleurs prédéfinies #}
+                    {% for color in servicesColors %}
+                        { color: '{{ color.color }}', label: '{{ color.shortName }}' },
+                    {% endfor %}
+                ]
+            });
+        }
+
         // Ajouter des classes alternantes aux éléments .grid__unit
         document.querySelectorAll('.grid__unit').forEach(function(element, index) {
             element.classList.add(index % 2 === 0 ? 'line__even' : 'line__odd');
@@ -96,9 +117,10 @@
             setInterval(function() {
                 showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
             }, 300000);
+        } else if (!window.debug_hour) {
+            setInterval(() => {
+                showFcts.recall();
+            }, 300000);
         }
-
-        // Initialisation des tooltips
-        initializeTippy();
     });
 </script>

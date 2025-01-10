@@ -44,6 +44,11 @@
     position: relative;
 }
 
+.update__elt-btnZone button {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
 .update__elt .btn {
     background: rgba(52, 152, 219, 0.2);
     color: #2c3e50;

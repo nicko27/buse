@@ -9,9 +9,9 @@ $config     = Config::getInstance();
 $logger     = Logger::getInstance()->getLogger();
 $sqlManager = SqlManager::getInitializedInstance();
 
-require_once "fonctions/scrapersFcts.php";
-require_once "fonctions/timelineFcts.php";
-require_once "fonctions/permanencesFcts.php";
+require_once "maj/scrapersFcts.php";
+require_once "maj/timelineFcts.php";
+require_once "maj/permanencesFcts.php";
 
 // Exemple d'utilisation
 try {

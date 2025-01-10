@@ -1,0 +1,70 @@
+<form id="modal-form-block">
+    <div class="modal-flow-header">
+        <span>{{title}}</span>
+        <input type="hidden" name="id" id="id" value="{{suId}}">
+    </div>
+    <div class="modal__content">
+        <div class="modal__block">
+            <div class="modal__block-select">
+                <label>Unité</label>
+                <select id="unit" name="unit">
+                    {% for unit in units %}
+                        <option value="{{ unit.cu }}" {{unit.selected}}>{{ unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label>Date et heure de début du service</label>
+                <div class="date-flow">
+                    <input type="text" dp-input dp-time dp-format="DD.MM.YYYY" name="debut_date" id="debut_date" value="{{date_debut}}">
+                </div>
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label>Date et heure de fin du service</label>
+                <div class="date-flow">
+                    <input type="text" dp-input dp-time dp-format="DD.MM.YYYY" name="fin_date" id="fin_date" value="{{date_fin}}">
+                </div>
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label >Texte a afficher</label>
+                <input type="text" name="tph" id="tph" value="{{ tph }}">
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label>Couleur du service</label>
+                <input id="color" name="color" value="{{color}}" class ="colorPicker"cf-input cf-format="hex" cf-default="{{color}}">
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-select">
+                <label>Type de Service</label>
+                <select id="service" name="service">
+                    {% for serv in services %}
+                        <option value="{{ serv.id }}" {{serv.selected}}>{{ serv.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-textarea">
+                <label>Informations complémentaires <i class="fa-circle-info fa" data-tooltip="Les numéros de téléphone sont automatiquement gérés, nul besoin de séparer les chiffres ou de mettre points ou tirets"></i></label>
+                <textarea id="memo" name="memo" onkeypress="textAreaAdjust(this)">{{ memo }}</textarea>
+            </div>
+        </div>
+
+    </div>
+    <div class="modal__buttons">
+        {%  if suId >0 %}
+                <button type="button" class="btn btn-glass btn-glass-red" onclick="deleteBlock({{suId}})"><i class="fa fa-trash"></i></button>
+            {% endif %}
+        <button type="button" class="btn btn-glass btn-glass-yellow" onclick="modalFlow.close()">Annuler</button>
+        <button type="button" class="btn btn-glass btn-glass-green" onclick="{{ actionJs }}">{{ actionTxt }}</button>
+    </div>
+</form>

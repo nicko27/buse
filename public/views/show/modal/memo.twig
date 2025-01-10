@@ -1,0 +1,43 @@
+<form id="modal-form-memo">
+    <div class="modal-flow-header">
+        <span>{{title}}</span>
+        <input type="hidden" name="id" id="id" value="{{id}}">
+    </div>
+    <div class="modal__content">
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label>Date et heure de début</label>
+                <div class="date-flow">
+                    <input type="text" dp-input dp-time dp-format="DD.MM.YYYY" name="debut_date" id="debut_date" value="{{date_debut}}">
+                </div>
+            </div>
+        </div>
+        <div class="modal__block">
+            <div class="modal__block-input">
+                <label>Date et heure de fin</label>
+                <div class="date-flow">
+                    <input type="text" dp-input dp-time dp-format="DD.MM.YYYY" name="fin_date" id="fin_date" value="{{date_fin}}">
+                </div>
+            </div>
+        </div>
+        <div class="modal__block">
+            <input name="permanent" id="permanent" type="checkbox" {{ permanent_selected }} value="1">Affichage permanent (ignore les dates et heures)</input>
+            <!--<input name="alarm" id="alarm" type="checkbox" {{ alarm_selected }} value="1">Alerte sonore au début de la période (ignore les permanent)</input>!-->
+        </div>
+
+        <div class="modal__block">
+            <div class="modal__block-textarea">
+                <label>Mémo</label>
+                <textarea id="memo" name="memo" onkeypress="textAreaAdjust(this)">{{ memo }}</textarea>
+            </div>
+        </div>
+
+    </div>
+    <div class="modal__buttons">
+        {%  if id >0 %}
+                <button type="button" class="btn btn-glass btn-glass-red" onclick="deleteMemo({{id}})"><i class="fa fa-trash"></i></button>
+            {% endif %}
+        <button type="button" class="btn btn-glass btn-glass-yellow" onclick="modalFlow.close()">Annuler</button>
+        <button type="button" class="btn btn-glass btn-glass-green" onclick="{{ actionJs }}">{{ actionTxt }}</button>
+    </div>
+</form>

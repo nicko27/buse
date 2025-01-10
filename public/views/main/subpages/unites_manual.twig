@@ -74,7 +74,7 @@
                     save: {
                         autoSave: true,
                         handler: function(context) {
-                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            const url = "/main/actions.php";
                             actionRow(url, context.data, "unites_manuelles", "addUpdate").then(result => {
                                 if (result) {
                                     successNotice('Ligne mise à jour avec succès');

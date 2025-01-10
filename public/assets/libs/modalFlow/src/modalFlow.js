@@ -47,38 +47,91 @@ class ModalFlow {
 
     // Méthodes principales
     create(options = {}) {
-        const modalId = `modal-${++this.modalCounter}`;
+        // Fusionner les options par défaut avec celles fournies
+        const modalConfig = {
+            title: '',
+            content: '',
+            width: '500px',
+            height: 'auto',
+            draggable: false,
+            resizable: false,
+            closeOnEscape: true,
+            closeOnOverlayClick: true,
+            showCloseButton: true,
+            validateLive: true,
+            ...options
+        };
+
+        const modalId = `modal-${Date.now()}`;
         const modal = document.createElement('div');
         modal.id = modalId;
-        modal.className = `modal-flow ${this.config.theme}`;
+        modal.className = 'modal-flow';
+        
+        // Structure de base sans header
+        modal.innerHTML = `
+            <div class="modal-flow-content">
+                ${modalConfig.content || '<div class="modal-flow-loading"><div class="modal-flow-spinner"></div><p>Chargement...</p></div>'}
+            </div>
+        `;
+
+        // Gérer le header
+        let headerExists = false;
+        const contentElement = modal.querySelector('.modal-flow-content');
+        if (contentElement) {
+            const loadedContent = contentElement.innerHTML;
+            // Vérifier si un header existe déjà dans le contenu chargé
+            headerExists = loadedContent.includes('modal-flow-header');
+        }
+
+        if (!headerExists && (modalConfig.title || modalConfig.showCloseButton)) {
+            // Créer le header par défaut seulement s'il n'y en a pas déjà un
+            const defaultHeader = document.createElement('div');
+            defaultHeader.className = 'modal-flow-header';
+            if (modalConfig.title) {
+                const title = document.createElement('h2');
+                title.textContent = modalConfig.title;
+                defaultHeader.appendChild(title);
+            }
+            if (modalConfig.showCloseButton) {
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'modal-flow-close';
+                closeButton.innerHTML = '&times;';
+                closeButton.addEventListener('click', () => this.close(modalId));
+                defaultHeader.appendChild(closeButton);
+            }
+            modal.insertBefore(defaultHeader, modal.firstChild);
+        } else if (headerExists && modalConfig.showCloseButton) {
+            // Si header personnalisé et showCloseButton, ajouter le bouton au header existant
+            const customHeader = modal.querySelector('.modal-flow-header');
+            if (customHeader) {
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'modal-flow-close';
+                closeButton.innerHTML = '&times;';
+                closeButton.addEventListener('click', () => this.close(modalId));
+                customHeader.appendChild(closeButton);
+            }
+        }
+
+        // Gérer le footer avec les boutons
+        const footer = this._createFooter(modal, modalConfig);
+        if (footer) {
+            modal.appendChild(footer);
+        }
 
         // Appliquer les options spécifiques à cette modal
-        const modalConfig = {
+        const modalConfigFinal = {
             ...this.config,
-            ...options
+            ...modalConfig
         };
 
         // Stocker la configuration spécifique à cette modal
         modal.dataset.config = JSON.stringify({
-            closeOnOverlayClick: modalConfig.closeOnOverlayClick,
-            closeOnEscape: modalConfig.closeOnEscape
+            closeOnOverlayClick: modalConfigFinal.closeOnOverlayClick,
+            closeOnEscape: modalConfigFinal.closeOnEscape,
+            onConfirm: !!modalConfigFinal.onConfirm
         });
-
-        // Structure de base
-        modal.innerHTML = `
-            <div class="modal-flow-header">
-                <h2>${options.title || ''}</h2>
-                ${modalConfig.showCloseButton ? '<button class="modal-flow-close">&times;</button>' : ''}
-            </div>
-            <div class="modal-flow-content">${options.content || ''}</div>
-            ${options.footer ? `<div class="modal-flow-footer">${options.footer}</div>` : ''}
-        `;
-
-        // Ajouter le gestionnaire pour le bouton de fermeture
-        const closeButton = modal.querySelector('.modal-flow-close');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => this.close(modalId));
-        }
 
         // Appliquer les options de drag et resize
         if (options.draggable || this.config.draggable) {
@@ -100,6 +153,105 @@ class ModalFlow {
         this.activeModals.add(modalId);
         this._emit('create', { modalId, element: modal });
 
+        // Charger le contenu via AJAX si une URL est fournie
+        if (options.url) {
+            console.log('ModalFlow: Loading content from URL:', options.url);
+            const fetchOptions = {
+                method: 'POST'
+            };
+
+            // Ajouter les paramètres POST si présents
+            if (options.params) {
+                const formData = new FormData();
+                for (const [key, value] of Object.entries(options.params)) {
+                    formData.append(key, value);
+                }
+                fetchOptions.body = formData;
+            }
+
+            fetch(options.url, fetchOptions)
+                .then(response => {
+                    console.log('ModalFlow: Content loaded, status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    console.log('ModalFlow: Setting content');
+                    const contentDiv = modal.querySelector('.modal-flow-content');
+                    if (!contentDiv) {
+                        console.error('ModalFlow: Content div not found');
+                        return;
+                    }
+                    // Ajouter le nouveau contenu
+                    contentDiv.innerHTML = html;
+                    if (options.onContentLoaded) {
+                        console.log('ModalFlow: Calling onContentLoaded callback');
+                        options.onContentLoaded();
+                    }
+                })
+                .catch(error => {
+                    console.error('ModalFlow: Content load error:', error);
+                    const contentDiv = modal.querySelector('.modal-flow-content');
+                    if (contentDiv) {
+                        contentDiv.innerHTML = `<div class="modal-flow-error">Erreur lors du chargement : ${error.message}</div>`;
+                    }
+                    if (options.onError) {
+                        options.onError(error);
+                    }
+                });
+        }
+
+        return modalId;
+    }
+
+    _createFooter(modal, options) {
+        const footer = document.createElement('div');
+        footer.className = 'modal-flow-footer';
+        
+        // Si des boutons sont définis via l'option buttons, on les utilise
+        if (options.buttons && options.buttons.length > 0) {
+            options.buttons.forEach(button => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = button.text;
+                btn.className = button.class || 'btn';
+                btn.onclick = () => {
+                    const shouldClose = button.onClick ? button.onClick() : true;
+                    if (shouldClose) {
+                        this.close(modal.id);
+                    }
+                };
+                footer.appendChild(btn);
+            });
+            return footer;
+        }
+        
+        // Sinon on cherche les boutons dans le contenu
+        const buttonsContainer = modal.querySelector('.modal__buttons');
+        if (buttonsContainer) {
+            const buttons = buttonsContainer.getElementsByTagName('button');
+            for (let i = 0; i < buttons.length; i++) {
+                const button = buttons[i];
+                const originalOnClick = button.getAttribute('onclick');
+                if (originalOnClick && originalOnClick.includes('modalFlow.close()')) {
+                    button.onclick = () => this.close();
+                }
+            }
+            footer.innerHTML = buttonsContainer.innerHTML;
+            buttonsContainer.remove();
+            return footer;
+        }
+        
+        return null;
+    }
+
+    // Méthode combinée pour créer et ouvrir une modale
+    createAndOpen(options = {}) {
+        console.log('ModalFlow: createAndOpen called with options:', options);
+        const modalId = this.create(options);
+        this.open(modalId);
         return modalId;
     }
 
@@ -403,6 +555,50 @@ class ModalFlow {
         });
     }
 
+    _cleanupModal(modal) {
+        if (!modal) return;
+
+        // Supprimer les gestionnaires d'événements
+        const closeButton = modal.querySelector('.modal-flow-close');
+        if (closeButton) {
+            closeButton.removeEventListener('click', () => this.close(modal.id));
+        }
+
+        // Supprimer les gestionnaires de drag & resize
+        if (modal.classList.contains('draggable')) {
+            const header = modal.querySelector(this.config.dragHandle);
+            if (header) {
+                header.removeEventListener('mousedown', this.startDrag);
+                header.removeEventListener('touchstart', this.startDrag);
+            }
+        }
+
+        if (modal.classList.contains('resizable')) {
+            const handles = modal.querySelectorAll('.modal-flow-resize-handle');
+            handles.forEach(handle => {
+                handle.removeEventListener('mousedown', this.startResize);
+                handle.removeEventListener('touchstart', this.startResize);
+            });
+        }
+
+        // Supprimer les validateurs si présents
+        const forms = modal.querySelectorAll('form');
+        forms.forEach(form => {
+            form.removeEventListener('submit', this.validateForm);
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.removeEventListener('input', this.validateField);
+                input.removeEventListener('change', this.validateField);
+            });
+        });
+
+        // Nettoyer les références
+        this.activeModals.delete(modal.id);
+        
+        // Supprimer l'élément du DOM
+        modal.remove();
+    }
+
     closeModal(modalId, force = false) {
         const modal = document.getElementById(modalId);
         if (!modal) return false;
@@ -459,25 +655,43 @@ class ModalFlow {
         return true;
     }
 
-    close(modalId) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return false;
-
-        // Retirer la classe visible d'abord pour la transition
-        this.overlay.classList.remove('visible');
-        modal.classList.remove('visible');
-
-        // Attendre la fin de la transition avant de cacher
-        setTimeout(() => {
-            if (this.activeModals.size === 1) {
-                this.overlay.style.display = 'none';
+    close(modalId = null) {
+        console.log('ModalFlow: Closing modal', modalId);
+        
+        if (modalId) {
+            // Fermer un modal spécifique
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                // Animation de fermeture
+                modal.classList.add('modal-flow-closing');
+                
+                // Attendre la fin de l'animation avant de nettoyer
+                setTimeout(() => {
+                    this._cleanupModal(modal);
+                    
+                    // Si c'était le dernier modal, cacher l'overlay
+                    if (this.activeModals.size === 0) {
+                        this.overlay.style.display = 'none';
+                    }
+                    
+                    this._emit('close', { modalId });
+                }, 300); // Durée de l'animation
             }
-            modal.style.display = 'none';
-            this.activeModals.delete(modalId);
-            this._emit('close', { modalId, element: modal });
-        }, 300); // Correspond à la durée de transition dans le CSS
-
-        return true;
+        } else {
+            // Fermer tous les modals
+            const modals = document.querySelectorAll('.modal-flow');
+            modals.forEach(modal => {
+                modal.classList.add('modal-flow-closing');
+            });
+            
+            setTimeout(() => {
+                modals.forEach(modal => {
+                    this._cleanupModal(modal);
+                });
+                this.overlay.style.display = 'none';
+                this._emit('closeAll');
+            }, 300);
+        }
     }
 
     update(modalId, options = {}) {

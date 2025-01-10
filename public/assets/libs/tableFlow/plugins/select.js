@@ -140,9 +140,10 @@
                         // Mettre à jour le label
                         const options = this.config.options[columnId];
                         if (options) {
-                            const option = options.find(o => 
-                                (typeof o === 'object' ? o.value : o) === currentValue
-                            );
+                            const option = options.find(o => {
+                                const optionValue = typeof o === 'object' ? o.value : o;
+                                return String(optionValue) === String(currentValue);
+                            });
                             if (option) {
                                 const label = typeof option === 'object' ? option.label : option;
                                 const wrapper = cell.querySelector('.cell-wrapper');
@@ -185,9 +186,10 @@
                     const columnId = event.detail.columnId;
                     const options = this.config.options[columnId];
                     if (options) {
-                        const option = options.find(o => 
-                            (typeof o === 'object' ? o.value : o) === currentValue
-                        );
+                        const option = options.find(o => {
+                            const optionValue = typeof o === 'object' ? o.value : o;
+                            return String(optionValue) === String(currentValue);
+                        });
                         if (option) {
                             const label = typeof option === 'object' ? option.label : option;
                             const wrapper = cell.querySelector('.cell-wrapper');
@@ -222,9 +224,10 @@
 
                         const options = this.config.options[columnId];
                         if (options) {
-                            const option = options.find(o => 
-                                (typeof o === 'object' ? o.value : o) === currentValue
-                            );
+                            const option = options.find(o => {
+                                const optionValue = typeof o === 'object' ? o.value : o;
+                                return String(optionValue) === String(currentValue);
+                            });
                             if (option) {
                                 const label = typeof option === 'object' ? option.label : option;
                                 const wrapper = cell.querySelector('.cell-wrapper');

@@ -19,6 +19,7 @@
 
             getDefaultConfig() {
                 return {
+                    enableFilter: true,
                     globalFilter: null,
                     debounceTime: 300,
                     pageSize: 10,
@@ -282,6 +283,11 @@
 
             getCellValue(cell) {
                 if (!cell) return '';
+                // Récupérer d'abord la valeur stockée
+                const storedValue = cell.getAttribute('data-value');
+                if (storedValue) return storedValue;
+                
+                // Sinon récupérer le contenu visible
                 const wrapper = cell.querySelector('.cell-wrapper');
                 return (wrapper ? wrapper.textContent : cell.textContent).trim();
             }

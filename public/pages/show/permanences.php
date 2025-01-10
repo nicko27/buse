@@ -20,7 +20,7 @@ $stmt                    = $sqlManager->prepare($sql);
 $stmt->execute();
 $vars['sites_tbl'] = $stmt->fetchAll((PDO::FETCH_ASSOC));
 date_default_timezone_set('Europe/Paris');
-$sql  = "SELECT * FROM memos WHERE invisible=0 and ((startDate <= CURDATE() AND (endDate >= CURDATE() OR endDate = '') AND ((startDate = CURDATE() AND startTime <= CURTIME()) OR startDate < CURDATE() OR startDate = '') AND ((endDate = CURDATE() AND endTime >= CURTIME()) OR endDate > CURDATE() OR endDate = '')) OR permanent = 1)";
+$sql  = "SELECT * FROM memos WHERE invisible=0 and ((date_debut <= CURDATE() AND (date_fin >= CURDATE() OR date_fin = '') AND ((date_debut = CURDATE() AND debut <= CURTIME()) OR date_debut < CURDATE() OR date_debut = '') AND ((date_fin = CURDATE() AND fin >= CURTIME()) OR date_fin > CURDATE() OR date_fin = '')) OR permanent = 1)";
 $stmt = $sqlManager->prepare($sql);
 $stmt->execute();
 $memos           = [];

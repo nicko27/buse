@@ -19,20 +19,55 @@ class ColorFlow{
             ...config
         };
 
+        // Garder une trace des inputs initialisés
+        this.initializedInputs = new Set();
+        
         this.init();
     }
 
     init() {
-        // Find all inputs with cf-input attribute
-        const inputs = document.querySelectorAll('[cf-input]');
-        inputs.forEach(input => {
-            this.setupInput(input);
-        });
-
+        // Créer le color picker une seule fois
+        this.createColorPicker();
+        
         // Global click handler
         document.addEventListener('click', this.handleDocumentClick.bind(this));
+        
+        // Observer les changements dans le DOM
+        this.setupMutationObserver();
+        
+        // Initialiser les inputs existants
+        this.refresh();
+    }
 
-        this.createColorPicker();
+    refresh() {
+        // Trouver tous les inputs avec cf-input qui ne sont pas encore initialisés
+        const inputs = document.querySelectorAll('[cf-input]');
+        inputs.forEach(input => {
+            if (!this.initializedInputs.has(input)) {
+                this.setupInput(input);
+                this.initializedInputs.add(input);
+            }
+        });
+    }
+
+    setupMutationObserver() {
+        // Observer les changements dans le DOM pour détecter les nouveaux inputs
+        const observer = new MutationObserver((mutations) => {
+            let shouldRefresh = false;
+            mutations.forEach((mutation) => {
+                if (mutation.addedNodes.length > 0) {
+                    shouldRefresh = true;
+                }
+            });
+            if (shouldRefresh) {
+                this.refresh();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     }
 
     setupInput(input) {

@@ -1,157 +1,142 @@
-async function showAddMemo(web_pages) {
-    const formData = new FormData();
-    const destUrl = `${web_pages}/show/showAddMemo.php`;
-
-    try {
-        const resultat = await ajaxFct(formData, destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal").innerHTML = resultat.html;
-            document.getElementById("modal-overlay").classList.remove("hidden");
-            document.getElementById("modal").classList.remove("hidden");
-            textAreaAdjust(document.querySelector("textarea"));
-            new AirDatepicker('#start-date', { inline: true, selectedDates: [new Date(resultat.startDate)] });
-            new AirDatepicker('#end-date', { inline: true, selectedDates: [new Date(resultat.endDate)] });
+/**
+ * Affiche le modal pour ajouter un mémo.
+ */
+function showAddMemo() {
+    console.log('showAddMemo called');
+    modalFlow.createAndOpen({
+        url: `${window.WEB_PAGES}/show/modal/memo/showAddMemo.php`,
+        showCloseButton: false,
+        onContentLoaded: () => {
+            console.log('Modal content loaded, initializing components...');
+            window.dateFlow = new DateFlow();
+        },
+        onError: (error) => {
+            console.error('Modal error:', error);
+            if (error.msgError) {
+                errorNotice(error.msgError);
+            }
         }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
-    }
+    });
 }
 
-async function showUpdateMemo(web_pages, memoId) {
-    const formData = new FormData();
-    formData.set('memoId', memoId);
-    const destUrl = `${web_pages}/show/showUpdateMemo.php`;
-
-    try {
-        const resultat = await ajaxFct(formData, destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal").innerHTML = resultat.html;
-            document.getElementById("modal-overlay").classList.remove("hidden");
-            document.getElementById("modal").classList.remove("hidden");
-            textAreaAdjust(document.querySelector("textarea"));
-            new AirDatepicker('#start-date', { inline: true, selectedDates: [new Date(resultat.startDate)] });
-            new AirDatepicker('#end-date', { inline: true, selectedDates: [new Date(resultat.endDate)] });
+/**
+ * Affiche le modal pour mettre à jour un mémo.
+ * @param {number} memoId - ID du mémo à mettre à jour
+ */
+function showUpdateMemo(memoId) {
+    console.log('showUpdateMemo called');
+    modalFlow.createAndOpen({
+        url: `${window.WEB_PAGES}/show/modal/memo/showUpdateMemo.php`,
+        showCloseButton: false,
+        params: { id: memoId },
+        onContentLoaded: () => {
+            console.log('Modal content loaded, initializing components...');
+            window.dateFlow = new DateFlow();
+        },
+        onError: (error) => {
+            console.error('Modal error:', error);
+            if (error.msgError) {
+                errorNotice(error.msgError);
+            }
         }
-    } catch (error) {
-        errorNotice("Erreur dans la mise à jour du mémo");
-    }
+    });
 }
 
-async function updateMemo(web_pages) {
-    const destUrl = `${web_pages}/show/updateMemo.php`;
 
-    try {
-        const form = document.querySelector("form#modal-form");
-        const resultat = await ajaxFct(new FormData(form), destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal-overlay").classList.add("hidden");
-            document.getElementById("modal").classList.add("hidden");
-            successNotice("Modification du mémo effectué avec succès", 1000);
-            window.location.reload();
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
+/**
+ * Met à jour un mémo existant.
+ */
+function updateMemo() {
+    const form = document.getElementById('modal-form-memo');
+    if (!form) {
+        console.error('Form not found: modal-form-memo');
+        return;
     }
+
+    const formData = new FormData(form);
+    const destUrl = `${window.WEB_PAGES}/show/modal/memo/updateMemo.php`;
+
+    console.log('Submitting form...');
+    ajaxFct(formData, destUrl)
+        .then(resultat => {
+            console.log('Form submission result:', resultat);
+            if (resultat.erreur === false) {
+                // Mettre à jour l'affichage des blocs
+                modalFlow.close(); // Fermer la modale
+                successNotice("Mémo mis à jour avec succès");
+                window.location.reload();
+            } else {
+                errorNotice(resultat.msgError || "Erreur lors de la mise à jour du mémo");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorNotice("Erreur lors de la mise à jour du mémo");
+        });
 }
 
-async function addMemo(web_pages) {
-    const destUrl = `${web_pages}/show/addMemo.php`;
-
-    try {
-        const form = document.querySelector("form#modal-form");
-        const resultat = await ajaxFct(new FormData(form), destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal-overlay").classList.add("hidden");
-            document.getElementById("modal").classList.add("hidden");
-            successNotice("Ajout du mémo effectué avec succès", 1000);
-            window.location.reload();
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
+/**
+ * Ajoute un nouveau mémo.
+ */
+function addMemo() {
+    console.log('addMemo called');
+    const form = document.getElementById('modal-form-memo');
+    if (!form) {
+        console.error('Form not found: modal-form-memo');
+        return;
     }
+
+    const formData = new FormData(form);
+    const destUrl = `${window.WEB_PAGES}/show/modal/memo/addMemo.php`;
+
+    console.log('Submitting form...');
+    ajaxFct(formData, destUrl)
+        .then(resultat => {
+            console.log('Form submission result:', resultat);
+            if (resultat.erreur === false) {
+                // Mettre à jour l'affichage des blocs
+                modalFlow.close(); // Fermer la modale
+                successNotice("Mémo ajouté avec succès");
+                window.location.reload();
+            } else {
+                errorNotice(resultat.msgError || "Erreur lors de l'ajout du mémo");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorNotice("Erreur lors de l'ajout du mémo");
+        });
 }
 
-async function deleteMemo(web_pages, id) {
-    const destUrl = `${web_pages}/show/deleteMemo.php`;
-    const formData = new FormData();
-    formData.set('memoId', id);
-
-    try {
-        const resultat = await ajaxFct(formData, destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal-overlay").classList.add("hidden");
-            document.getElementById("modal").classList.add("hidden");
-            successNotice("Suppression du mémo effectué avec succès", 1000);
-            window.location.reload();
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
+/**
+ * Supprime un mémo.
+ * @param {number} id - ID du mémo à supprimer
+ */
+function deleteMemo() {
+    const form = document.getElementById('modal-form-memo');
+    if (!form) {
+        console.error('Form not found: modal-form-memo');
+        return;
     }
-}
 
-async function showAddSite(web_pages) {
-    const formData = new FormData();
-    const destUrl = `${web_pages}/show/showAddSite.php`;
+    const formData = new FormData(form);
+    const destUrl = `${window.WEB_PAGES}/show/modal/memo/deleteMemo.php`;
 
-    try {
-        const resultat = await ajaxFct(formData, destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal").innerHTML = resultat.html;
-            document.getElementById("modal-overlay").classList.remove("hidden");
-            document.getElementById("modal").classList.remove("hidden");
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
-    }
-}
-
-async function showUpdateSite(web_pages, siteId) {
-    const formData = new FormData();
-    formData.set('siteId', siteId);
-    const destUrl = `${web_pages}/show/showUpdateSite.php`;
-
-    try {
-        const resultat = await ajaxFct(formData, destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal").innerHTML = resultat.html;
-            document.getElementById("modal-overlay").classList.remove("hidden");
-            document.getElementById("modal").classList.remove("hidden");
-        }
-    } catch (error) {
-        errorNotice("Erreur dans la mise à jour du lien du site");
-    }
-}
-
-async function updateSite(web_pages) {
-    const destUrl = `${web_pages}/show/updateSite.php`;
-
-    try {
-        const form = document.querySelector("form#modal-form");
-        const resultat = await ajaxFct(new FormData(form), destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal-overlay").classList.add("hidden");
-            document.getElementById("modal").classList.add("hidden");
-            successNotice("Modification du lien du site effectué avec succès", 1000);
-            window.location.reload();
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
-    }
-}
-
-async function addSite(web_pages) {
-    const destUrl = `${web_pages}/show/addSite.php`;
-
-    try {
-        const form = document.querySelector("form#modal-form");
-        const resultat = await ajaxFct(new FormData(form), destUrl);
-        if (resultat.erreur === 0) {
-            document.getElementById("modal-overlay").classList.add("hidden");
-            document.getElementById("modal").classList.add("hidden");
-            successNotice("Ajout du lien du site effectué avec succès", 1000);
-            window.location.reload();
-        }
-    } catch (error) {
-        errorNotice("Erreur dans l'ajout");
-    }
+    console.log('Submitting form...');
+    ajaxFct(formData, destUrl)
+        .then(resultat => {
+            console.log('Form submission result:', resultat);
+            if (resultat.erreur === false) {
+                // Mettre à jour l'affichage des blocs
+                modalFlow.close(); // Fermer la modale
+                successNotice("Mémo supprimé avec succès");
+                window.location.reload();
+            } else {
+                errorNotice(resultat.msgError || "Erreur lors de la suppression du mémo");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorNotice("Erreur lors de la suppression du mémo");
+        });
 }

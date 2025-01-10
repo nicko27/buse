@@ -1,159 +1,128 @@
-/* TooltipFlow - Styles de base */
-.tooltip-flow {
-    position: absolute;
-    visibility: hidden;
-    opacity: 0;
-    padding: 8px 12px;
+/* CSS for tooltipFlow library */
+
+/* Default tooltip style */
+.tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: white;
     border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.4;
-    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
     pointer-events: none;
-    box-sizing: border-box;
-    font-variant: small-caps;
-    font-weight: bold;
+    padding: 0; /* Pas de padding sur le conteneur principal */
+    --arrow-offset: 0px;
 }
 
-/* Thèmes */
-.tooltip-flow.light {
-    background-color: #ffffff;
-    color: #1f2937;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.tooltip-flow.dark {
-    background-color: #1f2937;
-    color: #ffffff;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Flèche */
-.tooltip-flow-arrow {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    transform: rotate(45deg);
-    pointer-events: none;
-}
-
-.tooltip-flow.light .tooltip-flow-arrow {
-    background-color: #ffffff;
-}
-
-.tooltip-flow.dark .tooltip-flow-arrow {
-    background-color: #1f2937;
-}
-
-/* Positions */
-.tooltip-flow[data-position="top"] .tooltip-flow-arrow {
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-}
-
-.tooltip-flow[data-position="bottom"] .tooltip-flow-arrow {
-    top: -4px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-}
-
-.tooltip-flow[data-position="left"] .tooltip-flow-arrow {
-    right: -4px;
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-}
-
-.tooltip-flow[data-position="right"] .tooltip-flow-arrow {
-    left: -4px;
-    top: 50%;
-    transform: translateY(-50%) rotate(45deg);
-}
-
-/* Animations */
-.tooltip-flow.tooltip-flow-visible {
-    visibility: visible;
+.tooltip.visible {
     opacity: 1;
-    pointer-events: auto;
+    visibility: visible;
+    pointer-events: auto; /* Permet l'interaction quand visible */
 }
 
-/* Fade */
-.tooltip-flow.tooltip-flow-fade {
-    transform: scale(0.95);
-}
-
-.tooltip-flow.tooltip-flow-fade.tooltip-flow-visible {
-    transform: scale(1);
-}
-
-/* Shift */
-.tooltip-flow.tooltip-flow-shift[data-position="top"] {
-    transform: translateY(8px);
-}
-.tooltip-flow.tooltip-flow-shift[data-position="bottom"] {
-    transform: translateY(-8px);
-}
-.tooltip-flow.tooltip-flow-shift[data-position="left"] {
-    transform: translateX(8px);
-}
-.tooltip-flow.tooltip-flow-shift[data-position="right"] {
-    transform: translateX(-8px);
-}
-
-.tooltip-flow.tooltip-flow-shift.tooltip-flow-visible {
-    transform: translate(0, 0);
-}
-
-/* Scale */
-.tooltip-flow.tooltip-flow-scale {
-    transform: scale(0.7);
-}
-
-.tooltip-flow.tooltip-flow-scale.tooltip-flow-visible {
-    transform: scale(1);
-}
-
-/* Flip */
-.tooltip-flow.tooltip-flow-flip {
-    transform: perspective(999px) scale(0.4) rotateX(45deg);
-    transform-origin: top;
-}
-
-.tooltip-flow.tooltip-flow-flip.tooltip-flow-visible {
-    transform: perspective(999px) scale(1) rotateX(0);
-}
-
-/* Contenu */
-.tooltip-flow-content {
-    position: relative;
-    z-index: 1;
-}
-
-/* Support du mode sombre système */
-@media (prefers-color-scheme: dark) {
-    .tooltip-flow.auto {
-        background-color: #1f2937;
-        color: #ffffff;
-    }
-    .tooltip-flow.auto .tooltip-flow-arrow {
-        background-color: #1f2937;
-    }
-}
-
-/* État interactif */
-.tooltip-flow.interactive {
-    pointer-events: auto;
-}
-
-/* Support des images et du contenu riche */
-.tooltip-flow img {
+.tooltip-content {
+    padding: 8px 12px;
+    min-width: 50px;
     max-width: 100%;
-    height: auto;
+    overflow: auto;
+    box-sizing: border-box;
 }
 
-.tooltip-flow pre,
-.tooltip-flow code {
-    font-family: monospace;
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 2px 4px;
-    border-radius: 2px;
+/* Masquer la flèche si l'attribut est présent */
+.tooltip[data-hide-arrow]::before {
+    display: none !important;
+}
+
+/* Flèches du tooltip avec support de l'offset */
+.tooltip::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 6px solid transparent;
+}
+
+/* Position des flèches avec offset */
+.tooltip[data-position="top"]::before {
+    bottom: -12px;
+    left: calc(50% + var(--arrow-offset));
+    transform: translateX(-50%);
+    border-top-color: white;
+}
+
+.tooltip[data-position="bottom"]::before {
+    top: -12px;
+    left: calc(50% + var(--arrow-offset));
+    transform: translateX(-50%);
+    border-bottom-color: white;
+}
+
+.tooltip[data-position="left"]::before {
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: white;
+}
+
+.tooltip[data-position="right"]::before {
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: white;
+}
+
+/* Thème sombre */
+.tooltip[data-theme="dark"] {
+    background: #333;
+    color: white;
+}
+
+.tooltip[data-theme="dark"]::before {
+    border-top-color: #333;
+}
+
+.tooltip[data-theme="dark"][data-position="bottom"]::before {
+    border-bottom-color: #333;
+}
+
+.tooltip[data-theme="dark"][data-position="left"]::before {
+    border-left-color: #333;
+}
+
+.tooltip[data-theme="dark"][data-position="right"]::before {
+    border-right-color: #333;
+}
+
+/* Scrollbar personnalisée pour le contenu qui déborde */
+.tooltip-content::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.tooltip-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.tooltip-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.tooltip-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Support du thème sombre pour la scrollbar */
+.tooltip[data-theme="dark"] .tooltip-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tooltip[data-theme="dark"] .tooltip-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.tooltip[data-theme="dark"] .tooltip-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }

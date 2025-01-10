@@ -224,7 +224,6 @@ function ajaxFct(formdata, destUrl) {
             return response.text().then(rawText => {
                 try {
                     const jsonResponse = JSON.parse(rawText);
-                    console.log("Réponse JSON du serveur :", jsonResponse);
 
                     // Vérifie si le serveur retourne une erreur
                     if (jsonResponse.error === 1) {

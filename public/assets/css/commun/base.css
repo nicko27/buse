@@ -7,6 +7,10 @@
     width: -moz-available;
 }
 
+.w-min-content {
+    width: min-content;
+}
+
 /* Classe pour enlever la bordure d'un élément */
 .no-border {
     border: none !important;

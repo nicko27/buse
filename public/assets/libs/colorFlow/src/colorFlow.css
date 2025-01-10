@@ -16,11 +16,6 @@
     cursor: pointer;
 }
 
-.color-preview.glass {
-    border: none;
-    backdrop-filter: blur(10px);
-}
-
 /* Input de couleur */
 [cf-input] {
     border: 1px solid #dee2e6;
@@ -34,7 +29,7 @@
 [cf-input]:focus {
     outline: none;
     border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
 }
 
 /* Conteneur du color picker */
@@ -50,11 +45,6 @@
     width: 200px;
 }
 
-.nv-color-picker.glass {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    border: none;
-}
 
 /* Canvas pour la sélection de couleur */
 .nv-color-canvas {
@@ -124,11 +114,4 @@ td[th-color] {
     padding: 0 !important;
     cursor: pointer;
     background: none !important;
-}
-
-/* Style pour le picker en mode glass */
-.nv-color-picker.glass {
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.4);
 }

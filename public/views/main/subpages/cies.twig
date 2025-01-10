@@ -9,10 +9,10 @@
             <thead>
                 <tr>
                     <th id="id" th-hide>Id</th>
-                    <th id="name" th-sort><span>Nom de la compagnie</span></th>
+                    <th id="name" th-sort th-sql-exclude><span>Nom de la compagnie</span></th>
                     <th id="cu"><span>Code unité</span></th>
                     <th id="ordre" th-sort th-edit th-validate='{"number": {"min": 0, "max": 100, "integer": true}}'><span>Ordre d'affichage</span></th>
-                    <th id="color" th-color ><span>Couleur</span></th>
+                    <th id="color" th-color><span>Couleur</span></th>
                     <th id="actions" th-actions="save"><span>Actions</span></th>
                 </tr>
             </thead>
@@ -36,9 +36,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         const table = new TableFlow({
             tableId: 'ciesTbl',
-            debug: false,
+            debug: true,
             plugins: {
                 names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
+                hide: {
+                    hiddenByDefault: ['id'], // Colonnes à masquer par défaut
+                    showHideButton: true, // Afficher le bouton de gestion des colonnes
+                    buttonPosition: 'top-right' // Position du bouton
+                },
                 color: {
                     colorAttribute: 'th-color',
                     customClass: 'glass'
@@ -52,28 +57,37 @@
                     cellClass: 'td-actions',
                     useIcons: true,
                     debug: true,
+                    showOnChange: ['save'],
                     actions: {
                         save: function(context) {
-                            const url = "{{ WEB_PAGES }}/main/actions.php";
-                            actionRow(url, context.data, "compagnies", "addUpdate").then(result => {
-                                if (result) {
-                                    successNotice('Ligne mise à jour avec succès');
-                                    context.tableHandler.markRowAsSaved(context.row);
-                                } else {
+                            console.log('Save action context:', context);
+                            return actionRow("/main/actions.php", context.data, 'compagnies', 'addUpdate')
+                                .then(result => {
+                                    if (result) {
+                                        successNotice('Ligne mise à jour avec succès');
+                                        context.tableHandler.markRowAsSaved(context.row, {
+                                            'Actions': {
+                                                hideAction: 'save',
+                                                source: 'save_action'
+                                            }
+                                        });
+                                    } else {
+                                        errorNotice('Erreur lors de la mise à jour de la ligne');
+                                    }
+                                    return result;
+                                })
+                                .catch(error => {
                                     errorNotice('Erreur lors de la mise à jour de la ligne');
-                                    // Ne pas marquer comme sauvegardé en cas d'erreur
-                                }
-                            }).catch(error => {
-                                errorNotice('Erreur lors de la mise à jour de la ligne');
-                                console.error('Error:', error);
-                            });
+                                    console.error('Error:', error);
+                                    return false;
+                                });
                         }
                     },
                     icons: {
                         save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
                     },
-                    showOnChange: ["save"]
-
+                    confirmMessages: {
+                    }
                 }
             },
             pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'

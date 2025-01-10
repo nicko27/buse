@@ -1,0 +1,54 @@
+<form id="modal-form-pam">
+    <div class="modal-flow-header">
+        <span>PAM</span>
+    </div>
+    {% if cu > 0 %}
+        <input type="hidden" name="cu" id="cu" value="{{cu}}">
+    {% else %}
+        <div class="modal__block">
+            <div class="modal__block-select">
+                <label>Unité</label>
+                <select id="cu" name="cu">
+                    {% for unit in units %}
+                        <option value="{{ unit.cu }}" {{unit.selected}}>{{ unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    {% endif %}
+    <div class="modal__block">
+        <div class="modal__user-line">
+            <label>PAM Matin<br> ({{DEBUT_MATIN}} - {{FIN_MATIN}})</label>
+            <input type="text" class="text" name="nomPamMatin" id="nomPamMatin" value="{{nomPamMatin}}">
+            <div>
+                <i class="fa fa-phone"></i>
+                <input type="text" class="text" name="tphPamMatin" id="tphPamMatin" value="{{tphPamMatin}}">
+            </div>
+        </div>
+    </div>
+    <div class="modal__block">
+        <div class="modal__user-line">
+            <label>PAM Après-Midi<br> ({{DEBUT_APREM}} - {{FIN_APREM}})</label>
+            <input type="text" class="text" name="nomPamAprem" id="nomPamAprem" value="{{nomPamAprem}}">
+            <div>
+                <i class="fa fa-phone"></i>
+                <input type="text" class="text" name="tphPamAprem" id="tphPamAprem" value="{{tphPamAprem}}">
+            </div>
+
+        </div>
+    </div>
+    <div class="modal__block">
+        <div class="modal__user-line">
+            <label>PAM Nuit<br> ({{DEBUT_NUIT}} - {{FIN_NUIT}})</label>
+            <input type="text" class="text" name="nomPamNuit" id="nomPamNuit" value="{{nomPamNuit}}">
+            <div>
+                <i class="fa fa-phone"></i>
+                <input type="text" class="text" name="tphPamNuit" id="tphPamNuit" value="{{tphPamNuit}}">
+            </div>
+        </div>
+    </div>
+    <div class="modal__buttons">
+        <button type="button" class="btn btn-glass btn-glass-yellow" onclick="modalFlow.close()">Annuler</button>
+        <button type="button" class="btn btn-glass btn-glass-green" onclick="updatePAM()">Enregistrer</button>
+    </div>
+</form>

@@ -7,7 +7,7 @@ include_once dirname(__DIR__, 1) . "/commun/init.php";
 $logger     = Logger::getInstance()->getLogger();
 $sqlManager = SqlManager::getInstance();
 // Inclusion des fonctions spécifiques à la timeline
-require_once "fonctions/timelineFcts.php";
+require_once "blocks/timelineFcts.php";
 
 // Initialisation des variables pour stocker les données de la timeline
 $cieList    = getCompagniesList(); // Récupère la liste des compagnies
@@ -28,10 +28,15 @@ foreach ($cieList as $cie) {
 }
 
 // Récupération des services non invisibles
-$sql  = "SELECT * FROM services WHERE invisible = 0";
+$sql  = "SELECT * FROM services WHERE invisible < 1";
 $stmt = $sqlManager->prepare($sql);
 $stmt->execute();
 $vars['services'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$sql  = "SELECT DISTINCT color,shortName FROM services WHERE invisible < 1";
+$stmt = $sqlManager->prepare($sql);
+$stmt->execute();
+$vars['servicesColors'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Récupération des données de sélection de temps
 $returnValue          = DateUtils::getTimeSelectionData();

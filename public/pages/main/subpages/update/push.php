@@ -46,14 +46,21 @@ try {
             'remote'    => "",
         ],
         'requireAuth'   => false,
-
+        'gitOptions'    => [
+            'addAll'    => true,    // Ajouter tous les nouveaux fichiers
+            'addMoved'  => true,    // Gérer les fichiers déplacés
+            'force'     => false    // Ne pas forcer le push
+        ]
     ];
 
     // Log des configurations
     $logger->debug('UpdateFlow configuration', $gitConfig);
 
     $updateFlow = new UpdateFlow($gitConfig);
-    $result     = $updateFlow->push($data['message'], $data['type']);
+    
+    // Effectuer le push
+    $result = $updateFlow->push($data['message'], $data['type']);
+    
     // Log du résultat du push
     $logger->debug('Push result', (array) $result);
 

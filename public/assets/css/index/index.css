@@ -141,3 +141,60 @@ body {
     margin: 0;
     padding: 0;
 }
+
+
+/* Style Minimal */
+input,
+select,
+textarea {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #2d3748;
+    transition: all 0.3s ease;
+    background: #ffffff;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: #cbd5e0;
+}
+
+input:focus,
+select:focus,
+textarea:hover {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+}
+
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232d3748' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 32px;
+}
+
+/* Styles spécifiques pour les textarea */
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* États désactivés */
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background-color: #f8fafc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #94a3b8;
+}

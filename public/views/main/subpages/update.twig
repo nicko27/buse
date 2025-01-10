@@ -4,24 +4,9 @@
   </div>
   <div class="block__content">
     <div class="content__line">
-
-      <!-- Upload (patch) -->
-      <div class="update__elt">
-        <div class="update__elt-title">Mise à jour (patch)</div>
-        <div class="update__elt-text">
-          <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitPatch'))" class="commit" id="commitPatch" name="commitPatch">{{ nextPatchVersion }}</textarea>
-        </div>
-        <div class="update__elt-btnZone">
-          <button onclick="updateFlow.push(document.getElementById('commitPatch').value, 'patch')" class="btn btn-glass btn-glass-blue">
-            <i class="fa fa-cloud-arrow-up"></i>
-            <span>Sauvegarder les<br>modifications</span>
-          </button>
-        </div>
-      </div>
-
       <!-- Upload (mineur) -->
       <div class="update__elt">
-        <div class="update__elt-title">Upload (mineur)</div>
+        <div class="update__elt-title">Mise à jour (mineur)</div>
         <div class="update__elt-text">
           <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitMinor'))" class="commit" id="commitMinor" name="commitMinor">{{ nextMinorVersion }}</textarea>
         </div>
@@ -35,7 +20,7 @@
 
       <!-- Upload (majeur) -->
       <div class="update__elt">
-        <div class="update__elt-title">Upload (majeur)</div>
+        <div class="update__elt-title">Mise à jour (majeur)</div>
         <div class="update__elt-text">
           <textarea oninput="textAreaWithoutQuote(this)" onkeyup="textAreaAdjust(document.getElementById('commitMajor'))" class="commit" id="commitMajor" name="commitMajor">{{ nextMajorVersion }}</textarea>
         </div>
@@ -46,14 +31,24 @@
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- Téléchargement de la mise à jour -->
+    <!-- Boutons d'action Git -->
+    <div class="content__line">
       <div class="update__elt">
-        <div class="update__elt-title">Téléchargement de la mise à jour</div>
+        <div class="update__elt-title">Actions Git</div>
         <div class="update__elt-btnZone">
-          <button onclick="updateFlow.pull()" class="btn btn-glass btn-glass-blue">
+          <button onclick="updateFlow.pull()" class="btn btn-glass btn-glass-green">
             <i class="fa fa-cloud-arrow-down"></i>
-            <span>Récupérer la dernière version</span>
+            <span>Télécharger les<br>modifications</span>
+          </button>
+          <button onclick="updateFlow.rebase()" class="btn btn-glass btn-glass-yellow">
+            <i class="fa fa-code-branch"></i>
+            <span>Réorganiser<br>les commits</span>
+          </button>
+          <button onclick="updateFlow.reset()" class="btn btn-glass btn-glass-red">
+            <i class="fa fa-rotate-left"></i>
+            <span>Réinitialiser<br>les modifications</span>
           </button>
         </div>
       </div>
