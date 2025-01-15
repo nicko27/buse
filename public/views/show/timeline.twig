@@ -5,7 +5,7 @@
         {% for i in 0..half-1 %}
             {% set cie = cieList[i] %}
             <div class="cie__blk">
-                <div class="line_grid cie__title" style="background-color: {{ cie.color }};">
+                <div class="cie__title-grid cie__title" style="background-color: {{ cie.color }};">
                     <div class="cie__name">{{ cie.newName }}
                         {% if cieBtn==0 %}
                             <a onclick="showAddBlock()">
@@ -32,7 +32,7 @@
         {% for i in half..cieList|length-1 %}
             {% set cie = cieList[i] %}
             <div class="cie__blk">
-                <div class="line_grid cie__title" style="background-color: {{ cie.color }};">
+                <div class="cie__title-grid cie__title" style="background-color: {{ cie.color }};">
                     <div class="cie__name">{{ cie.newName }}</div>
                     <div class="pam__tph">Tél PAM</div>
                     <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>

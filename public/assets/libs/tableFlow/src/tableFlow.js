@@ -1,9 +1,9 @@
-class TableFlow {
+export default class TableFlow {
     constructor(options = {}) {
         this.options = {
             tableId: options.tableId,
             plugins: options.plugins || [],
-            pluginsPath: options.pluginsPath || '/buse/public/assets/libs/tableFlow/plugins',
+            pluginsPath: options.pluginsPath || '../plugins',
             onSort: options.onSort,
             onFilter: options.onFilter,
             onEdit: options.onEdit,
@@ -41,7 +41,12 @@ class TableFlow {
             const rowValues = new Map();
             Array.from(row.cells).forEach(cell => {
                 const columnId = this.table.querySelector(`thead th:nth-child(${cell.cellIndex + 1})`).id;
-                rowValues.set(columnId, cell.textContent.trim());
+                const value = cell.textContent.trim();
+                rowValues.set(columnId, value);
+                
+                // Ajouter les attributs data-initial-value et data-value
+                cell.setAttribute('data-initial-value', value);
+                cell.setAttribute('data-value', value);
             });
             this.initialValues.set(row.id, rowValues);
         });
@@ -55,62 +60,71 @@ class TableFlow {
     async loadPlugins() {
         if (!this.options.plugins) return;
 
-        // Extraire la liste des plugins à charger
+        // Normaliser la configuration des plugins
         let pluginsToLoad = [];
         
         if (this.options.plugins.names && Array.isArray(this.options.plugins.names)) {
-            const { names, ...configs } = this.options.plugins;
-            pluginsToLoad = names.map(name => ({
-                name,
-                config: configs[name.toLowerCase()] || {}
-            }));
-        } else if (Array.isArray(this.options.plugins)) {
-            pluginsToLoad = this.options.plugins.map(plugin => ({
-                name: typeof plugin === 'string' ? plugin : plugin.name,
-                config: typeof plugin === 'string' ? {} : (plugin.config || {})
-            }));
-        } else if (typeof this.options.plugins === 'object') {
-            pluginsToLoad = Object.entries(this.options.plugins)
-                .filter(([_, value]) => value !== false)
-                .map(([name, value]) => ({
+            // Nouvelle approche avec tableau de noms
+            pluginsToLoad = this.options.plugins.names.map(name => {
+                const lowerName = name.toLowerCase();
+                const pluginConfig = this.options.plugins[lowerName] || {};
+                return {
                     name,
-                    config: typeof value === 'object' ? value : {}
+                    config: {
+                        ...pluginConfig,
+                        debug: this.options.debug
+                    }
+                };
+            });
+        } else if (typeof this.options.plugins === 'object') {
+            // Ancienne approche avec objets de configuration
+            pluginsToLoad = Object.entries(this.options.plugins)
+                .filter(([name, value]) => name !== 'names' && value !== false)
+                .map(([name, config]) => ({
+                    name,
+                    config: {
+                        ...(typeof config === 'object' ? config : {}),
+                        debug: this.options.debug
+                    }
                 }));
         }
 
         // Charger chaque plugin
         for (const plugin of pluginsToLoad) {
             try {
-                const pluginPath = plugin.path || 
-                    `${this.options.pluginsPath}/${plugin.name.toLowerCase()}.js`;
-
-                // Charger le code du plugin
-                const response = await fetch(pluginPath);
-                if (!response.ok) {
-                    throw new Error(`Failed to load plugin ${plugin.name}`);
-                }
-                const pluginCode = await response.text();
-
-                // Évaluer le code du plugin directement
-                try {
-                    eval(pluginCode);
-                } catch (evalError) {
-                    throw new Error(`Failed to evaluate plugin ${plugin.name}: ${evalError.message}`);
+                const pluginPath = `${this.options.pluginsPath}/${plugin.name.toLowerCase()}.js`;
+                
+                if (this.options.debug) {
+                    console.log(`Loading plugin: ${plugin.name} from ${pluginPath}`);
                 }
 
-                // Vérifier que le plugin est bien défini
-                const pluginClassName = `${plugin.name.toLowerCase()}Plugin`;
-                const pluginClass = window[pluginClassName];
-                if (!pluginClass) {
-                    throw new Error(`Plugin class ${pluginClassName} not found after evaluation`);
+                // Charger le plugin
+                const pluginModule = await import(pluginPath);
+                
+                if (!pluginModule.default) {
+                    throw new Error(`Plugin ${plugin.name} n'exporte pas de classe par défaut`);
                 }
 
-                // Instancier le plugin
-                const pluginInstance = new pluginClass(plugin.config);
+                // Instancier le plugin avec sa configuration
+                const pluginInstance = new pluginModule.default({
+                    ...plugin.config,
+                    tableHandler: this
+                });
+
+                // Initialiser le plugin
                 if (typeof pluginInstance.init === 'function') {
                     await Promise.resolve(pluginInstance.init(this));
                 }
-                this.plugins.set(plugin.name, { instance: pluginInstance });
+
+                // Stocker l'instance du plugin
+                this.plugins.set(plugin.name, {
+                    instance: pluginInstance,
+                    config: plugin.config
+                });
+
+                if (this.options.debug) {
+                    console.log(`Plugin ${plugin.name} loaded successfully`);
+                }
 
             } catch (error) {
                 console.error(`Error loading plugin ${plugin.name}:`, error);
@@ -179,11 +193,23 @@ class TableFlow {
             if (refreshed.has(pluginName)) return;
             
             const pluginInfo = this.plugins.get(pluginName);
-            if (!pluginInfo) return;
+            if (!pluginInfo?.instance) return;
 
-            // Puis rafraîchit le plugin lui-même
+            // Vérifie les dépendances d'abord
+            if (pluginInfo.instance.dependencies) {
+                pluginInfo.instance.dependencies.forEach(dep => refreshPlugin(dep));
+            }
+
+            // Rafraîchit le plugin
             if (typeof pluginInfo.instance.refresh === 'function') {
-                pluginInfo.instance.refresh();
+                try {
+                    pluginInfo.instance.refresh();
+                    if (this.options.debug) {
+                        console.log(`[TableFlow] Plugin ${pluginName} refreshed successfully`);
+                    }
+                } catch (error) {
+                    console.error(`[TableFlow] Error refreshing plugin ${pluginName}:`, error);
+                }
             }
             refreshed.add(pluginName);
         };
@@ -366,32 +392,85 @@ class TableFlow {
 
         // Dispatch event for plugins to handle the new row
         this.table.dispatchEvent(new CustomEvent('row:added', {
-            detail: { row, position },
+            detail: { 
+                row,
+                position,
+                data: this.getRowData(row)
+            },
             bubbles: true
         }));
 
-        // Mark as modified since it's a new row
-        row.classList.add('modified');
-
+        // Refresh all plugins to ensure proper initialization
         this.refreshPlugins();
+        
         return row;
     }
 
     removeRow(row) {
-        if (row && row.parentNode) {
-            row.parentNode.removeChild(row);
-            // Remove from initialValues if it exists
-            if (row.id && this.initialValues.has(row.id)) {
-                this.initialValues.delete(row.id);
-            }
-            // Dispatch a custom event
-            this.table.dispatchEvent(new CustomEvent('row:removed', {
-                detail: { row },
-                bubbles: true
-            }));
-            return true;
+        if (!row || !row.parentNode) return false;
+
+        // Dispatch event before removing the row
+        this.table.dispatchEvent(new CustomEvent('row:removing', {
+            detail: { 
+                row,
+                rowId: row.id,
+                data: this.getRowData(row)
+            },
+            bubbles: true
+        }));
+
+        // Remove the row
+        row.parentNode.removeChild(row);
+
+        // Remove from initialValues if it exists
+        if (row.id && this.initialValues.has(row.id)) {
+            this.initialValues.delete(row.id);
         }
-        return false;
+
+        // Dispatch event after row removal
+        this.table.dispatchEvent(new CustomEvent('row:removed', {
+            detail: { 
+                rowId: row.id
+            },
+            bubbles: true
+        }));
+
+        // Refresh all plugins
+        this.refreshPlugins();
+
+        return true;
+    }
+
+    getRowData(row) {
+        if (!row) return {};
+        
+        const data = {};
+        const headers = Array.from(this.table.querySelectorAll('thead th'));
+        
+        // Add row ID if exists
+        if (row.id) {
+            data.id = row.id;
+        }
+        
+        // Get data from each cell
+        Array.from(row.cells).forEach((cell, index) => {
+            const header = headers[index];
+            if (!header?.id) return;
+            
+            const wrapper = cell.querySelector(`.${this.options.cellWrapperClass}`);
+            const value = wrapper ? wrapper.textContent.trim() : cell.textContent.trim();
+            
+            // Type conversion
+            if (!isNaN(value) && value !== '') {
+                data[header.id] = Number(value);
+            } else if (value === 'true' || value === 'false') {
+                data[header.id] = value === 'true';
+            } else {
+                data[header.id] = value;
+            }
+        });
+        
+        return data;
     }
 
     destroy() {
@@ -426,11 +505,4 @@ class TableFlow {
             this.options.notifications[type](message);
         }
     }
-}
-
-// Export pour compatibilité avec les modules ES6
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TableFlow;
-} else {
-    window.TableFlow = TableFlow;
 }

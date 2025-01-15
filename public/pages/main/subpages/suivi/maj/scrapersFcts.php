@@ -1,13 +1,15 @@
 <?php
+
 use Commun\Ldap\LdapManager;
 use Commun\Utils\DateUtils;
 use Commun\Utils\TphUtils;
 use duzun\hQuery;
+
 /**
  * Scrapes data from HTML files in a directory.
  *
- * @param string $directory Directory containing HTML files.
- * @throws InvalidArgumentException if the directory path is not valid.
+ * @param string $directory Directory containing HTML files
+ * @throws InvalidArgumentException if the directory path is not valid
  */
 function processHtmlFilesInDirectory($directory)
 {
@@ -20,25 +22,23 @@ function processHtmlFilesInDirectory($directory)
     $files          = scandir($directory);
     $filesToProcess = [];
 
-    // Collecter tous les fichiers HTML dans un tableau
+    // Collect HTML files and sort based on content
     foreach ($files as $file) {
         if (pathinfo($file, PATHINFO_EXTENSION) === 'html') {
             $filePath  = $directory . DIRECTORY_SEPARATOR . $file;
             $doc       = hQuery::fromFile($filePath);
             $sousTitre = $doc->find('div#sousTitre');
 
-            // Vérifier si le titre est 'Suivi opérationnel'
+            // Process operational tracking files last
             if ($sousTitre && trim($sousTitre->text()) === 'Suivi opérationnel') {
-                // Ajouter à la fin pour traiter en dernier
-                $filesToProcess[] = $filePath;
+                $filesToProcess[] = $filePath; // Add to end
             } else {
-                // Ajouter au début pour traiter en premier
-                array_unshift($filesToProcess, $filePath);
+                array_unshift($filesToProcess, $filePath); // Add to beginning
             }
         }
     }
 
-    // Traiter les fichiers dans l'ordre collecté
+    // Process files in collected order
     foreach ($filesToProcess as $filePath) {
         scrap($filePath);
     }
@@ -87,7 +87,7 @@ function scrapTph($doc, $date)
 /**
  * Scrapes data from a specific HTML file based on its content.
  *
- * @param string $filePath Path to the HTML file.
+ * @param string $filePath Path to the HTML file
  */
 function scrap($filePath)
 {
@@ -97,7 +97,7 @@ function scrap($filePath)
     $dayInput = $doc->find('input[name="day"]');
     $date     = DateUtils::convertDate($dayInput->val());
 
-    // Vérifier si le div avec l'ID 'sousTitre' et le texte 'Suivi opérationnel' existe
+    // Check if operational tracking content exists
     $sousTitre = $doc->find('div#sousTitre');
     if ($sousTitre && trim($sousTitre->text()) === 'Suivi opérationnel') {
         scrapTimeLine($doc, $date);
@@ -110,89 +110,213 @@ function scrap($filePath)
 /**
  * Scrapes timeline data from the document and inserts it into the database.
  *
- * @param object $doc  The document object to scrape.
- * @param string $date The date for which to scrape the timeline.
+ * @param object $doc The document object to scrape
+ * @param string $date The date for which to scrape the timeline
  */
 function scrapTimeLine($doc, $date)
 {
-    global $sqlManager, $logger;
+    global $sqlManager;
 
-    $sql  = "SELECT name FROM services WHERE 1 ORDER BY LENGTH(name) DESC";
-    $stmt = $sqlManager->prepare($sql);
-    $stmt->execute();
-    $servicesTbl      = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $hui              = new DateTime($date);
-    $demain           = $hui->modify('+1 day');
-    $demain           = $demain->format('Y-m-d');
-    $pattern_horaires = '/<span class="detail-heure">(.*?)<\/span>/';
-    $pattern_pam      = '/<span class="pam_left">(.*?)<\/span>/';
+    $baseDate = new DateTime($date);
+    $patterns = [
+        'hours'    => '/<span class="detail-heure">(.*?)<\/span>/',
+        'pam'      => '/<span class="pam_left">(.*?)<\/span>/',
+        'datetime' => '/<span class="detail-heure">([^<]+)<\/span> le ([^<]+)/',
+    ];
 
     foreach ($doc->find("fieldset.boxUnite") as $fieldset) {
-        $cu_cob = $fieldset->attr('id');
+        processTimelineFieldset($fieldset, $baseDate, $patterns);
+    }
+}
 
-        $rows = $fieldset->find(".suivi table.planif tbody tr.moyen");
+/**
+ * Processes a single timeline fieldset
+ *
+ * @param object $fieldset The fieldset DOM element to process
+ * @param DateTime $baseDate Base date for the timeline
+ * @param array $patterns Array of regex patterns used for parsing
+ */
+function processTimelineFieldset($fieldset, $baseDate, $patterns)
+{
+    $cu_cob = $fieldset->attr('id');
+    $rows   = $fieldset->find(".suivi table.planif tbody tr.moyen");
 
-        foreach ($rows as $tr) {
-            $rubis = $tr->find('.moyen-label')->text();
-            if (strlen($rubis) > 7) {
-                $rubis = "";
-            }
+    foreach ($rows as $tr) {
+        $rubis = extractRubisIdentifier($tr);
+        processTimelineRows($tr, $rubis, $cu_cob, $baseDate, $patterns);
+    }
+}
 
-            $timelines = $tr->find(".timeline");
+/**
+ * Extracts Rubis identifier from a timeline row
+ *
+ * @param object $tr The table row element
+ * @return string The Rubis identifier or empty string if invalid
+ */
+function extractRubisIdentifier($tr)
+{
+    $rubis = $tr->find('.moyen-label')->text();
+    return (strlen($rubis) > 7) ? "" : $rubis;
+}
 
-            foreach ($timelines as $timeline) {
-                $hiddenContents = $timeline->find(".hiddenContent");
-
-                foreach ($hiddenContents as $hiddenContent) {
-                    $timelineHtml = $hiddenContent->html();
-                    preg_match_all($pattern_horaires, $timelineHtml, $matches);
-                    $debut = $matches[1][0];
-                    $fin   = $matches[1][1];
-                    preg_match_all($pattern_pam, $timelineHtml, $matches);
-                    $service = $hiddenContent->find(".corps")[0]->text();
-                    $corps   = $hiddenContent->find(".corps ul li");
-                    $users   = extractUsers($corps, $rubis);
-
-                    $tblServices = ["id" => null, "name" => $service, "shortName" => "", "color" => "", "invisible" => 1];
-                    $serviceId   = $sqlManager->insertIfAbsent("services", $tblServices, ["name" => $service])['id'];
-                    // Utiliser une expression régulière pour extraire les dates et les heures
-                    preg_match_all('/<span class="detail-heure">([^<]+)<\/span> le ([^<]+)/', $timelineHtml, $matches);
-                    $date             = $matches[2][0];
-                    $datetime         = DateTime::createFromFormat('d/m/Y', $date);
-                    $valDateDebut     = $datetime->format('Y-m-d');
-                    $valDateFin       = $valDateDebut;
-                    $entry_debut_time = clone $datetime;
-                    $entry_fin_time   = clone $datetime;
-                    $entry_debut_time->setTime((int) substr($debut, 0, 2), (int) substr($debut, 3, 5));
-                    $entry_fin_time->setTime((int) substr($fin, 0, 2), (int) substr($fin, 3, 5));
-                    if ($entry_fin_time < $entry_debut_time) {
-                        $demain     = $datetime->modify('+1 day');
-                        $valDateFin = $demain->format('Y-m-d');
-                    }
-                    $tbl = [
-                        "cu"         => 0,
-                        "cu_cob"     => $cu_cob,
-                        "rubis"      => $rubis,
-                        "nom"        => $users['firstName'],
-                        "tph"        => $users['firstTph'],
-                        "debut"      => $debut,
-                        "fin"        => $fin,
-                        "date_debut" => $valDateDebut,
-                        "date_fin"   => $valDateFin,
-                        "users"      => $users['userDetails'],
-                        "serviceId"  => $serviceId,
-                        "color"      => "",
-                        "memo"       => "",
-                        "invisible"  => 0,
-                        "id"         => null,
-                    ];
-                    $tblSearch = $tbl;
-                    unset($tblSearch["id"]);
-                    $sqlManager->insertOrUpdate("services_unites", $tbl, $tblSearch);
-                }
-            }
+/**
+ * Processes timeline rows for a given table row
+ *
+ * @param object $tr The table row element
+ * @param string $rubis The Rubis identifier
+ * @param string $cu_cob The CU-COB identifier
+ * @param DateTime $baseDate Base date for the timeline
+ * @param array $patterns Array of regex patterns used for parsing
+ */
+function processTimelineRows($tr, $rubis, $cu_cob, $baseDate, $patterns)
+{
+    foreach ($tr->find(".timeline") as $timeline) {
+        foreach ($timeline->find(".hiddenContent") as $hiddenContent) {
+            processTimelineContent($hiddenContent, $rubis, $cu_cob, $baseDate, $patterns);
         }
     }
+}
+
+/**
+ * Processes a single timeline content element
+ *
+ * @param object $hiddenContent The hidden content element
+ * @param string $rubis The Rubis identifier
+ * @param string $cu_cob The CU-COB identifier
+ * @param DateTime $baseDate Base date for the timeline
+ * @param array $patterns Array of regex patterns used for parsing
+ */
+function processTimelineContent($hiddenContent, $rubis, $cu_cob, $baseDate, $patterns)
+{
+    global $sqlManager;
+
+    $timelineHtml = $hiddenContent->html();
+    $timeData     = extractTimeData($timelineHtml, $patterns['hours']);
+    $service      = $hiddenContent->find(".corps")[0]->text();
+    $users        = extractUsers($hiddenContent->find(".corps ul li"), $rubis);
+
+    $serviceId = insertService($service);
+    $dates     = calculateTimelineDates($timelineHtml, $patterns['datetime'], $timeData);
+
+    $record = createTimelineRecord([
+        'cu_cob'    => $cu_cob,
+        'rubis'     => $rubis,
+        'users'     => $users,
+        'timeData'  => $timeData,
+        'dates'     => $dates,
+        'serviceId' => $serviceId,
+    ]);
+
+    insertTimelineRecord($record);
+}
+
+/**
+ * Extracts time data from timeline HTML
+ *
+ * @param string $timelineHtml The timeline HTML content
+ * @param string $pattern The regex pattern for time extraction
+ * @return array Array containing start and end times
+ */
+function extractTimeData($timelineHtml, $pattern)
+{
+    preg_match_all($pattern, $timelineHtml, $matches);
+    return [
+        'start' => $matches[1][0],
+        'end'   => $matches[1][1],
+    ];
+}
+
+/**
+ * Inserts a service record and returns its ID
+ *
+ * @param string $serviceName The name of the service
+ * @return int The service ID
+ */
+function insertService($serviceName)
+{
+    global $sqlManager;
+
+    $serviceData = [
+        "id"        => null,
+        "name"      => $serviceName,
+        "shortName" => "",
+        "color"     => "",
+        "invisible" => 1,
+    ];
+
+    return $sqlManager->insertIfAbsent("services", $serviceData, ["name" => $serviceName])['id'];
+}
+
+/**
+ * Calculates timeline dates based on the content
+ *
+ * @param string $timelineHtml The timeline HTML content
+ * @param string $pattern The datetime pattern
+ * @param array $timeData Array containing start and end times
+ * @return array Array containing start and end dates
+ */
+function calculateTimelineDates($timelineHtml, $pattern, $timeData)
+{
+    preg_match_all($pattern, $timelineHtml, $matches);
+    $datetime  = DateTime::createFromFormat('d/m/Y', $matches[2][0]);
+    $startDate = clone $datetime;
+    $endDate   = clone $datetime;
+
+    $startTime = explode(':', $timeData['start']);
+    $endTime   = explode(':', $timeData['end']);
+
+    $startDate->setTime((int) $startTime[0], (int) $startTime[1]);
+    $endDate->setTime((int) $endTime[0], (int) $endTime[1]);
+
+    if ($endDate < $startDate) {
+        $endDate->modify('+1 day');
+    }
+
+    return [
+        'start' => $startDate->format('Y-m-d'),
+        'end'   => $endDate->format('Y-m-d'),
+    ];
+}
+
+/**
+ * Creates a timeline record array
+ *
+ * @param array $data Array containing all necessary data for the record
+ * @return array The complete timeline record
+ */
+function createTimelineRecord($data)
+{
+    return [
+        "cu"         => 0,
+        "cu_cob"     => $data['cu_cob'],
+        "rubis"      => $data['rubis'],
+        "nom"        => $data['users']['firstName'],
+        "tph"        => $data['users']['firstTph'],
+        "debut"      => $data['timeData']['start'],
+        "fin"        => $data['timeData']['end'],
+        "date_debut" => $data['dates']['start'],
+        "date_fin"   => $data['dates']['end'],
+        "users"      => $data['users']['userDetails'],
+        "serviceId"  => $data['serviceId'],
+        "color"      => "",
+        "memo"       => "",
+        "invisible"  => 0,
+        "id"         => null,
+    ];
+}
+
+/**
+ * Inserts or updates a timeline record in the database
+ *
+ * @param array $record The record to insert or update
+ */
+function insertTimelineRecord($record)
+{
+    global $sqlManager;
+
+    $searchRecord = $record;
+    unset($searchRecord["id"]);
+    $sqlManager->insertOrUpdate("services_unites", $record, $searchRecord);
 }
 
 /**
@@ -200,6 +324,13 @@ function scrapTimeLine($doc, $date)
  *
  * @param object $doc  The document object to scrape.
  * @param string $date The date for which to scrape the PAM data.
+ */
+/**
+ * Scrapes PAM (Medical Assistance Post) data from an HTML document.
+ * Processes each fieldset containing PAM information and extracts relevant details.
+ *
+ * @param object $doc HTML document object to scrape
+ * @param string $date Date for which to scrape the PAM data
  */
 function scrapPam($doc, $date)
 {
@@ -256,6 +387,15 @@ function insertDetails($tr, $cu, $date)
  * @param string $date          The date for which to insert the details.
  * @param string $pattern_class The regex pattern to match PAM class.
  */
+/**
+ * Processes PAM (Medical Assistance Post) details and inserts them into the database.
+ * Handles different time periods (morning, afternoon, night) and creates corresponding records.
+ *
+ * @param array $matches_td Array of matched table cells containing PAM information
+ * @param string $cu Center Unit identifier
+ * @param string $date Date for which the PAM details are being processed
+ * @param string $pattern_class Regex pattern to extract crew information
+ */
 function processPamDetails($matches_td, $cu, $date, $pattern_class)
 {
     global $sqlManager, $logger;
@@ -275,10 +415,15 @@ function processPamDetails($matches_td, $cu, $date, $pattern_class)
 }
 
 /**
- * Extracts user details from a given list of elements.
+ * Extracts user details from a list of HTML elements containing user information.
+ * Each element is expected to contain a name and TPH number in the format "Name (TPH)".
  *
- * @param array $corps The list of elements containing user details.
- * @return array An associative array containing the first user details and a JSON-encoded list of all users.
+ * @param array $corps Array of HTML elements containing user information
+ * @param string $rubis The Rubis identifier to associate with the users
+ * @return array Associative array containing:
+ *               - firstName: Name of the first user found
+ *               - firstTph: TPH number of the first user
+ *               - userDetails: JSON encoded array of all users with their details
  */
 function extractUsers($corps, $rubis)
 {
@@ -292,16 +437,26 @@ function extractUsers($corps, $rubis)
         if (preg_match('/^([^()]+)\((\d+)\)$/', $li_text, $matches)) {
             $name = trim($matches[1]);
             $tph  = $matches[2];
+
             if ($first) {
                 $first     = false;
                 $firstName = $name;
                 $firstTph  = $tph;
             }
-            $users[] = ["name" => $name, "tph" => $tph, "rubis" => $rubis];
+
+            $users[] = [
+                "name"  => $name,
+                "tph"   => $tph,
+                "rubis" => $rubis,
+            ];
         }
     }
 
-    return ['firstName' => $firstName, 'firstTph' => $firstTph, 'userDetails' => json_encode($users)];
+    return [
+        'firstName'   => $firstName,
+        'firstTph'    => $firstTph,
+        'userDetails' => json_encode($users),
+    ];
 }
 
 function fillNullCuFromCob()
@@ -353,21 +508,17 @@ function fillNullCuFromLdap()
 }
 
 /**
- * Récupère le code unité via une recherche LDAP.
+ * Retrieves the unit code via LDAP search.
  *
- * @param string $tph Numéro de téléphone.
- * @return string Code unité correspondant.
+ * @param string $tph Phone number
+ * @return string Corresponding unit code
  */
 function getLdapCu($tph)
 {
     $ldapManager = LdapManager::getInstance();
     $tph         = TphUtils::formatNumberWith33($tph);
-    $recherche   = sprintf("(|(mobile=%s)(telephoneNEO=%s))", $tph, $tph);
-    $info        = $ldapManager->searchPersons($recherche, ["codeUnite"], 1);
-    if ($info[0]) {
-        return $info[0]["codeunite"];
-    } else {
-        return 0;
-    }
+    $search      = sprintf("(|(mobile=%s)(telephoneNEO=%s))", $tph, $tph);
+    $info        = $ldapManager->searchPersons($search, ["codeUnite"], 1);
 
+    return $info[0] ? $info[0]["codeunite"] : 0;
 }

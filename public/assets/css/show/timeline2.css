@@ -452,6 +452,7 @@
     /* Centrer le texte */
     background-color: #153742;
     /* Couleur de fond pour visualisation */
+    padding: 10px;
     color: white;
     border-radius: 3px;
     margin-top: 1px;
@@ -479,8 +480,7 @@
     margin-left: 1px;
 }
 
-.bp__name-label,
-.unit__name-label {
+.bp__name-label {
     align-self: center;
 }
 

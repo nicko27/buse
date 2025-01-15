@@ -13,7 +13,6 @@
                     <th id="cu"><span>Code unité</span></th>
                     <th id="ordre" th-sort th-edit th-validate='{"number": {"min": 0, "max": 100, "integer": true}}'><span>Ordre d'affichage</span></th>
                     <th id="color" th-color><span>Couleur</span></th>
-                    <th id="actions" th-actions="save"><span>Actions</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -24,7 +23,6 @@
                         <td id="cu_{{ cie.id }}" cu="cu_{{ cie.id }}">{{ cie.cu }}</td>
                         <td id="ordre_{{ cie.id }}" name="ordre_{{ cie.id }}" >{{ cie.ordre }}</td>
                         <td id="color_{{ cie.id }}" name="color_{{ cie.id }}" >{{ cie.color }}</td>
-                        <td id="actions_{{ cie.id }}" name="actions_{{ cie.id }}" ></td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -32,65 +30,100 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const table = new TableFlow({
-            tableId: 'ciesTbl',
-            debug: true,
-            plugins: {
-                names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
-                hide: {
-                    hiddenByDefault: ['id'], // Colonnes à masquer par défaut
-                    showHideButton: true, // Afficher le bouton de gestion des colonnes
-                    buttonPosition: 'top-right' // Position du bouton
-                },
-                color: {
-                    colorAttribute: 'th-color',
-                    customClass: 'glass'
-                },
-                sort: {
-                    sortableAttribute: 'th-sort',
-                    showIcons: false,
-                },
-                actions: {
-                    actionAttribute: 'th-actions',
-                    cellClass: 'td-actions',
-                    useIcons: true,
-                    debug: true,
-                    showOnChange: ['save'],
-                    actions: {
-                        save: function(context) {
-                            console.log('Save action context:', context);
-                            return actionRow("/main/actions.php", context.data, 'compagnies', 'addUpdate')
-                                .then(result => {
-                                    if (result) {
-                                        successNotice('Ligne mise à jour avec succès');
-                                        context.tableHandler.markRowAsSaved(context.row, {
-                                            'Actions': {
-                                                hideAction: 'save',
-                                                source: 'save_action'
-                                            }
-                                        });
-                                    } else {
-                                        errorNotice('Erreur lors de la mise à jour de la ligne');
-                                    }
-                                    return result;
-                                })
-                                .catch(error => {
-                                    errorNotice('Erreur lors de la mise à jour de la ligne');
-                                    console.error('Error:', error);
-                                    return false;
-                                });
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    const table = new TableFlow({
+        tableId: 'ciesTbl',
+        debug: true,
+        plugins: {
+            names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
+            hide: {
+                hiddenByDefault: ['id'],
+                showHideButton: true,
+                buttonPosition: 'top-right'
+            },
+            color: {
+                colorAttribute: 'th-color',
+                customClass: 'glass'
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            edit: {
+                debug: true,
+                validators: {
+                    required: (value) => {
+                        if (!value || value.trim() === '') {
+                            return 'Ce champ est requis';
                         }
+                        return true;
                     },
-                    icons: {
-                        save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
-                    },
-                    confirmMessages: {
+                    number: (value, config) => {
+                        if (!value) return true;
+                        const num = parseFloat(value);
+                        if (isNaN(num)) return "La valeur doit être un nombre";
+                        if (config.min !== undefined && num < config.min) return `La valeur doit être supérieure à ${config.min}`;
+                        if (config.max !== undefined && num > config.max) return `La valeur doit être inférieure à ${config.max}`;
+                        if (config.integer && !Number.isInteger(num)) return "La valeur doit être un nombre entier";
+                        return true;
                     }
                 }
             },
-            pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
-        });
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                actions: {
+                    delete: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "compagnies", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'delete');
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
+                    },
+                    save: {
+                        autoSave: true,
+                        showOnChange: true,
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "compagnies", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
     });
+
+    window.table = table;
 </script>

@@ -11,7 +11,7 @@
         {% if outdated==0%}
             {% if end_column - start_column >LARGEUR_MIN_TPH %}
                 <div class="timeline__block-tph">
-                    {{ text|phone_format}}
+                    {{ text|phone_with_text_format}}
                     {% if memo|length >0 %}
                         <i class="fa fa-message"></i>
                     {% endif %}

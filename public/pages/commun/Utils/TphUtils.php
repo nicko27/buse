@@ -67,4 +67,29 @@ class TphUtils
 
         return $formattedNumber;
     }
+
+    public static function formatPhoneWithText(string $input): string
+    {
+        // Extraire tous les numéros de téléphone dans la chaîne
+        preg_match_all('/\b\d{2}(?:\.\d{2}){4}\b|\b\d{9,10}\b/', $input, $matches);
+
+        // Si aucun numéro trouvé, retourner la chaîne originale
+        if (empty($matches[0])) {
+            return $input;
+        }
+
+        // Pour chaque numéro trouvé, le formater
+        foreach ($matches[0] as $number) {
+            // Supprimer les points et les espaces
+            $cleanNumber = preg_replace('/[.\s]/', '', $number);
+
+            // Formater avec des espaces tous les 2 chiffres
+            $formattedNumber = implode(' ', str_split($cleanNumber, 2));
+
+            // Remplacer le numéro original par le numéro formaté
+            $input = str_replace($number, $formattedNumber, $input);
+        }
+
+        return $input;
+    }
 }

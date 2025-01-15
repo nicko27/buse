@@ -39,12 +39,14 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
     const servicesTable = new TableFlow({
         tableId: 'servicesTbl',
         debug: true,
         plugins: {
-            names: ['FilterAndPaginate','Edit', 'Hide', 'Color', 'Sort', 'Actions', 'Choice'],
+            names: ['FilterAndPaginate', 'Edit', 'Hide', 'Color', 'Sort', 'Actions', 'Choice'],
             filterandpaginate: {
                 enableFilter: true,
                 globalFilter: '#search',
@@ -56,10 +58,12 @@
                 paginationClass: 'pagination',
                 selectClass: 'btn btn-glass btn-glass-green',
                 btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
-                backwardIcon: '<i class="fas fa-chevron-left"></i>',
-                forwardIcon: '<i class="fas fa-chevron-right"></i>',
-                fastBackwardIcon: '<i class="fas fa-angle-double-left"></i>',
-                fastForwardIcon: '<i class="fas fa-angle-double-right"></i>'
+                icons: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    prev: '<i class="fas fa-chevron-left"></i>',
+                    next: '<i class="fas fa-chevron-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
             },
             color: {
                 colorAttribute: 'th-color',
@@ -67,17 +71,27 @@
             },
             sort: {
                 sortableAttribute: 'th-sort',
-                showIcons: false,
+                showIcons: true,
                 ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
             },
             choice: {
-                choiceAttribute: 'th-choice',
-                choices: {
-                    'invisible': [
-                        { value: '-1', label: '<span style="color: gray">Visible (Verrouillé)</span>',readOnly: true  },
-                        { value: '0', label: '<span style="color: green">Visible</span>' },
-                        { value: '1', label: '<span style="color: red">Masquée</span>',readOnly: false}
-                    ]
+                columns: {
+                    'invisible': {
+                        type: 'toggle',
+                        values: [
+                            { value: '-1', label: '<span style="color: gray">Visible (Verrouillé)</span>' },
+                            { value: '0', label: '<span style="color: green">Visible</span>' },
+                            { value: '1', label: '<span style="color: red">Masquée</span>' }
+                        ],
+                        readOnlyValues: [
+                            { value: '-1', class: 'readonly-locked' }
+                        ]
+                    }
                 }
             },
             edit: {
@@ -97,14 +111,32 @@
                 useIcons: true,
                 debug: true,
                 actions: {
+                    delete: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "services", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.removeRow(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
+                    },
                     save: {
+                        showOnChange: true,
                         autoSave: true,
                         handler: function(context) {
-                            const url = "{{ WEB_PAGES }}/main/actions.php";
+                            const url = "/main/actions.php";
                             actionRow(url, context.data, "services", "addUpdate").then(result => {
                                 if (result) {
                                     successNotice('Ligne mise à jour avec succès');
-                                    context.tableHandler.markRowAsSaved(context.row);
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
                                 } else {
                                     errorNotice('Erreur lors de la mise à jour de la ligne');
                                 }
@@ -112,16 +144,14 @@
                                 errorNotice('Erreur lors de la mise à jour de la ligne');
                                 console.error('Error:', error);
                             });
-                        }
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
                     }
-                },
-                icons: {
-                     save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
-                },
-                showOnChange: ["save"]
-
+                }
             }
         },
-        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+        pluginsPath: '../plugins'
     });
+
+    window.servicesTable = servicesTable;
 </script>

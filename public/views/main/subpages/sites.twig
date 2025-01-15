@@ -36,20 +36,44 @@
 	</div>
 </div>
 
-<script>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
 
-    const table = new TableFlow({
+    const tableInstance = new TableFlow({
         tableId: 'sitesTbl',
         debug: false,
-        cellWrapper: true,
         plugins: {
             names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
+            edit: {
+                debug: true,
+                validators: {
+                    required: (value) => {
+                        if (!value || value.trim() === '') {
+                            return 'Ce champ est requis';
+                        }
+                        return true;
+                    },
+                    url: (value) => {
+                        if (value && !value.match(/^https?:\/\/.+/)) {
+                            return 'URL invalide (doit commencer par http:// ou https://)';
+                        }
+                        return true;
+                    }
+                }
+            },
             color: {
                 colorAttribute: 'th-color',
                 customClass: 'glass'
             },
             sort: {
                 sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
             },
             actions: {
                 actionAttribute: 'th-actions',
@@ -57,46 +81,46 @@
                 useIcons: true,
                 debug: true,
                 actions: {
-                    delete: function(context) {
-                        const url = "/main/actions.php";
-                        actionRow(url, context.data, "services", "delete").then(result => {
-                            if (result) {
-                                successNotice('Ligne mise à jour avec succès');
-                                context.tableHandler.markRowAsSaved(context.row, 'delete');
-                            } else {
-                                errorNotice('Erreur lors de la mise à jour de la ligne');
-                            }
-                        }).catch(error => {
-                            errorNotice('Erreur lors de la mise à jour de la ligne');
-                            console.error('Error:', error);
-                        });
+                    delete: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "sites", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.removeRow(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
                     },
-                    save: function(context) {
-                        const url = "/main/actions.php";
-                        actionRow(url, context.data, "sites", "addUpdate").then(result => {
-                            if (result) {
-                                successNotice('Ligne mise à jour avec succès');
-                                context.tableHandler.markRowAsSaved(context.row, 'save');
-                            } else {
+                    save: {
+                        showOnChange: true,
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "sites", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
                                 errorNotice('Erreur lors de la mise à jour de la ligne');
-                            }
-                        }).catch(error => {
-                            errorNotice('Erreur lors de la mise à jour de la ligne');
-                            console.error('Error:', error);
-                        });
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Sauvegarder la ligne"><i class="fa fa-save"></i></button>'
                     }
-                },
-                icons: {
-                    delete: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>',
-                    save: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
-                },
-                confirmMessages: {
-                    delete: 'Êtes-vous sûr de vouloir supprimer cette ligne ?'
-                },
-                showOnChange: ["save"]
-
+                }
             }
-        },
-        pluginsPath: '{{ WEB_ASSETS }}/libs/tableFlow/plugins'
+        }
     });
+
+    // Exposer l'instance dans le scope global pour l'utiliser dans les onclick
+    window.table = tableInstance;
 </script>

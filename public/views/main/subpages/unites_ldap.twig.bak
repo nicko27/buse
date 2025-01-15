@@ -27,7 +27,7 @@
                         <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
                         <th id="cu" th-readonly>code Unité</th>
                         <th id="cuCob" th-choice>COB</th>
-                        <th id="parentCu" th-hide>Cu parent</th>
+                        <th th-hide id="parentCu">Cu parent</th>
                         <th th-choice th-sort id="isCie">Compagnie</th>
                         <th th-choice id="mergedWithCu" data-tooltip="Sert pour que la COB et la BP mère soit fusionné dans l'affichage">Ligne fusionné avec Unité</th>
                         <th th-choice id="invisible">Unité Visible</th>
@@ -57,42 +57,9 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="block" id="unites-manual">
-        <div class="block__title glass">
-            <div class="block__title-left">
-                Gestion des unités ajoutées manuellement
-                <a onclick="unitesManualTable.addRow([],'start')">
-                    <i class="fa fa-circle-plus"></i>
-                </a>
-            </div>
+
         </div>
 
-        <div class="block__content flex-h">
-            <table id="unitesManualTbl">
-                <thead>
-                    <tr>
-                        <th id="id" th-hide th-text-default="0">id</th>
-                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="name">Unité</th>
-                        <th id="cu" th-edit data-tooltip="Mettre un numéro distinct pour chaque unité et supérieur à 99900">code Unité <i class="fa fa-info-circle"></i></th>
-                        <th th-choice id="cieCu" th-sort>Compagnie</th>
-                        <th th-actions="delete,save">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for unites in unites_manuelles_tbl %}
-                        <tr id="{{unites.id}}" name="{{ unites.id }}">
-                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
-                            <td id="name_{{ unites.id }}" name="name_{{ unites.id }}">{{ unites.name }}</td>
-                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
-                            <td id="cieCu_{{ unites.id }}" name="cieCu_{{ unites.id }}">{{unites.cieCu}}</td>
-                            <td id="actions_{{ unites.id }}" name="actions_{{  unites.id }}"></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     </div>
 </div>
 
@@ -121,7 +88,7 @@
                     prev: '<i class="fas fa-chevron-left"></i>',
                     next: '<i class="fas fa-chevron-right"></i>',
                     last: '<i class="fas fa-angle-double-right"></i>'
-                }
+                },
             },
             sort: {
                 sortableAttribute: 'th-sort',
@@ -138,7 +105,7 @@
                     'mergedWithCu': {
                         type: 'searchable',
                         values: [
-                            { value: '0', label: '-', readOnly: true, readOnlyClass: 'readonly-default' },
+                            { value: '0', label: '-' },
                             {% for cob in unites_ldap_tbl %}
                                 {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu != cob.cuCob and cob.isCob == 1 %}
                                     {
@@ -157,7 +124,7 @@
                     'cuCob': {
                         type: 'searchable',
                         values: [
-                            { value: '0', label: '-', readOnly: false },
+                            { value: '0', label: '-' },
                             {% for cob in unites_ldap_tbl %}
                                 {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu == cob.cuCob and cob.isCob == 1 %}
                                     {
@@ -183,28 +150,44 @@
                     'isCie': {
                         type: 'toggle',
                         values: [
-                            { value: '0', label: '<span style="color: red">Non</span>', readOnly: true, readOnlyClass: 'readonly-locked' },
-                            { value: '1', label: '<span style="color: green">Oui</span>', readOnly: true, readOnlyClass: 'readonly-locked' }
+                            { value: '0', label: '<span style="color: red">Non</span>' },
+                            { value: '1', label: '<span style="color: green">Oui</span>' }
                         ]
                     }
                 }
+            },
+            color: {
+                colorAttribute: 'th-color',
+                customClass: 'glass'
             },
             actions: {
                 actionAttribute: 'th-actions',
                 cellClass: 'td-actions',
                 useIcons: true,
                 debug: true,
-                autoSave: true,
                 actions: {
-                    save: {
+                    delete: {
                         handler: function(context) {
                             const url = "/main/actions.php";
-                            const data = {
-                                ...context.data,
-                                table: 'unites_ldap',
-                                action: 'addUpdate'
-                            };
-                            actionRow(url, data, "unites_ldap", "addUpdate").then(result => {
+                            actionRow(url, context.data, "unites_ldap", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'delete');
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
+                    },
+                    save: {
+                        autoSave: true,
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "unites_ldap", "addUpdate").then(result => {
                                 if (result) {
                                     successNotice('Ligne mise à jour avec succès');
                                     context.tableHandler.markRowAsSaved(context.row, 'save');
@@ -220,98 +203,6 @@
                     }
                 }
             }
-        },
-        pluginsPath: '../plugins'
+        }
     });
-
-    const unitesManualTable = new TableFlow({
-        tableId: 'unitesManualTbl',
-        debug: true,
-        plugins: {
-            names: ['Edit', 'Hide', 'Sort', 'Actions', 'Choice'],
-            edit: {
-                debug: true,
-                columns: {
-                    'cu': {
-                        required: true,
-                        pattern: '^[0-9]{3,5}$',
-                        patternError: 'Le code unité doit être un nombre de 3 à 5 chiffres',
-                        patternErrorClass: 'pattern-error'
-                    }
-                }
-            },
-            sort: {
-                sortableAttribute: 'th-sort',
-                showIcons: true,
-                ignoreCase: true,
-                icons: {
-                    asc: '<i class="fa fa-sort-asc"></i>',
-                    desc: '<i class="fa fa-sort-desc"></i>',
-                    none: '<i class="fa fa-sort"></i>'
-                }
-            },
-            choice: {
-                columns: {
-                    'cieCu': {
-                        type: 'toggle',
-                        values: [
-                            {% for compagnie in cies_tbl %}
-                                {
-                                    value: '{{ compagnie.cu }}',
-                                    label: '<span style="color: {{compagnie.color}}">{{ compagnie.newName }}</span>'
-                                },
-                            {% endfor %}
-                        ]
-                    }
-                }
-            },
-            actions: {
-                actionAttribute: 'th-actions',
-                cellClass: 'td-actions',
-                useIcons: true,
-                debug: true,
-                actions: {
-                    delete: {
-                        handler: function(context) {
-                            const url = "/main/actions.php";
-                            actionRow(url, context.data, "unites_manuelles", "delete").then(result => {
-                                if (result) {
-                                    successNotice('Ligne supprimée avec succès');
-                                    context.tableHandler.removeRow(context.row);
-                                } else {
-                                    errorNotice('Erreur lors de la suppression de la ligne');
-                                }
-                            }).catch(error => {
-                                errorNotice('Erreur lors de la suppression de la ligne');
-                                console.error('Error:', error);
-                            });
-                        },
-                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
-                    },
-                    save: {
-                        showOnChange: true,
-                        handler: function(context) {
-                            const url = "/main/actions.php";
-                            actionRow(url, context.data, "unites_manuelles", "addUpdate").then(result => {
-                                if (result) {
-                                    successNotice('Ligne mise à jour avec succès');
-                                    context.tableHandler.markRowAsSaved(context.row, 'save');
-                                } else {
-                                    errorNotice('Erreur lors de la mise à jour de la ligne');
-                                }
-                            }).catch(error => {
-                                errorNotice('Erreur lors de la mise à jour de la ligne');
-                                console.error('Error:', error);
-                            });
-                        },
-                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Sauvegarder la ligne"><i class="fa fa-save"></i></button>'
-                    }
-                }
-            }
-        },
-        pluginsPath: '../plugins'
-    });
-
-    // Exposer l'instance dans le scope global pour l'utiliser dans les onclick
-    window.unitesManualTable = unitesManualTable;
 </script>

@@ -120,11 +120,17 @@ function getPAM(debug_date = 0, debug_hour = 0) {
 
             const destUrl = `${window.WEB_PAGES}/show/PAM/getPAM.php`;
             ajaxFct(formData, destUrl).then(resultat => {
-                if (resultat.erreur === 0) {
-                    document.querySelector(`#pam_tph_${resultat.cu} .pam__tph-name`).innerHTML = resultat.nom;
-                    document.querySelector(`#pam_tph_${resultat.cu} .pam__tph-value`).innerHTML = resultat.tph;
+                const elt = document.querySelector(`#pam_tph_${resultat.cu}`)
+                if (elt !== null) {
+                    if (resultat.erreur === 0) {
+                        elt.classList.add('pam__present');
+                        elt.querySelector('.pam__tph-name').innerHTML = resultat.nom;
+                        elt.querySelector('.pam__tph-value').innerHTML = resultat.tph;
+                    } else {
+                        elt.classList.remove('pam__present');
+                    }
                 }
-            }).catch(() => errorNotice("Erreur dans la mise à jour"));
+            })
         }
     });
 }
@@ -430,9 +436,22 @@ function memorizeLastCall(fn) {
 }
 
 // Modification de showFcts pour utiliser memorizeLastCall
+function hideEmptyLines() {
+    document.querySelectorAll('.grp_line_grid.line_grid').forEach(lineElement => {
+        const hasPamPresent = lineElement.querySelector('.pam__present');
+        const hasTimelineBlock = lineElement.querySelector('.timeline__block');
+        if (!hasPamPresent && !hasTimelineBlock) {
+            lineElement.classList.add('hidden');
+        } else {
+            lineElement.classList.remove('hidden');
+        }
+
+    });
+}
+
 const showFcts = memorizeLastCall(function (nb_quart_heure, case_pos_now, interval, debug_date, debug_hour) {
     updateHours(nb_quart_heure, case_pos_now, interval, debug_hour);
     updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour);
-    getPAM(debug_date, debug_hour);
     updateTimelineBlock(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour);
+    getPAM(debug_date, debug_hour);
 });
