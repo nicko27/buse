@@ -20,7 +20,16 @@
     box-shadow: 0 1px 1px black;
     padding-bottom: 5px;
     width: 100%;
-    height: 1em;
+    height: 1.2em;
+}
+
+.cie__btn {
+    display: flex;
+    margin-left: 10px;
+}
+
+.cie__btn i {
+    margin-left: 10px;
 }
 
 .column {
@@ -36,6 +45,10 @@
 .cie__pam {
     font-style: italic;
     font-weight: bold;
+}
+
+.cie__pam i {
+    margin-right: 5px;
 }
 
 .cie__content {
@@ -421,7 +434,7 @@
 
 .grp_line_grid {
     display: grid;
-    grid-template-columns: 14% 1fr;
+    grid-template-columns: 111px 1fr;
     /* Première colonne fixe, deuxième colonne flexible */
     grid-template-rows: auto;
     /* Espacement optionnel entre les éléments */
@@ -429,7 +442,7 @@
 
 .grp_line_grid.line_grid {
     display: grid;
-    grid-template-columns: 226px 1fr;
+    grid-template-columns: 236px 1fr;
     column-gap: 0;
 }
 
@@ -462,7 +475,7 @@
     grid-column: 2;
     grid-row: span 1;
     display: grid;
-    grid-template-columns: 110px 155px auto;
+    grid-template-columns: 125px 155px auto;
     padding-bottom: 1px;
     padding-top: 1px;
 }
@@ -504,7 +517,7 @@
 
 .cie__title-grid {
     display: grid;
-    grid-template-columns: 227px 156px 1fr;
+    grid-template-columns: 80px 147px 156px 1fr;
 }
 
 .cie__title .pam__tph {
@@ -522,4 +535,23 @@
     text-transform: uppercase;
     display: flex;
     justify-content: space-around;
+}
+
+.switch-glass::after {
+    width: 12px;
+    height: 12px;
+}
+
+.switch-glass::before {
+    height: 18px;
+    width: 45px;
+}
+
+.switch-glass {
+    margin-top: -2px;
+    padding-left: 0;
+}
+
+.switch-input:checked+.switch-glass::after {
+    background: white;
 }

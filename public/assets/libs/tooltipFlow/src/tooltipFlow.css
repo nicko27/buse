@@ -2,96 +2,108 @@
 
 /* Default tooltip style */
 .tooltip {
-    position: fixed;
+    position: absolute;
     z-index: 9999;
     background: white;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
     pointer-events: none;
-    padding: 0; /* Pas de padding sur le conteneur principal */
     --arrow-offset: 0px;
-}
-
-.tooltip.visible {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto; /* Permet l'interaction quand visible */
-}
-
-.tooltip-content {
-    padding: 8px 12px;
-    min-width: 50px;
-    max-width: 100%;
-    overflow: auto;
+    --arrow-size: 6px;
+    font-size: 14px;
+    line-height: 1.4;
     box-sizing: border-box;
 }
 
-/* Masquer la flèche si l'attribut est présent */
-.tooltip[data-hide-arrow]::before {
-    display: none !important;
+.tooltip-content {
+    position: relative;
+    width: 100%;
+    padding: 4px 8px;
+    line-height: 1.4;
+    font-size: 14px;
+    min-width: 50px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-/* Flèches du tooltip avec support de l'offset */
+/* Style de base de la flèche */
 .tooltip::before {
     content: '';
     position: absolute;
     width: 0;
     height: 0;
-    border: 6px solid transparent;
+    border: var(--arrow-size) solid transparent;
+    pointer-events: none;
+    transform-origin: center center;
 }
 
-/* Position des flèches avec offset */
-.tooltip[data-position="top"]::before {
-    bottom: -12px;
-    left: calc(50% + var(--arrow-offset));
-    transform: translateX(-50%);
-    border-top-color: white;
-}
-
+/* Flèche en haut */
 .tooltip[data-position="bottom"]::before {
-    top: -12px;
+    top: calc(-2 * var(--arrow-size));
     left: calc(50% + var(--arrow-offset));
     transform: translateX(-50%);
     border-bottom-color: white;
 }
 
-.tooltip[data-position="left"]::before {
-    right: -12px;
-    top: 50%;
-    transform: translateY(-50%);
-    border-left-color: white;
+/* Flèche en bas */
+.tooltip[data-position="top"]::before {
+    bottom: calc(-2 * var(--arrow-size));
+    left: calc(50% + var(--arrow-offset));
+    transform: translateX(-50%);
+    border-top-color: white;
 }
 
+/* Flèche à gauche */
 .tooltip[data-position="right"]::before {
-    left: -12px;
+    left: calc(-2 * var(--arrow-size));
     top: 50%;
     transform: translateY(-50%);
     border-right-color: white;
 }
 
-/* Thème sombre */
+/* Flèche à droite */
+.tooltip[data-position="left"]::before {
+    right: calc(-2 * var(--arrow-size));
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: white;
+}
+
+/* Cache la flèche si spécifié */
+.tooltip[data-hide-arrow="true"]::before {
+    display: none;
+}
+
+/* Thèmes */
 .tooltip[data-theme="dark"] {
     background: #333;
     color: white;
-}
-
-.tooltip[data-theme="dark"]::before {
-    border-top-color: #333;
 }
 
 .tooltip[data-theme="dark"][data-position="bottom"]::before {
     border-bottom-color: #333;
 }
 
-.tooltip[data-theme="dark"][data-position="left"]::before {
-    border-left-color: #333;
+.tooltip[data-theme="dark"][data-position="top"]::before {
+    border-top-color: #333;
 }
 
 .tooltip[data-theme="dark"][data-position="right"]::before {
     border-right-color: #333;
+}
+
+.tooltip[data-theme="dark"][data-position="left"]::before {
+    border-left-color: #333;
+}
+
+.tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Scrollbar personnalisée pour le contenu qui déborde */

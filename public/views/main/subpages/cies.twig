@@ -13,6 +13,7 @@
                     <th id="cu"><span>Code unité</span></th>
                     <th id="ordre" th-sort th-edit th-validate='{"number": {"min": 0, "max": 100, "integer": true}}'><span>Ordre d'affichage</span></th>
                     <th id="color" th-color><span>Couleur</span></th>
+                    <th id="autoHide" th-choice><span>Masquer automatiquement</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -23,6 +24,7 @@
                         <td id="cu_{{ cie.id }}" cu="cu_{{ cie.id }}">{{ cie.cu }}</td>
                         <td id="ordre_{{ cie.id }}" name="ordre_{{ cie.id }}" >{{ cie.ordre }}</td>
                         <td id="color_{{ cie.id }}" name="color_{{ cie.id }}" >{{ cie.color }}</td>
+                        <td id="autoHide_{{ cie.id }}" name="autoHide_{{ cie.id }}" >{{ cie.autoHide }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -37,7 +39,7 @@
         tableId: 'ciesTbl',
         debug: true,
         plugins: {
-            names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions'],
+            names: ['Edit', 'Hide', 'Color', 'Sort', 'Actions','Choice'],
             hide: {
                 hiddenByDefault: ['id'],
                 showHideButton: true,
@@ -75,6 +77,17 @@
                         if (config.integer && !Number.isInteger(num)) return "La valeur doit être un nombre entier";
                         return true;
                     }
+                }
+            },
+            choice: {
+                columns: {
+                    'autoHide': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: green">Aucun masquage<br>de ligne</span>' },
+                            { value: '1', label: '<span style="color: red">Lignes sans PAM<br> ou bloc masquées automatiquement</span>' }
+                        ]
+                    },
                 }
             },
             actions: {

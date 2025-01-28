@@ -52,7 +52,29 @@ class TooltipFlow {
         innerContainer.innerHTML = content;
         tooltip.appendChild(innerContainer);
 
+        // Ajout temporaire au DOM pour calculer la largeur optimale
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.position = 'fixed';
+        tooltip.style.left = '-9999px';
         document.body.appendChild(tooltip);
+
+        // Calcul de la largeur optimale
+        const maxWidth = Math.min(400, window.innerWidth - 2 * this.margin); // Maximum 400px ou largeur de fenêtre - marges
+        const minWidth = 60; // Largeur minimale pour les petits contenus
+        
+        // Reset de la largeur pour mesurer la largeur naturelle
+        tooltip.style.width = 'auto';
+        const naturalWidth = tooltip.offsetWidth;
+        
+        // Définition de la largeur finale
+        const finalWidth = Math.max(minWidth, Math.min(naturalWidth, maxWidth));
+        tooltip.style.width = `${finalWidth}px`;
+        
+        // Réinitialisation des styles temporaires
+        tooltip.style.visibility = '';
+        tooltip.style.position = '';
+        tooltip.style.left = '';
+
         return tooltip;
     }
 
@@ -64,15 +86,18 @@ class TooltipFlow {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
+        // Calcul du centre de l'élément parent
+        const targetCenter = targetRect.left + (targetRect.width / 2);
+
         // Positions possibles
         const positions = {
             top: {
                 top: targetRect.top + scrollTop - tooltipRect.height - this.margin,
-                left: targetRect.left + scrollLeft + (targetRect.width - tooltipRect.width) / 2
+                left: targetCenter - (tooltipRect.width / 2)
             },
             bottom: {
-                top: targetRect.bottom + scrollTop + this.margin,
-                left: targetRect.left + scrollLeft + (targetRect.width - tooltipRect.width) / 2
+                top: targetRect.top + targetRect.height + scrollTop + this.margin,
+                left: targetCenter - (tooltipRect.width / 2)
             },
             left: {
                 top: targetRect.top + scrollTop + (targetRect.height - tooltipRect.height) / 2,
@@ -90,7 +115,7 @@ class TooltipFlow {
             const coords = positions[pos];
             scores[pos] = 0;
 
-            // Score de base pour la position par défaut
+            // Bonus pour la position par défaut
             if (pos === this.defaultPosition) {
                 scores[pos] += 50;
             }
@@ -99,29 +124,26 @@ class TooltipFlow {
             const overflow = {
                 top: coords.top < scrollTop,
                 bottom: coords.top + tooltipRect.height > scrollTop + windowHeight,
-                left: coords.left < 0,
-                right: coords.left + tooltipRect.width > windowWidth
+                left: coords.left < this.margin,
+                right: coords.left + tooltipRect.width > windowWidth - this.margin
             };
 
             // Pénalités pour les débordements
-            if (overflow.top) scores[pos] -= 100;
-            if (overflow.bottom) scores[pos] -= 100;
+            if (overflow.top) scores[pos] -= 120;
+            if (overflow.bottom) scores[pos] -= 120;
             if (overflow.left) scores[pos] -= 100;
             if (overflow.right) scores[pos] -= 100;
+
+            // Bonus pour le centrage parfait
+            if (pos === 'top' || pos === 'bottom') {
+                const centerOffset = Math.abs(targetCenter - (coords.left + tooltipRect.width / 2));
+                scores[pos] -= centerOffset;
+            }
 
             // Bonus pour la visibilité complète
             if (!overflow.top && !overflow.bottom && !overflow.left && !overflow.right) {
                 scores[pos] += 75;
             }
-
-            // Bonus pour la proximité du centre de l'écran
-            const centerX = windowWidth / 2;
-            const centerY = (windowHeight / 2) + scrollTop;
-            const distanceToCenter = Math.sqrt(
-                Math.pow(coords.left + (tooltipRect.width / 2) - centerX, 2) +
-                Math.pow(coords.top + (tooltipRect.height / 2) - centerY, 2)
-            );
-            scores[pos] -= distanceToCenter * 0.1;
         });
 
         // Sélection de la meilleure position
@@ -137,11 +159,24 @@ class TooltipFlow {
         // Ajustements finaux
         let finalCoords = {...positions[bestPosition]};
 
-        // Ajustement horizontal
+        // Ajustement horizontal avec contraintes de fenêtre
         finalCoords.left = Math.max(
             this.margin,
             Math.min(finalCoords.left, windowWidth - tooltipRect.width - this.margin)
         );
+
+        // Calcul de l'offset de la flèche pour les positions top/bottom
+        if (bestPosition === 'top' || bestPosition === 'bottom') {
+            const idealCenter = targetCenter - scrollLeft;
+            const actualCenter = finalCoords.left + (tooltipRect.width / 2);
+            const arrowOffset = idealCenter - actualCenter;
+            
+            // Limiter l'offset de la flèche pour qu'elle reste dans les limites du tooltip
+            const maxOffset = (tooltipRect.width / 2) - 20; // 20px de marge pour la flèche
+            const limitedOffset = Math.max(-maxOffset, Math.min(maxOffset, arrowOffset));
+            
+            tooltip.style.setProperty('--arrow-offset', `${limitedOffset}px`);
+        }
 
         // Ajustement vertical
         finalCoords.top = Math.max(
@@ -152,183 +187,108 @@ class TooltipFlow {
         return { position: bestPosition, coordinates: finalCoords };
     }
 
-    showTooltip(target) {
-        // Annuler tous les timeouts en cours
-        if (this.showTimeout) clearTimeout(this.showTimeout);
-        if (this.hideTimeout) clearTimeout(this.hideTimeout);
+    showTooltip(target, content, options = {}) {
+        clearTimeout(this.hideTimeout);
+        clearTimeout(this.showTimeout);
 
-        // Masquer immédiatement le tooltip actif s'il existe
-        if (this.activeTooltip && this.activeTooltip !== this.tooltips.get(target)) {
-            this.activeTooltip.classList.remove('visible');
-            this.activeTooltip = null;
-        }
-
-        this.showTimeout = setTimeout(() => {
-            // Vérifier si un autre tooltip n'a pas été déclenché entre temps
-            if (this.activeTooltip && this.activeTooltip !== this.tooltips.get(target)) {
-                return;
-            }
-
-            let tooltipContent;
-            const tooltipId = target.getAttribute('data-tooltip-id');
-            const hideArrow = target.getAttribute('data-tooltip-hide-arrow') === 'true';
-            
-            if (tooltipId) {
-                const tooltipElement = document.getElementById(tooltipId);
-                if (tooltipElement) {
-                    tooltipContent = tooltipElement.innerHTML;
-                } else {
-                    this.error(`Tooltip element with id "${tooltipId}" not found`);
-                    return;
-                }
-            } else {
-                tooltipContent = target.getAttribute('data-tooltip');
-                if (!tooltipContent) {
-                    this.error('No tooltip content found');
-                    return;
-                }
+        const show = () => {
+            if (this.activeTooltip) {
+                this.hideTooltip(this.activeTooltip);
             }
 
             let tooltip = this.tooltips.get(target);
+            
             if (!tooltip) {
-                tooltip = this.createTooltipElement(tooltipContent, target.getAttribute('data-theme'), {
-                    hideArrow: hideArrow
-                });
+                tooltip = this.createTooltipElement(content, options.theme, options);
+                document.body.appendChild(tooltip);
                 this.tooltips.set(target, tooltip);
+                
+                // Gestionnaires d'événements pour le tooltip
+                if (this.interactive) {
+                    tooltip.addEventListener('mouseenter', () => {
+                        clearTimeout(this.hideTimeout);
+                    });
+                    
+                    tooltip.addEventListener('mouseleave', () => {
+                        this.hideTooltip(target);
+                    });
+                }
             }
 
             const { position, coordinates } = this.calculateOptimalPosition(tooltip, target);
-            
             tooltip.style.top = `${coordinates.top}px`;
             tooltip.style.left = `${coordinates.left}px`;
             tooltip.setAttribute('data-position', position);
-
             tooltip.classList.add('visible');
-            this.activeTooltip = tooltip;
+            
+            this.activeTooltip = target;
+            this.log('Tooltip shown:', tooltip);
+        };
 
-            this.log('Showing tooltip:', { target, position, coordinates });
-        }, this.showDelay);
+        if (this.showDelay > 0) {
+            this.showTimeout = setTimeout(show, this.showDelay);
+        } else {
+            show();
+        }
     }
 
     hideTooltip(target) {
-        if (this.hideTimeout) {
-            clearTimeout(this.hideTimeout);
-        }
+        clearTimeout(this.hideTimeout);
+        clearTimeout(this.showTimeout);
 
-        this.hideTimeout = setTimeout(() => {
-            const tooltip = target instanceof Element ? this.tooltips.get(target) : target;
-            
+        const hide = () => {
+            const tooltip = this.tooltips.get(target);
             if (tooltip) {
                 tooltip.classList.remove('visible');
-                if (tooltip === this.activeTooltip) {
+                if (this.activeTooltip === target) {
                     this.activeTooltip = null;
                 }
+                this.log('Tooltip hidden:', tooltip);
             }
-        }, this.hideDelay);
+        };
+
+        if (this.hideDelay > 0) {
+            this.hideTimeout = setTimeout(hide, this.hideDelay);
+        } else {
+            hide();
+        }
     }
 
     attachEvents() {
         document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
-            if (!target) return;
-
-            const triggerMode = target.getAttribute('data-tooltip-trigger') || this.triggerMode;
-            if (triggerMode === 'hover') {
-                this.showTooltip(target);
+            if (this.triggerMode !== 'hover') return;
+            
+            const target = e.target.closest('[data-tooltip]');
+            if (target) {
+                const content = target.getAttribute('data-tooltip');
+                const theme = target.getAttribute('data-tooltip-theme');
+                this.showTooltip(target, content, { theme });
             }
         });
 
         document.addEventListener('mouseout', (e) => {
-            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
-            if (!target) return;
-
-            const triggerMode = target.getAttribute('data-tooltip-trigger') || this.triggerMode;
-            if (triggerMode === 'hover') {
-                const tooltip = this.tooltips.get(target);
-                if (tooltip) {
-                    // Vérifier si la souris est sortie de l'élément et du tooltip
-                    const relatedTarget = e.relatedTarget;
-                    if (!target.contains(relatedTarget) && (!tooltip.contains(relatedTarget) || !this.interactive)) {
-                        this.hideTooltip(target);
-                    }
-                }
+            if (this.triggerMode !== 'hover') return;
+            
+            const target = e.target.closest('[data-tooltip]');
+            if (target && !this.interactive) {
+                this.hideTooltip(target);
             }
         });
 
-        // Gestionnaire global pour les mouvements de souris
-        document.addEventListener('mousemove', (e) => {
-            if (this.activeTooltip && this.triggerMode === 'hover') {
-                const target = Array.from(this.tooltips.entries())
-                    .find(([_, tooltip]) => tooltip === this.activeTooltip)?.[0];
+        document.addEventListener('click', (e) => {
+            if (this.triggerMode !== 'click') return;
+            
+            const target = e.target.closest('[data-tooltip]');
+            if (target) {
+                const content = target.getAttribute('data-tooltip');
+                const theme = target.getAttribute('data-tooltip-theme');
                 
-                if (target) {
-                    const tooltipRect = this.activeTooltip.getBoundingClientRect();
-                    const targetRect = target.getBoundingClientRect();
-                    
-                    // Vérifier si la souris est en dehors de la zone du tooltip et de la cible
-                    const isOutsideTooltip = e.clientX < tooltipRect.left || e.clientX > tooltipRect.right ||
-                                           e.clientY < tooltipRect.top || e.clientY > tooltipRect.bottom;
-                    const isOutsideTarget = e.clientX < targetRect.left || e.clientX > targetRect.right ||
-                                          e.clientY < targetRect.top || e.clientY > targetRect.bottom;
-                    
-                    if (isOutsideTooltip && isOutsideTarget) {
-                        this.hideTooltip(target);
-                    }
-                }
-            }
-        }, { passive: true });
-
-        document.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
-            if (!target) {
-                // Clic en dehors d'un tooltip, on ferme le tooltip actif
-                if (this.activeTooltip) {
-                    this.hideTooltip();
-                }
-                return;
-            }
-
-            const triggerMode = target.getAttribute('data-tooltip-trigger') || this.triggerMode;
-            if (triggerMode === 'click') {
-                if (this.activeTooltip === this.tooltips.get(target)) {
+                if (this.activeTooltip === target) {
                     this.hideTooltip(target);
                 } else {
-                    this.showTooltip(target);
+                    this.showTooltip(target, content, { theme });
                 }
-            }
-        });
-
-        document.addEventListener('dblclick', (e) => {
-            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
-            if (!target) return;
-
-            const triggerMode = target.getAttribute('data-tooltip-trigger') || this.triggerMode;
-            if (triggerMode === 'dblclick') {
-                if (this.activeTooltip === this.tooltips.get(target)) {
-                    this.hideTooltip(target);
-                } else {
-                    this.showTooltip(target);
-                }
-            }
-        });
-
-        // Masquer le tooltip actif lors du scroll
-        document.addEventListener('scroll', () => {
-            if (this.activeTooltip) {
-                this.hideTooltip(this.activeTooltip);
-            }
-        }, { passive: true });
-
-        // Masquer le tooltip actif lors du redimensionnement
-        window.addEventListener('resize', () => {
-            if (this.activeTooltip) {
-                this.hideTooltip(this.activeTooltip);
-            }
-        });
-
-        // Masquer le tooltip actif lors du clic en dehors
-        document.addEventListener('click', (e) => {
-            if (this.activeTooltip && !this.activeTooltip.contains(e.target)) {
+            } else if (this.activeTooltip && !e.target.closest('.tooltip')) {
                 this.hideTooltip(this.activeTooltip);
             }
         });

@@ -120,17 +120,19 @@ function getPAM(debug_date = 0, debug_hour = 0) {
 
             const destUrl = `${window.WEB_PAGES}/show/PAM/getPAM.php`;
             ajaxFct(formData, destUrl).then(resultat => {
-                const elt = document.querySelector(`#pam_tph_${resultat.cu}`)
+                const elt = document.querySelector(`#pam_tph_${resultat.cu}`);
                 if (elt !== null) {
                     if (resultat.erreur === 0) {
                         elt.classList.add('pam__present');
-                        elt.querySelector('.pam__tph-name').innerHTML = resultat.nom;
-                        elt.querySelector('.pam__tph-value').innerHTML = resultat.tph;
+                        elt.querySelector('.pam__tph-name').innerHTML = resultat.nom || '';
+                        elt.querySelector('.pam__tph-value').innerHTML = resultat.tph || '';
                     } else {
                         elt.classList.remove('pam__present');
+                        elt.querySelector('.pam__tph-name').innerHTML = '';
+                        elt.querySelector('.pam__tph-value').innerHTML = '';
                     }
                 }
-            })
+            }).catch(() => errorNotice("Erreur dans la mise à jour"));
         }
     });
 }
@@ -421,37 +423,94 @@ function getCookie(name) {
 function memorizeLastCall(fn) {
     let lastArgs = null;
 
-    const wrapper = function (...args) {
+    const wrapper = function(...args) {
         if (args.length > 0) {
             lastArgs = args;
         }
         return fn.apply(this, lastArgs || []);
     };
 
-    wrapper.recall = function () {
+    wrapper.recall = function() {
         return fn.apply(this, lastArgs || []);
     };
 
     return wrapper;
 }
 
-// Modification de showFcts pour utiliser memorizeLastCall
-function hideEmptyLines() {
-    document.querySelectorAll('.grp_line_grid.line_grid').forEach(lineElement => {
+/**
+ * Cache ou affiche les lignes vides d'un bloc spécifique
+ * @param {HTMLElement} cieBlock - Le bloc de compagnie à traiter
+ * @param {boolean} hide - True pour cacher, false pour afficher
+ */
+function hideEmptyLines(cieBlock, hide = true) {
+    if (!cieBlock) return;
+
+    // Traitement des lignes grp_line_grid.line_grid
+    const mainLines = cieBlock.querySelectorAll('.grp_line_grid.line_grid');
+    mainLines.forEach(lineElement => {
         const hasPamPresent = lineElement.querySelector('.pam__present');
         const hasTimelineBlock = lineElement.querySelector('.timeline__block');
-        if (!hasPamPresent && !hasTimelineBlock) {
-            lineElement.classList.add('hidden');
-        } else {
-            lineElement.classList.remove('hidden');
-        }
+        const isEmpty = !hasPamPresent && !hasTimelineBlock;
 
+        if (isEmpty) {
+            lineElement.classList.toggle('hidden', hide);
+        }
+    });
+
+    // Traitement des lignes BP dans les groupes
+    const bpLines = cieBlock.querySelectorAll('.grp_line_grid .line_bp');
+    bpLines.forEach(lineElement => {
+        const hasPamPresent = lineElement.querySelector('.pam__present');
+        const hasTimelineBlock = lineElement.querySelector('.timeline__block');
+        const isEmpty = !hasPamPresent && !hasTimelineBlock;
+
+        if (isEmpty) {
+            lineElement.classList.toggle('hidden', hide);
+        }
     });
 }
 
-const showFcts = memorizeLastCall(function (nb_quart_heure, case_pos_now, interval, debug_date, debug_hour) {
+/**
+ * Initialise et gère les switches pour le masquage des lignes
+ * @returns {Promise} Une promesse résolue quand toutes les lignes sont masquées/affichées
+ */
+function autoHideLines() {
+    return new Promise((resolve) => {
+        document.querySelectorAll('.cie-switch').forEach(switchElement => {
+            const cieId = switchElement.id.replace('switch-', '');
+            const cieBlock = document.getElementById(cieId);
+
+            // Appliquer l'état aux lignes
+            if (cieBlock) {
+                hideEmptyLines(cieBlock, switchElement.checked);
+            }
+
+            // Ajouter l'écouteur d'événements s'il n'existe pas déjà
+            if (!switchElement.hasAttribute('data-initialized')) {
+                switchElement.addEventListener('change', function() {
+                    if (cieBlock) {
+                        hideEmptyLines(cieBlock, this.checked);
+                        if (window.NB_QUART_HEURE && window.CASE_POS_NOW && window.INTERVAL) {
+                            updateTimelineRedBar(window.NB_QUART_HEURE, window.CASE_POS_NOW, window.INTERVAL);
+                        }
+                    }
+                });
+                switchElement.setAttribute('data-initialized', 'true');
+            }
+        });
+        // Utiliser requestAnimationFrame pour s'assurer que le DOM est mis à jour
+        requestAnimationFrame(() => resolve());
+    });
+}
+
+
+
+// Modification de showFcts pour utiliser memorizeLastCall
+const showFcts = memorizeLastCall(function(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour) {
     updateHours(nb_quart_heure, case_pos_now, interval, debug_hour);
-    updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour);
-    updateTimelineBlock(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour);
     getPAM(debug_date, debug_hour);
+    updateTimelineBlock(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour);
+    autoHideLines().then(() => {
+        updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour);
+    });
 });

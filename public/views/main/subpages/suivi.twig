@@ -83,7 +83,6 @@
         init: function() {
             this.on("success", function(file, response) {
                 if (response.success) {
-                    successNotice("Fichier uploadé avec succès");
                     // Attendre un court instant pour que le fichier soit disponible
                     setTimeout(fillFilesList, 500);
                 } else {
