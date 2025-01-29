@@ -9,23 +9,36 @@
 function updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour = 0) {
     document.querySelectorAll('.overlay.timeline__redbar').forEach(bar => bar.remove());
 
+    // Calculer le pourcentage une seule fois car il est le même pour toutes les grilles
+    const expectedWidthPercentage = getPercentageOfCurrentTime(case_pos_now, interval, nb_quart_heure, debug_hour);
+
     document.querySelectorAll('.cie__content').forEach(content => {
-        const firstGridUnit = content.querySelector('.grid__unit');
+        // Trouver la grille visible la plus à gauche dans ce contenu
+        const visibleGrids = Array.from(content.querySelectorAll('.grid__unit')).filter(grid => {
+            let parent = grid.parentElement;
+            while (parent && parent !== content) {
+                if (parent.style.display === 'none') return false;
+                parent = parent.parentElement;
+            }
+            return true;
+        });
 
-        if (firstGridUnit) {
-            const contentRect = content.getBoundingClientRect();
-            const gridLeft = firstGridUnit.getBoundingClientRect().left + window.scrollX + 5;
-            const expectedWidthPercentage = getPercentageOfCurrentTime(case_pos_now, interval, nb_quart_heure, debug_hour);
-            const finalLeft = gridLeft + (firstGridUnit.offsetWidth * (expectedWidthPercentage / 100));
+        const firstVisibleGrid = visibleGrids[0];
+        if (!firstVisibleGrid) return;
 
-            const overlay = document.createElement('div');
-            overlay.className = "overlay timeline__redbar";
-            overlay.style.top = `${contentRect.top + window.scrollY}px`;
-            overlay.style.left = `${finalLeft}px`;
-            overlay.style.height = `${contentRect.height}px`;
+        const contentRect = content.getBoundingClientRect();
+        const gridRect = firstVisibleGrid.getBoundingClientRect();
 
-            document.body.appendChild(overlay);
-        }
+        // Calculer l'offset spécifique pour cette grille
+        const offset = firstVisibleGrid.offsetWidth * (expectedWidthPercentage / 100);
+
+        const overlay = document.createElement('div');
+        overlay.className = "overlay timeline__redbar";
+        overlay.style.top = `${contentRect.top + window.scrollY}px`;
+        overlay.style.left = `${gridRect.left + window.scrollX + offset}px`;
+        overlay.style.height = `${contentRect.height}px`;
+
+        document.body.appendChild(overlay);
     });
 }
 
@@ -108,9 +121,12 @@ function updateHours(nb_quart_heure, case_pos_now, interval, debug_hour) {
 }
 
 /**
- * Envoie une requête AJAX pour récupérer les informations PAM.
+ * Envoie une requête AJAX pour récupérer les informations PAM
+ * @returns {Promise} Une promesse résolue quand tous les PAM sont mis à jour
  */
 function getPAM(debug_date = 0, debug_hour = 0) {
+    const promises = [];
+
     document.querySelectorAll('.pam__tph-input').forEach(input => {
         if (!input.classList.contains("noupdate")) {
             const formData = new FormData();
@@ -119,22 +135,29 @@ function getPAM(debug_date = 0, debug_hour = 0) {
             formData.set("debug_date", debug_date);
 
             const destUrl = `${window.WEB_PAGES}/show/PAM/getPAM.php`;
-            ajaxFct(formData, destUrl).then(resultat => {
-                const elt = document.querySelector(`#pam_tph_${resultat.cu}`);
-                if (elt !== null) {
-                    if (resultat.erreur === 0) {
-                        elt.classList.add('pam__present');
-                        elt.querySelector('.pam__tph-name').innerHTML = resultat.nom || '';
-                        elt.querySelector('.pam__tph-value').innerHTML = resultat.tph || '';
-                    } else {
-                        elt.classList.remove('pam__present');
-                        elt.querySelector('.pam__tph-name').innerHTML = '';
-                        elt.querySelector('.pam__tph-value').innerHTML = '';
+            const promise = ajaxFct(formData, destUrl)
+                .then(resultat => {
+                    const elt = document.querySelector(`#pam_tph_${resultat.cu}`);
+                    if (elt !== null) {
+                        if (resultat.erreur === 0) {
+                            elt.classList.add('pam__present');
+                            elt.querySelector('.pam__tph-name').innerHTML = resultat.nom || '';
+                            elt.querySelector('.pam__tph-value').innerHTML = resultat.tph || '';
+                        } else {
+                            elt.classList.remove('pam__present');
+                            elt.querySelector('.pam__tph-name').innerHTML = '';
+                            elt.querySelector('.pam__tph-value').innerHTML = '';
+                        }
                     }
-                }
-            }).catch(() => errorNotice("Erreur dans la mise à jour"));
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des PAM:', error);
+                });
+            promises.push(promise);
         }
     });
+
+    return Promise.all(promises);
 }
 
 /**
@@ -172,7 +195,7 @@ function updateTimelineBlockOverlay(data) {
                 data.parCu[cu].forEach(entry => {
                     if (entry.start_line > 0) {
                         const block = document.createElement('div');
-                        block.className = `timeline__block grs-${entry.start_line} gre-${entry.end_line + 1} gcs-${entry.start_column} gce-${entry.end_column}`;
+                        block.className = `timeline__block  gcs-${entry.start_column} gce-${entry.end_column}`;
                         block.innerHTML = entry.divContent;
                         block.style.backgroundColor = entry.suColor || entry.sColor || '';
 
@@ -295,7 +318,7 @@ function updateBlock() {
             console.log('Form submission result:', resultat);
             if (resultat.erreur === false) {
                 // Mettre à jour l'affichage des blocs
-                showFcts.recall();
+                window.showFcts.recall();
                 modalFlow.close(); // Fermer la modale
                 successNotice("Bloc mis à jour avec succès");
             } else {
@@ -356,7 +379,7 @@ function addBlock() {
             console.log('Form submission result:', resultat);
             if (resultat.erreur === false) {
                 // Mettre à jour l'affichage des blocs
-                showFcts.recall();
+                window.showFcts.recall();
                 modalFlow.close(); // Fermer la modale
                 successNotice("Bloc ajouté avec succès");
             } else {
@@ -384,7 +407,8 @@ function deleteBlock(id) {
             .then(response => response.json())
             .then(data => {
                 if (!data.error) {
-                    showFcts.recall();
+                    window.showFcts.recall();
+                    modalFlow.close(); // Fermer la modale
                     notifyFlow.success(data.message || 'Le bloc a été supprimé avec succès');
                 } else {
                     throw new Error(data.message || 'Erreur lors de la suppression du bloc');
@@ -398,43 +422,55 @@ function deleteBlock(id) {
 }
 
 /**
- * Définit un cookie.
+ * Initialise et gère les switches pour le masquage des lignes
+ * @returns {Promise} Une promesse résolue quand toutes les lignes sont masquées/affichées
  */
-function setCookie(name, value) {
-    const date = new Date();
-    date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000 * 100));
-    document.cookie = `${name}=${value || ""}; expires=${date.toUTCString()}; path=/`;
-}
+function autoHideLines() {
+    return new Promise((resolve) => {
+        document.querySelectorAll('.cie-switch').forEach(switchElement => {
+            const cieId = switchElement.dataset.cu;
+            const cieBlock = document.getElementById(cieId);
 
-/**
- * Récupère un cookie par son nom.
- */
-function getCookie(name) {
-    const nameEQ = `${name}=`;
-    const cookiesArray = document.cookie.split(';');
-    for (let cookie of cookiesArray) {
-        cookie = cookie.trim();
-        if (cookie.startsWith(nameEQ)) return cookie.substring(nameEQ.length);
-    }
-    return null;
-}
+            if (cieBlock) {
+                // Si le switch n'est pas encore initialisé
+                if (!switchElement.hasAttribute('data-initialized')) {
+                    // Restaurer l'état depuis le cookie ou utiliser true par défaut
+                    const savedState = getCookie(`switch_${cieId}`);
+                    const initialState = savedState === null ? true : savedState === '1';
 
-// Fonction pour mémoriser les derniers arguments
-function memorizeLastCall(fn) {
-    let lastArgs = null;
+                    // Mettre à jour l'état du switch
+                    switchElement.checked = initialState;
 
-    const wrapper = function(...args) {
-        if (args.length > 0) {
-            lastArgs = args;
-        }
-        return fn.apply(this, lastArgs || []);
-    };
+                    // Appliquer l'état visuel initial
+                    hideEmptyLines(cieBlock, initialState);
 
-    wrapper.recall = function() {
-        return fn.apply(this, lastArgs || []);
-    };
+                    // Ajouter l'écouteur d'événements
+                    switchElement.addEventListener('change', function() {
+                        // Mettre à jour l'affichage
+                        hideEmptyLines(cieBlock, this.checked);
 
-    return wrapper;
+                        // Sauvegarder l'état dans un cookie
+                        setCookie(`switch_${cieId}`, this.checked ? '1' : '0', 365);
+
+                        // Attendre que le DOM soit mis à jour
+                        setTimeout(() => {
+                            // Mettre à jour la timeline complète
+                            if (window.NB_QUART_HEURE && window.CASE_POS_NOW && window.INTERVAL) {
+                                window.showFcts.recall();
+                            }
+                        }, 50);
+                    });
+
+                    switchElement.setAttribute('data-initialized', 'true');
+                } else {
+                    // S'assurer que l'état visuel correspond à l'état du switch
+                    hideEmptyLines(cieBlock, switchElement.checked);
+                }
+            }
+        });
+
+        requestAnimationFrame(() => resolve());
+    });
 }
 
 /**
@@ -453,7 +489,7 @@ function hideEmptyLines(cieBlock, hide = true) {
         const isEmpty = !hasPamPresent && !hasTimelineBlock;
 
         if (isEmpty) {
-            lineElement.classList.toggle('hidden', hide);
+            lineElement.style.display = hide ? 'none' : '';
         }
     });
 
@@ -465,52 +501,104 @@ function hideEmptyLines(cieBlock, hide = true) {
         const isEmpty = !hasPamPresent && !hasTimelineBlock;
 
         if (isEmpty) {
-            lineElement.classList.toggle('hidden', hide);
+            lineElement.style.display = hide ? 'none' : '';
         }
     });
 }
 
 /**
- * Initialise et gère les switches pour le masquage des lignes
- * @returns {Promise} Une promesse résolue quand toutes les lignes sont masquées/affichées
+ * Définit un cookie avec une durée de vie spécifiée
+ * @param {string} name - Nom du cookie
+ * @param {string} value - Valeur du cookie
+ * @param {number} days - Nombre de jours avant expiration
  */
-function autoHideLines() {
-    return new Promise((resolve) => {
-        document.querySelectorAll('.cie-switch').forEach(switchElement => {
-            const cieId = switchElement.id.replace('switch-', '');
-            const cieBlock = document.getElementById(cieId);
-
-            // Appliquer l'état aux lignes
-            if (cieBlock) {
-                hideEmptyLines(cieBlock, switchElement.checked);
-            }
-
-            // Ajouter l'écouteur d'événements s'il n'existe pas déjà
-            if (!switchElement.hasAttribute('data-initialized')) {
-                switchElement.addEventListener('change', function() {
-                    if (cieBlock) {
-                        hideEmptyLines(cieBlock, this.checked);
-                        if (window.NB_QUART_HEURE && window.CASE_POS_NOW && window.INTERVAL) {
-                            updateTimelineRedBar(window.NB_QUART_HEURE, window.CASE_POS_NOW, window.INTERVAL);
-                        }
-                    }
-                });
-                switchElement.setAttribute('data-initialized', 'true');
-            }
-        });
-        // Utiliser requestAnimationFrame pour s'assurer que le DOM est mis à jour
-        requestAnimationFrame(() => resolve());
-    });
+function setCookie(name, value, days = 365) {
+    const d = new Date();
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
 }
 
+/**
+ * Récupère la valeur d'un cookie
+ * @param {string} name - Nom du cookie
+ * @returns {string|null} Valeur du cookie ou null si non trouvé
+ */
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
 
+/**
+ * Fonction pour mémoriser les derniers arguments d'appel
+ * @param {Function} fn - Fonction à wrapper
+ * @returns {Function} Fonction wrappée avec mémoire du dernier appel
+ */
+function memorizeLastCall(fn) {
+    let lastArgs = null;
 
-// Modification de showFcts pour utiliser memorizeLastCall
-const showFcts = memorizeLastCall(function(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour) {
+    const wrapper = function(...args) {
+        if (args.length > 0) {
+            lastArgs = args;
+        } else if (!lastArgs) {
+            console.error('Aucun argument mémorisé pour', fn.name);
+            return;
+        }
+        return fn.apply(this, lastArgs);
+    };
+
+    wrapper.recall = function() {
+        if (!lastArgs) {
+            console.error('Aucun argument mémorisé pour', fn.name);
+            return;
+        }
+        return fn.apply(this, lastArgs);
+    };
+
+    return wrapper;
+}
+
+/**
+ * Vérifie si les variables globales nécessaires sont définies
+ * @returns {boolean} True si toutes les variables sont définies
+ */
+function checkTimelineVars() {
+    const requiredVars = ['NB_QUART_HEURE', 'CASE_POS_NOW', 'INTERVAL'];
+    const missingVars = requiredVars.filter(varName => typeof window[varName] === 'undefined');
+
+    if (missingVars.length > 0) {
+        console.error('Variables globales manquantes:', missingVars.join(', '));
+        return false;
+    }
+    return true;
+}
+
+// Déclaration de showFcts en tant que variable globale
+window.showFcts = memorizeLastCall(function(nb_quart_heure, case_pos_now, interval, debug_date = null, debug_hour = null) {
+    if (!checkTimelineVars()) {
+        console.error('Variables de timeline manquantes');
+        return;
+    }
+
+    // Mise à jour des heures d'abord
     updateHours(nb_quart_heure, case_pos_now, interval, debug_hour);
-    getPAM(debug_date, debug_hour);
-    updateTimelineBlock(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour);
-    autoHideLines().then(() => {
-        updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour);
-    });
+
+    // Chaîne de promesses
+    return Promise.resolve()
+        .then(() => getPAM(debug_date, debug_hour))
+        .then(() => autoHideLines())
+        .then(() => {
+            updateTimelineRedBar(nb_quart_heure, case_pos_now, interval, debug_hour);
+            updateTimelineBlock(nb_quart_heure, case_pos_now, interval, debug_date, debug_hour);
+        })
+        .catch(error => {
+            console.error('Erreur lors de la mise à jour de la timeline:', error);
+            errorNotice("Erreur", "Une erreur est survenue lors de la mise à jour de la timeline");
+        });
 });

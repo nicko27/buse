@@ -21,7 +21,7 @@ try {
     $vars['sites_tbl'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Récupération des compagnies
-    $sql = "SELECT c.id, c.cu, ul.codeServiceRio, ul.newName, c.ordre, c.color,c.autoHide
+    $sql = "SELECT c.id, c.cu, ul.codeServiceRio, ul.newName, c.ordre, c.color
             FROM compagnies c
             JOIN unites_ldap ul ON c.cu = ul.cu
             WHERE isCie = 1

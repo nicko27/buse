@@ -11,7 +11,7 @@ function getCompagniesList()
     $logger     = Logger::getInstance()->getLogger();
     $sqlManager = SqlManager::getInstance();
     $cieContent = [];
-    $sql        = "SELECT unites_ldap.cu, newName, color, autoHide
+    $sql        = "SELECT unites_ldap.cu, newName, color
             FROM unites_ldap
             INNER JOIN compagnies ON compagnies.cu = unites_ldap.cu
             WHERE isCie = 1

@@ -7,19 +7,16 @@
             <div class="cie__blk" id="{{ cie.cu }}">
                 <div class="cie__title-grid cie__title" style="background-color: {{ cie.color }};">
                     <div class="cie__btn">
-                        <div class="flex-h">
-                            <input type="checkbox"
-                                   id="switch-{{ cie.cu }}"
-                                   class="cie-switch switch-input"
-                                   data-cu="{{ cie.cu }}">
-                            <label for="switch-{{ cie.cu }}" class="switch-glass" data-tooltip="Afficher/masquer les lignes vides"></label>
-                        </div>
                         {%  if cieBtn==0 %}
                             {% set cieBtn=1 %}
                             <a onclick="showAddBlock()">
                                 <i class="fa fa-circle-plus"></i>
                             </a>
                         {% endif %}
+                        <div class="flex-h">
+                            <input type="checkbox" id="switch-{{ cie.cu }}" class="cie-switch switch-input" value="{{cie.autoHide}}" onclick="showFcts()">
+                            <label for="switch-{{ cie.cu }}" class="switch-glass" data-tooltip="Afficher/masquer les lignes vides"></label>
+                        </div>
                     </div>
                     <div class="cie__name">
                         {{ cie.newName }}
@@ -33,7 +30,7 @@
                         {% endif %}
                         Tél PAM
                     </div>
-                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>
+                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ {{NB_QUART_HEURE}} }}"></div>
                 </div>
                 <div class="cie__content">
                     {% for unit in cieContent[i] %}
@@ -56,10 +53,7 @@
                             </a>
                         {% endif %}
                         <div class="flex-h">
-                            <input type="checkbox"
-                                   id="switch-{{ cie.cu }}"
-                                   class="cie-switch switch-input"
-                                   data-cu="{{ cie.cu }}">
+                            <input type="checkbox" id="switch-{{ cie.cu }}" class="cie-switch switch-input" value="{{cie.autoHide}}" onclick="showFcts()">
                             <label for="switch-{{ cie.cu }}" class="switch-glass" data-tooltip="Afficher/masquer les lignes vides"></label>
                         </div>
                     </div>
@@ -75,7 +69,7 @@
                         {% endif %}
                         Tél PAM
                     </div>
-                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ NB_QUART_HEURE }}"></div>
+                    <div class="timeline__grid grid__cie grid_{{ cie.cu }} gnbc_{{ {{NB_QUART_HEURE}} }}"></div>
                 </div>
                 <div class="cie__content">
                     {% for unit in cieContent[i] %}
@@ -86,34 +80,42 @@
         {% endfor %}
     </div>
 </div>
+
 {# Suppression des anciens éléments de modal #}
 {# <div id="modal-overlay" class="hidden"></div> #}
 {# <div id="modal" class="modal__window hidden"></div> #}
 <script type="text/javascript" src="{{WEB_ASSETS}}/js/show/timeline.js"></script>
-<script type="text/javascript">
-
+<script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Vérification des variables globales requises
+        if (typeof {{{{NB_QUART_HEURE}} === 'undefined' ||
+            typeof {{CASE_POS_NOW === 'undefined' ||
+            typeof {{INTERVAL === 'undefined') {
+            console.error('Variables globales nécessaires non définies');
+            return;
+        }
+
         // Initialisation de ColorFlow
-        if (!window.colorFlow) {
-            window.colorFlow = new ColorFlow({
+        if (!{{colorFlow) {
+            {{colorFlow = new ColorFlow({
                 customClass: 'glass',
                 debug: false,
-                presetColors:[
-                    {# Les couleurs prédéfinies #}
-                    {% for color in servicesColors %}
-                        { color: '{{ color.color }}', label: '{{ color.shortName }}' },
-                    {% endfor %}
-                ]
+                presetColors: {{servicesColors || []
             });
         }
 
-        // Ajouter des classes alternantes aux éléments .grid__unit
-        document.querySelectorAll('.grid__unit').forEach(function(element, index) {
+        // Ajouter les classes alternantes
+        document.querySelectorAll('.grid__unit').forEach(function (element, index) {
             element.classList.add(index % 2 === 0 ? 'line__even' : 'line__odd');
         });
 
+        // Initialiser les switches
+        document.querySelectorAll('.cie-switch').forEach(switchElement => {
+            switchElement.checked = switchElement.value === "1";
+        });
+
         // Lire les paramètres d'URL
-        const urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams({{location.search);
         let debug = 0;
         let debug_hour = 0;
         let debug_date = 0;
@@ -126,49 +128,19 @@
                     const hourRegex = /^\d{2}:\d{2}$/;
                     if (!hourRegex.test(debug_hour)) {
                         errorNotice("Erreur", "Le paramètre hour doit être au format HH:MM");
-                        debug_hour = null;
-                    }
-                } else {
-                    infoNotice("debug", "Paramètre hour à utiliser via HH:MM<br>Paramètre (facultatif) date à utiliser YYYY-MM-DD");
-                }
-                if (urlParams.has('date')) {
-                    debug_date = urlParams.get('date');
-                    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                    if (!dateRegex.test(debug_date)) {
-                        errorNotice("Erreur", "Le paramètre date doit être au format YYYY-MM-DD");
-                        debug_date = null;
+                        debug_hour = 0;
                     }
                 }
             }
         }
-        window.NB_QUART_HEURE={{ NB_QUART_HEURE }};
-        window.CASE_POS_NOW={{ CASE_POS_NOW }};
-        window.INTERVAL={{ INTERVAL }};
-        // Appeler showFcts avec les paramètres de débogage
-        showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }},debug_date, debug_hour);
 
-        if (debug == 0) {
-            // Mettre à jour la barre rouge et les heures toutes les 60 secondes
-            setInterval(function() {
-                updateTimelineRedBar({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
-                updateHours({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
-            }, 60000);
-
-            // Mettre à jour showFcts toutes les 300 secondes (5 minutes)
-            setInterval(function() {
-                showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
-            }, 300000);
-        } else if (!window.debug_hour) {
-            setInterval(() => {
-                showFcts.recall();
-            }, 300000);
-        }
-
-        //attendre le chargement des blocs
-        setTimeout(function() {
-            updateTimelineRedBar({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
-        }, 1000);
-
-
+        // Initialisation de la timeline
+        updateHours({{NB_QUART_HEURE}}, {{CASE_POS_NOW}}, {{INTERVAL}}, debug_hour);
+        updateTimelineBlock({{NB_QUART_HEURE}}, {{CASE_POS_NOW}}, {{INTERVAL}}, debug_date, debug_hour);
+        getPAM(debug_date, debug_hour).then(() => {
+            autoHideLines().then(() => {
+                updateTimelineRedBar({{NB_QUART_HEURE}}, {{CASE_POS_NOW}}, {{INTERVAL}}, debug_hour);
+            });
+        });
     });
 </script>

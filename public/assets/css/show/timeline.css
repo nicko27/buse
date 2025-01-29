@@ -71,13 +71,13 @@
 
 .timeline__grid {
     display: grid;
-    grid-template-rows: repeat(12, minmax(3px, 1fr));
     grid-template-columns: repeat(var(--nb-quart-heure), 1fr);
-    row-gap: 0px;
-    margin-right: 5px;
-    width: 100%;
     column-gap: 2px;
-    height: 36px;
+    width: 100%;
+    margin-right: 5px;
+    position: relative;
+    min-height: 36px;
+    grid-auto-flow: dense;
 }
 
 .timeline__block {
@@ -91,7 +91,21 @@
     margin-bottom: 2px;
     margin-top: 1px;
     border-radius: 5px;
-    min-height: 3px;
+    height: calc(100% - 3px);
+}
+
+
+.timeline__grid:has(.timeline__block:nth-child(4)) .timeline__block {
+    height: 16px;
+}
+
+.timeline__block[class*="gcs-"] {
+    grid-column-start: var(--start-col);
+    grid-row: auto;
+}
+
+.timeline__block[class*="gce-"] {
+    grid-column-end: var(--end-col);
 }
 
 .timeline__block * {
@@ -146,12 +160,10 @@
     display: flex;
 }
 
-
 .bulle__services * {
     align-self: center;
     font-weight: normal;
 }
-
 
 .bulle__services-name {
     font-size: 16px;
@@ -177,31 +189,23 @@
     justify-content: space-between;
     font-weight: normal;
     position: relative;
-    /* Nécessaire pour positionner l'élément ::after par rapport à l'élément parent */
     font-size: 14px;
     padding-top: 5px;
     padding-bottom: 5px;
-
 }
-
 
 .bulle__horaires::after {
     content: "";
     position: absolute;
     bottom: 0;
     left: 50%;
-    /* Place le point de départ au milieu */
     transform: translateX(-50%);
-    /* Ramène la ligne au milieu */
     width: 80%;
-    /* Applique la largeur du border à 50% */
     border-bottom: 1px solid #aaaaaa;
-    /* Style du border */
 }
 
 .bulle__user-line:last-child::after {
     border-bottom: none;
-    /* Retire le border-bottom pour le dernier div */
 }
 
 .bulle__user-name {
@@ -239,7 +243,6 @@
     padding-bottom: 5px;
     justify-content: space-between;
     font-weight: normal;
-    width: 500px;
 }
 
 .bulle__memo {
@@ -251,16 +254,10 @@
     position: absolute;
     top: 0;
     left: 50%;
-    /* Place le point de départ au milieu */
     transform: translateX(-50%);
-    /* Ramène la ligne au milieu */
     width: 80%;
-    /* Applique la largeur du border à 50% */
     border-top: 1px solid #aaaaaa;
-    /* Style du border */
 }
-
-
 
 .bulle__memo-title {
     margin-top: 5px;
@@ -274,8 +271,6 @@
 .bulle__memo-content {
     font-weight: normal;
 }
-
-
 
 .modal__window {
     position: fixed;
@@ -305,8 +300,6 @@
     justify-content: space-between;
 }
 
-
-
 .modal__user {
     display: flex;
     flex-direction: column;
@@ -314,8 +307,6 @@
     width: 100%;
     min-width: 100%;
 }
-
-
 
 .modal__user-line {
     display: grid;
@@ -328,7 +319,6 @@
 .modal__user-line label {
     margin-right: 10px;
 }
-
 
 .modal__user-line *,
 .modal__service *,
@@ -349,8 +339,6 @@
     font-weight: bold;
     font-variant: small-caps;
 }
-
-
 
 .modal__memo {
     border: none;
@@ -401,22 +389,16 @@
     display: block;
 }
 
-
 .glass-timeline {
     box-shadow: rgba(255, 255, 255, 0.3) -20px -20px 45px inset, rgba(0, 0, 0, 0.5) 10px 10px 20px, rgba(0, 0, 0, 0) 5px 5px 10px;
 }
 
 .glass-unit-pam {
     box-shadow: rgba(255, 255, 255, 0.1) -10px -10px 20px inset,
-        /* Ombre interne adoucie */
         rgba(0, 0, 0, 0.3) 5px 5px 15px,
-        /* Ombre externe plus douce */
         rgba(0, 0, 0, 0.1) 0px 0px 5px;
-    /* Ombre externe plus subtile */
     border: 1px solid rgba(255, 255, 255, 0.2);
-    /* Bordure douce autour */
     backdrop-filter: blur(10px);
-    /* Effet de flou de fond */
 }
 
 .color-preview.glass,
@@ -435,9 +417,7 @@
 .grp_line_grid {
     display: grid;
     grid-template-columns: 111px 1fr;
-    /* Première colonne fixe, deuxième colonne flexible */
     grid-template-rows: auto;
-    /* Espacement optionnel entre les éléments */
 }
 
 .grp_line_grid.line_grid {
@@ -452,19 +432,12 @@
 
 .cob__name {
     grid-column: 1;
-    /* Colonne 1 */
     grid-row: 1 / 1000;
-    /* Occupe toujours 2 lignes */
     display: flex;
-    /* Utilisation de flexbox pour centrer le contenu */
     align-items: center;
-    /* Centre verticalement */
     justify-content: center;
-    /* Centre horizontalement */
     text-align: center;
-    /* Centrer le texte */
     background-color: #153742;
-    /* Couleur de fond pour visualisation */
     color: white;
     border-radius: 3px;
     margin-top: 1px;
@@ -497,9 +470,7 @@
     align-self: center;
 }
 
-
 .pam__tph {
-
     background: #153742;
     color: white;
     display: flex;
@@ -530,7 +501,6 @@
     align-self: center;
     color: white;
     border-radius: 5px;
-
     font-variant: small-caps;
     text-transform: uppercase;
     display: flex;
@@ -554,4 +524,196 @@
 
 .switch-input:checked+.switch-glass::after {
     background: white;
+}
+
+.gcs-1 {
+    --start-col: 1;
+}
+
+.gce-1 {
+    --end-col: 1;
+}
+
+.gcs-2 {
+    --start-col: 2;
+}
+
+.gce-2 {
+    --end-col: 2;
+}
+
+.gcs-3 {
+    --start-col: 3;
+}
+
+.gce-3 {
+    --end-col: 3;
+}
+
+.gcs-4 {
+    --start-col: 4;
+}
+
+.gce-4 {
+    --end-col: 4;
+}
+
+.gcs-5 {
+    --start-col: 5;
+}
+
+.gce-5 {
+    --end-col: 5;
+}
+
+.gcs-6 {
+    --start-col: 6;
+}
+
+.gce-6 {
+    --end-col: 6;
+}
+
+.gcs-7 {
+    --start-col: 7;
+}
+
+.gce-7 {
+    --end-col: 7;
+}
+
+.gcs-8 {
+    --start-col: 8;
+}
+
+.gce-8 {
+    --end-col: 8;
+}
+
+.gcs-9 {
+    --start-col: 9;
+}
+
+.gce-9 {
+    --end-col: 9;
+}
+
+.gcs-10 {
+    --start-col: 10;
+}
+
+.gce-10 {
+    --end-col: 10;
+}
+
+.gcs-11 {
+    --start-col: 11;
+}
+
+.gce-11 {
+    --end-col: 11;
+}
+
+.gcs-12 {
+    --start-col: 12;
+}
+
+.gce-12 {
+    --end-col: 12;
+}
+
+.gcs-13 {
+    --start-col: 13;
+}
+
+.gce-13 {
+    --end-col: 13;
+}
+
+.gcs-14 {
+    --start-col: 14;
+}
+
+.gce-14 {
+    --end-col: 14;
+}
+
+.gcs-15 {
+    --start-col: 15;
+}
+
+.gce-15 {
+    --end-col: 15;
+}
+
+.gcs-16 {
+    --start-col: 16;
+}
+
+.gce-16 {
+    --end-col: 16;
+}
+
+.gcs-17 {
+    --start-col: 17;
+}
+
+.gce-17 {
+    --end-col: 17;
+}
+
+.gcs-18 {
+    --start-col: 18;
+}
+
+.gce-18 {
+    --end-col: 18;
+}
+
+.gcs-19 {
+    --start-col: 19;
+}
+
+.gce-19 {
+    --end-col: 19;
+}
+
+.gcs-20 {
+    --start-col: 20;
+}
+
+.gce-20 {
+    --end-col: 20;
+}
+
+.gcs-21 {
+    --start-col: 21;
+}
+
+.gce-21 {
+    --end-col: 21;
+}
+
+.gcs-22 {
+    --start-col: 22;
+}
+
+.gce-22 {
+    --end-col: 22;
+}
+
+.gcs-23 {
+    --start-col: 23;
+}
+
+.gce-23 {
+    --end-col: 23;
+}
+
+.gcs-24 {
+    --start-col: 24;
+}
+
+.gce-24 {
+    --end-col: 24;
 }

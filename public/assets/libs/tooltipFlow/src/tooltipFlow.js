@@ -188,14 +188,21 @@ class TooltipFlow {
     }
 
     showTooltip(target, content, options = {}) {
+        // Si un tooltip est déjà actif, on le cache immédiatement
+        if (this.activeTooltip && this.activeTooltip !== target) {
+            const oldTooltip = this.tooltips.get(this.activeTooltip);
+            if (oldTooltip) {
+                oldTooltip.classList.remove('visible');
+                oldTooltip.remove(); // Supprime l'ancien tooltip du DOM
+                this.tooltips.delete(this.activeTooltip);
+            }
+            this.activeTooltip = null;
+        }
+
         clearTimeout(this.hideTimeout);
         clearTimeout(this.showTimeout);
 
         const show = () => {
-            if (this.activeTooltip) {
-                this.hideTooltip(this.activeTooltip);
-            }
-
             let tooltip = this.tooltips.get(target);
             
             if (!tooltip) {
@@ -203,7 +210,6 @@ class TooltipFlow {
                 document.body.appendChild(tooltip);
                 this.tooltips.set(target, tooltip);
                 
-                // Gestionnaires d'événements pour le tooltip
                 if (this.interactive) {
                     tooltip.addEventListener('mouseenter', () => {
                         clearTimeout(this.hideTimeout);
@@ -240,6 +246,8 @@ class TooltipFlow {
             const tooltip = this.tooltips.get(target);
             if (tooltip) {
                 tooltip.classList.remove('visible');
+                tooltip.remove(); // Supprime le tooltip du DOM
+                this.tooltips.delete(target);
                 if (this.activeTooltip === target) {
                     this.activeTooltip = null;
                 }
@@ -258,38 +266,48 @@ class TooltipFlow {
         document.addEventListener('mouseover', (e) => {
             if (this.triggerMode !== 'hover') return;
             
-            const target = e.target.closest('[data-tooltip]');
+            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
             if (target) {
-                const content = target.getAttribute('data-tooltip');
+                let content;
                 const theme = target.getAttribute('data-tooltip-theme');
-                this.showTooltip(target, content, { theme });
+                
+                if (target.hasAttribute('data-tooltip')) {
+                    content = target.getAttribute('data-tooltip');
+                } else if (target.hasAttribute('data-tooltip-id')) {
+                    const tooltipId = target.getAttribute('data-tooltip-id');
+                    const tooltipElement = document.getElementById(tooltipId);
+                    content = tooltipElement ? tooltipElement.innerHTML : '';
+                }
+                
+                if (content) {
+                    this.showTooltip(target, content, { theme });
+                }
             }
         });
 
         document.addEventListener('mouseout', (e) => {
             if (this.triggerMode !== 'hover') return;
             
-            const target = e.target.closest('[data-tooltip]');
+            const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
             if (target && !this.interactive) {
                 this.hideTooltip(target);
             }
         });
 
+        // Cacher le tooltip actif quand on clique ou double-clique sur l'élément
         document.addEventListener('click', (e) => {
-            if (this.triggerMode !== 'click') return;
-            
-            const target = e.target.closest('[data-tooltip]');
-            if (target) {
-                const content = target.getAttribute('data-tooltip');
-                const theme = target.getAttribute('data-tooltip-theme');
-                
-                if (this.activeTooltip === target) {
-                    this.hideTooltip(target);
-                } else {
-                    this.showTooltip(target, content, { theme });
-                }
+            const tooltipTarget = e.target.closest('[data-tooltip], [data-tooltip-id]');
+            if (tooltipTarget) {
+                this.hideTooltip(tooltipTarget);
             } else if (this.activeTooltip && !e.target.closest('.tooltip')) {
                 this.hideTooltip(this.activeTooltip);
+            }
+        });
+
+        document.addEventListener('dblclick', (e) => {
+            const tooltipTarget = e.target.closest('[data-tooltip], [data-tooltip-id]');
+            if (tooltipTarget) {
+                this.hideTooltip(tooltipTarget);
             }
         });
     }
