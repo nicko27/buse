@@ -318,9 +318,9 @@ function updateBlock() {
             console.log('Form submission result:', resultat);
             if (resultat.erreur === false) {
                 // Mettre à jour l'affichage des blocs
-                window.showFcts.recall();
                 modalFlow.close(); // Fermer la modale
                 successNotice("Bloc mis à jour avec succès");
+                window.showFcts.recall();
             } else {
                 errorNotice(resultat.msgError || "Erreur lors de la mise à jour du bloc");
             }
@@ -379,9 +379,9 @@ function addBlock() {
             console.log('Form submission result:', resultat);
             if (resultat.erreur === false) {
                 // Mettre à jour l'affichage des blocs
-                window.showFcts.recall();
                 modalFlow.close(); // Fermer la modale
                 successNotice("Bloc ajouté avec succès");
+                window.showFcts.recall();
             } else {
                 errorNotice(resultat.msgError || "Erreur lors de l'ajout du bloc");
             }
@@ -445,7 +445,7 @@ function autoHideLines() {
                     hideEmptyLines(cieBlock, initialState);
 
                     // Ajouter l'écouteur d'événements
-                    switchElement.addEventListener('change', function() {
+                    switchElement.addEventListener('change', function () {
                         // Mettre à jour l'affichage
                         hideEmptyLines(cieBlock, this.checked);
 
@@ -536,32 +536,38 @@ function getCookie(name) {
 }
 
 /**
+ * Configuration
+ */
+const REFRESH_DELAY = 0000; // Délai de rafraîchissement en millisecondes
+
+/**
  * Fonction pour mémoriser les derniers arguments d'appel
  * @param {Function} fn - Fonction à wrapper
  * @returns {Function} Fonction wrappée avec mémoire du dernier appel
  */
 function memorizeLastCall(fn) {
     let lastArgs = null;
+    let timeoutId = null;
 
-    const wrapper = function(...args) {
-        if (args.length > 0) {
+    return {
+        execute: function (...args) {
             lastArgs = args;
-        } else if (!lastArgs) {
-            console.error('Aucun argument mémorisé pour', fn.name);
-            return;
-        }
-        return fn.apply(this, lastArgs);
-    };
+            return fn.apply(this, args);
+        },
+        recall: function () {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
 
-    wrapper.recall = function() {
-        if (!lastArgs) {
-            console.error('Aucun argument mémorisé pour', fn.name);
-            return;
+            timeoutId = setTimeout(() => {
+                if (lastArgs) {
+                    console.log("showFcts recall");
+                    fn.apply(this, lastArgs);
+                }
+                timeoutId = null;
+            }, REFRESH_DELAY);
         }
-        return fn.apply(this, lastArgs);
     };
-
-    return wrapper;
 }
 
 /**
@@ -580,7 +586,7 @@ function checkTimelineVars() {
 }
 
 // Déclaration de showFcts en tant que variable globale
-window.showFcts = memorizeLastCall(function(nb_quart_heure, case_pos_now, interval, debug_date = null, debug_hour = null) {
+window.showFcts = memorizeLastCall(function (nb_quart_heure, case_pos_now, interval, debug_date = null, debug_hour = null) {
     if (!checkTimelineVars()) {
         console.error('Variables de timeline manquantes');
         return;

@@ -89,7 +89,6 @@
 {# Suppression des anciens éléments de modal #}
 {# <div id="modal-overlay" class="hidden"></div> #}
 {# <div id="modal" class="modal__window hidden"></div> #}
-<script type="text/javascript" src="{{WEB_ASSETS}}/js/show/timeline.js"></script>
 <script type="text/javascript">
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -145,7 +144,7 @@
         window.CASE_POS_NOW={{ CASE_POS_NOW }};
         window.INTERVAL={{ INTERVAL }};
         // Appeler showFcts avec les paramètres de débogage
-        showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }},debug_date, debug_hour);
+        window.showFcts.execute({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }}, debug_date, debug_hour);
 
         if (debug == 0) {
             // Mettre à jour la barre rouge et les heures toutes les 60 secondes
@@ -156,11 +155,11 @@
 
             // Mettre à jour showFcts toutes les 300 secondes (5 minutes)
             setInterval(function() {
-                showFcts({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
+                window.showFcts.execute({{ NB_QUART_HEURE }}, {{ CASE_POS_NOW }}, {{ INTERVAL }});
             }, 300000);
         } else if (!window.debug_hour) {
             setInterval(() => {
-                showFcts.recall();
+                window.showFcts.execute();
             }, 300000);
         }
 
