@@ -1,0 +1,225 @@
+/* Styles généraux */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #f6f8fd 0%, #f1f4f9 100%);
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+}
+
+.switch-container {
+    margin: 25px 0;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Cacher les inputs natifs */
+.switch-input {
+    display: none;
+}
+
+/* Style de base pour tous les labels */
+.switch-basic,
+.switch-ios,
+.switch-material,
+.switch-glass {
+    position: relative;
+    display: inline-block;
+    padding-left: 65px;
+    line-height: 32px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+/* Style basique avec effet glass */
+.switch-basic::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 52px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 13px;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.switch-basic::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(145deg, #ffffff, #f3f3f3);
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.switch-input:checked + .switch-basic::before {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.switch-input:checked + .switch-basic::after {
+    transform: translateX(26px);
+    background: linear-gradient(145deg, #4CAF50, #45a049);
+}
+
+/* Style iOS amélioré */
+.switch-ios::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 54px;
+    height: 32px;
+    background: rgba(233, 233, 235, 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    transition: all 0.4s cubic-bezier(0.85, 0.05, 0.18, 1.35);
+}
+
+.switch-ios::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(145deg, #ffffff, #f8f8f8);
+    border-radius: 50%;
+    transition: transform 0.4s cubic-bezier(0.85, 0.05, 0.18, 1.35);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.switch-input:checked + .switch-ios::before {
+    background: rgba(52, 199, 89, 0.2);
+    border-color: rgba(52, 199, 89, 0.3);
+}
+
+.switch-input:checked + .switch-ios::after {
+    transform: translateX(22px);
+    background: linear-gradient(145deg, #34C759, #2fb850);
+}
+
+/* Style Material Design amélioré */
+.switch-material::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 40px;
+    height: 16px;
+    background: rgba(0,0,0,0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 8px;
+    transition: background-color 0.3s;
+}
+
+.switch-material::after {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(145deg, #fafafa, #f4f4f4);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.switch-input:checked + .switch-material::before {
+    background: rgba(63,81,181,0.3);
+}
+
+.switch-input:checked + .switch-material::after {
+    background: linear-gradient(145deg, #3F51B5, #3949ab);
+    transform: translateX(24px);
+}
+
+/* Nouveau style Glass */
+.switch-glass {
+    position: relative;
+    display: inline-block;
+    width: 45px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.switch-glass::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 45px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.switch-glass::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 3px;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Position à droite quand le checkbox est coché */
+.switch-input:checked + .switch-glass::before {
+    background: rgba(72, 150, 255, 0.2);
+    border-color: rgba(72, 150, 255, 0.3);
+}
+
+.switch-input:checked + .switch-glass::after {
+    transform: translateX(27px);
+    background: rgba(72, 150, 255, 0.8);
+    border-color: rgba(72, 150, 255, 0.5);
+}
+
+/* Effet hover */
+.switch-glass:hover::after {
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+}
+
+/* Effets de hover améliorés */
+.switch-basic:hover::after,
+.switch-ios:hover::after,
+.switch-material:hover::after,
+.switch-glass:hover::after {
+    box-shadow: 0 0 8px rgba(0,0,0,0.2);
+    transform: scale(1.05);
+}
+
+.switch-input:checked + .switch-basic:hover::after,
+.switch-input:checked + .switch-ios:hover::after,
+.switch-input:checked + .switch-material:hover::after,
+.switch-input:checked + .switch-glass:hover::after {
+    transform: translateX(26px) scale(1.05);
+}
