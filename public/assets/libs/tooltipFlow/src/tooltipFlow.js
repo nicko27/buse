@@ -263,11 +263,22 @@ class TooltipFlow {
     }
 
     attachEvents() {
+        let currentTarget = null;
+        let isOverTooltip = false;
+
         document.addEventListener('mouseover', (e) => {
             if (this.triggerMode !== 'hover') return;
             
             const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
+            const tooltipElement = e.target.closest('.tooltip');
+
+            if (tooltipElement) {
+                isOverTooltip = true;
+                return;
+            }
+
             if (target) {
+                currentTarget = target;
                 let content;
                 const theme = target.getAttribute('data-tooltip-theme');
                 
@@ -282,6 +293,10 @@ class TooltipFlow {
                 if (content) {
                     this.showTooltip(target, content, { theme });
                 }
+            } else {
+                if (!isOverTooltip && this.activeTooltip) {
+                    this.hideTooltip(this.activeTooltip);
+                }
             }
         });
 
@@ -289,8 +304,26 @@ class TooltipFlow {
             if (this.triggerMode !== 'hover') return;
             
             const target = e.target.closest('[data-tooltip], [data-tooltip-id]');
-            if (target && !this.interactive) {
-                this.hideTooltip(target);
+            const tooltipElement = e.target.closest('.tooltip');
+            const relatedTarget = e.relatedTarget;
+
+            if (tooltipElement) {
+                isOverTooltip = false;
+                // Vérifie si on quitte le tooltip pour aller sur l'élément parent
+                if (!relatedTarget || !relatedTarget.closest('[data-tooltip], [data-tooltip-id]')) {
+                    this.hideTooltip(this.activeTooltip);
+                }
+                return;
+            }
+
+            if (target) {
+                // Vérifie si on va sur le tooltip ou un autre élément avec tooltip
+                if (!relatedTarget || 
+                    (!relatedTarget.closest('.tooltip') && 
+                     !relatedTarget.closest('[data-tooltip], [data-tooltip-id]'))) {
+                    currentTarget = null;
+                    this.hideTooltip(target);
+                }
             }
         });
 
@@ -299,8 +332,12 @@ class TooltipFlow {
             const tooltipTarget = e.target.closest('[data-tooltip], [data-tooltip-id]');
             if (tooltipTarget) {
                 this.hideTooltip(tooltipTarget);
+                currentTarget = null;
+                isOverTooltip = false;
             } else if (this.activeTooltip && !e.target.closest('.tooltip')) {
                 this.hideTooltip(this.activeTooltip);
+                currentTarget = null;
+                isOverTooltip = false;
             }
         });
 
@@ -308,6 +345,8 @@ class TooltipFlow {
             const tooltipTarget = e.target.closest('[data-tooltip], [data-tooltip-id]');
             if (tooltipTarget) {
                 this.hideTooltip(tooltipTarget);
+                currentTarget = null;
+                isOverTooltip = false;
             }
         });
     }
