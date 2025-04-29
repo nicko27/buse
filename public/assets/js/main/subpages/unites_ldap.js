@@ -1,7 +1,7 @@
 function getUnits() {
     const formData = new FormData();
     formData.append("fill", 1);
-    const url = window.WEB_PAGES + `/main/subpages/unites/unitsHandler.php`;
+    const url = window.WEB_PAGES + `/main/subpages/unites_ldap/unitsHandler.php`;
     infoNotice("Chargement des unités", "Chargement en cours");
     // Appelle la fonction ajaxFct pour envoyer la requête
     document.getElementById("maj__text-update").classList.remove("hidden");

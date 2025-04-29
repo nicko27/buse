@@ -1,239 +1,601 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DateFlow - Documentation</title>
-    <link rel="stylesheet" href="../src/dateFlow.css">
+    <title>Documentation DateFlow</title>
     <style>
+        :root {
+            --primary-color: #16a34a; /* Vert */
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --code-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+            --nav-width: 250px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 2rem;
+        }
+
+        .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
         }
 
         h1, h2, h3 {
-            color: #2c3e50;
-            margin-top: 2em;
+            margin: 2rem 0 1rem;
+            color: var(--primary-color);
         }
 
-        .demo-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+        h1 {
+            font-size: 2.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
         }
 
-        .code-block {
-            background: #f1f3f5;
-            padding: 15px;
+        h2 {
+            font-size: 1.8rem;
+            margin-top: 3rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-top: 2rem;
+        }
+
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            padding-left: 2rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
             border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
             overflow-x: auto;
-            font-family: monospace;
-            margin: 10px 0;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            margin: 1.5rem 0;
         }
 
         th, td {
-            padding: 12px;
+            padding: 0.8rem;
             text-align: left;
-            border-bottom: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
         }
 
         th {
-            background-color: #f8f9fa;
+            background: var(--code-bg);
+            font-weight: 600;
         }
 
-        .attribute {
-            color: #e83e8c;
+        .example {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            background-color: #f9fafb;
         }
 
-        .note {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 15px 0;
+        .example-preview {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; /* Pour aligner les éléments d'exemple */
+            flex-wrap: wrap; /* Permettre le retour à la ligne */
+            align-items: center; /* Pour aligner verticalement */
+            gap: 15px; /* Espace entre les éléments */
+        }
+
+        .example-code {
+            padding: 1rem;
+            background: var(--code-bg);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .nav {
+            position: fixed;
+            top: 2rem;
+            bottom: 2rem;
+            left: 2rem;
+            width: var(--nav-width);
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            font-size: 0.9em;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        .nav h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.2rem 0;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
+        }
+
+        .content {
+            margin-left: calc(var(--nav-width) + 2rem);
+        }
+
+        .info-block, .warning-block {
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            border-left-width: 4px;
+            border-left-style: solid;
+        }
+
+        .info-block {
+            background-color: #ecfdf5; /* light-green-100 */
+            border-color: #34d399;    /* light-green-500 */
+            color: #065f46;       /* light-green-800 */
+        }
+
+        .warning-block {
+            background-color: #fffbeb;
+            border-color: #facc15;
+            color: #713f12;
+        }
+
+        /* Styles pour les inputs dateFlow */
+        input[type="text"][dp-input]{
+             border: 1px solid #dee2e6;
+             border-radius: 4px;
+             padding: 8px;
+             font-size: 14px;
+             width: 160px; /* Largeur ajustée */
+             cursor: pointer;
+        }
+        .date-flow { /* Conteneur optionnel pour l'input */
+            display: inline-block; /* Pour que le picker se positionne correctement */
+            position: relative;
+        }
+
+
+        @media (max-width: 900px) {
+            .nav {
+                display: none;
+            }
+            .content {
+                margin-left: 0;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.1rem; }
+            .container {
+                 padding: 1rem;
+            }
+            .example-preview, .example-code {
+                 padding: 1rem;
+            }
+            .example-preview {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
+    <!-- Assurez-vous d'inclure dateFlow.css -->
+    <link rel="stylesheet" href="../src/dateFlow.css">
 </head>
 <body>
-    <h1>DateFlow - Documentation</h1>
-    
-    <section>
-        <h2>Installation</h2>
-        <p>Pour utiliser DateFlow, incluez les fichiers CSS et JavaScript dans votre page HTML :</p>
-        <div class="code-block">
-            <pre>&lt;link rel="stylesheet" href="path/to/dateFlow.css"&gt;
-&lt;script src="path/to/dateFlow.js"&gt;&lt;/script&gt;</pre>
+    <div class="container">
+        <nav class="nav">
+            <h3>Table des matières</h3>
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#initialisation">Initialisation JS</a></li>
+                <li><a href="#utilisation-html">Utilisation HTML</a></li>
+                <li><a href="#attributs-html">Attributs HTML</a></li>
+                <li><a href="#fonctionnement">Fonctionnement</a></li>
+                <li><a href="#personnalisation-css">Personnalisation CSS</a></li>
+                <li><a href="#api-javascript">API JavaScript</a></li>
+                <li><a href="#exemples">Exemples</a></li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <h1>Documentation DateFlow</h1>
+
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>DateFlow est une bibliothèque JavaScript qui transforme des champs input texte en sélecteurs de date et/ou d'heure interactifs. Elle offre une interface de calendrier conviviale, une sélection d'heure facile et plusieurs options de configuration via des attributs HTML.</p>
+                <p>Caractéristiques principales :</p>
+                <ul>
+                    <li>Intégration simple via attributs <code>dp-*</code>.</li>
+                    <li>Sélecteur de date avec navigation par mois/année.</li>
+                    <li>Sélecteur d'heure avec intervalles configurables.</li>
+                    <li>Mode "heure seule".</li>
+                    <li>Définition de dates minimum et maximum.</li>
+                    <li>Formatage de la date et de l'heure.</li>
+                    <li>Localisation possible (labels, premier jour de la semaine).</li>
+                    <li>Boutons optionnels "Aujourd'hui" et "Effacer".</li>
+                </ul>
+            </section>
+
+            <section id="installation">
+                <h2>Installation</h2>
+                <p>Pour utiliser DateFlow, incluez son fichier CSS et son fichier JavaScript dans votre page HTML.</p>
+                <pre><code>&lt;!-- Feuille de style de DateFlow --&gt;
+&lt;link rel="stylesheet" href="path/to/dateFlow.css"&gt;
+
+&lt;!-- Script de DateFlow --&gt;
+&lt;script src="path/to/dateFlow.js"&gt;&lt;/script&gt;</code></pre>
+                <div class="info-block">
+                    Assurez-vous que les chemins d'accès aux fichiers <code>dateFlow.css</code> et <code>dateFlow.js</code> sont corrects. DateFlow est une classe ES6 et pourrait nécessiter un bundler (comme Webpack, Rollup) dans des environnements plus anciens.
+                </div>
+            </section>
+
+            <section id="initialisation">
+                <h2>Initialisation JavaScript</h2>
+                <p>DateFlow s'active automatiquement sur les éléments ayant l'attribut <code>dp-input</code> lorsque le script est chargé. Cependant, vous pouvez créer une instance pour configurer des options globales.</p>
+                 <pre><code class="language-javascript">// Initialisation après le chargement du DOM
+document.addEventListener('DOMContentLoaded', () => {
+    const datePicker = new DateFlow({
+        // Options de configuration globales (voir ci-dessous)
+        timeInterval: 30, // Intervalle par défaut pour les minutes
+        firstDayOfWeek: 'monday', // 'monday' ou 'sunday'
+        lang: 'fr', // Langue pour les labels
+        format: 'DD.MM.YYYY', // Format de date par défaut
+        timeFormat: 'HH:mm', // Format d'heure par défaut
+        labels: { // Labels personnalisés (exemple partiel)
+            fr: {
+                today: "Auj.",
+                clear: 'Vider'
+                // ... autres labels
+            }
+        }
+    });
+
+    // Optionnel: Écouter les changements de valeur sur les inputs DateFlow
+    document.body.addEventListener('change', (event) => {
+        if (event.target.hasAttribute('dp-input')) {
+            console.log('Nouvelle date/heure sélectionnée:', event.target.value);
+        }
+    });
+});</code></pre>
+                <p>Même si vous n'avez pas besoin de personnaliser les options globales, l'instanciation <code>new DateFlow()</code> assure que les champs existants au chargement de la page sont bien initialisés.</p>
+
+                <h3>Options de Configuration (Constructeur)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Type</th>
+                            <th>Défaut</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>timeInterval</code></td>
+                            <td>number</td>
+                            <td><code>15</code></td>
+                            <td>Intervalle en minutes pour le sélecteur d'heure (entre 1 et 60).</td>
+                        </tr>
+                        <tr>
+                            <td><code>firstDayOfWeek</code></td>
+                            <td>string</td>
+                            <td><code>'monday'</code></td>
+                            <td>Premier jour de la semaine affiché dans le calendrier ('monday' ou 'sunday').</td>
+                        </tr>
+                        <tr>
+                            <td><code>lang</code></td>
+                            <td>string</td>
+                            <td><code>'fr'</code></td>
+                            <td>Langue utilisée pour les labels (mois, jours, boutons). Doit correspondre à une clé dans <code>labels</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><code>format</code></td>
+                            <td>string</td>
+                            <td><code>'DD.MM.YYYY'</code></td>
+                            <td>Format de date par défaut utilisé pour l'affichage et le parsing.</td>
+                        </tr>
+                        <tr>
+                            <td><code>timeFormat</code></td>
+                            <td>string</td>
+                            <td><code>'HH:mm'</code></td>
+                            <td>Format d'heure par défaut.</td>
+                        </tr>
+                        <tr>
+                            <td><code>labels</code></td>
+                            <td>Object</td>
+                            <td>Objet contenant les traductions pour 'fr'</td>
+                            <td>Permet de surcharger ou d'ajouter des langues pour les textes de l'interface (jours, mois, boutons, erreurs).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="utilisation-html">
+                <h2>Utilisation HTML</h2>
+                <p>Pour activer DateFlow sur un champ de formulaire, ajoutez l'attribut <code>dp-input</code> à un élément <code>&lt;input type="text"&gt;</code>.</p>
+                 <div class="example">
+                    <div class="example-preview">
+                         <label>Date simple :</label>
+                         <input type="text" dp-input placeholder="jj.mm.aaaa"/>
+                    </div>
+                    <div class="example-code">
+                        <code>&lt;input type="text" dp-input placeholder="jj.mm.aaaa" /&gt;</code>
+                    </div>
+                </div>
+                <div class="info-block">
+                    Il est recommandé (mais pas obligatoire) de placer l'input dans un conteneur avec la classe <code>date-flow</code> pour une meilleure gestion du positionnement et du style.
+                    <code>&lt;div class="date-flow"&gt;&lt;input type="text" dp-input /&gt;&lt;/div&gt;</code>
+                </div>
+                <p>L'input affichera la date/heure sélectionnée, et un clic dessus ouvrira le sélecteur approprié.</p>
+            </section>
+
+            <section id="attributs-html">
+                <h2>Attributs HTML (Configuration par Élément)</h2>
+                <p>Personnalisez chaque sélecteur individuellement en utilisant ces attributs sur l'élément <code>&lt;input&gt;</code> :</p>
+                 <table>
+                    <thead>
+                        <tr>
+                            <th>Attribut</th>
+                            <th>Description</th>
+                            <th>Exemple</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>dp-input</code></td>
+                            <td><strong>Requis.</strong> Active le DateFlow sur l'input.</td>
+                            <td><code>&lt;input dp-input&gt;</code></td>
+                        </tr>
+                        <tr>
+                             <td><code>dp-format</code></td>
+                            <td>Format de la date/heure affichée dans l'input. Remplace le format global.</td>
+                            <td><code>&lt;input dp-input dp-format="YYYY-MM-DD"&gt;</code><br><code>&lt;input dp-input dp-format="DD/MM/YYYY HH:mm"&gt;</code></td>
+                         </tr>
+                        <tr>
+                            <td><code>dp-time</code></td>
+                            <td>Active la sélection de l'heure en plus de la date.</td>
+                            <td><code>&lt;input dp-input dp-time&gt;</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>dp-time-only</code></td>
+                            <td>Active uniquement la sélection de l'heure (le calendrier n'est pas affiché).</td>
+                            <td><code>&lt;input dp-input dp-time-only&gt;</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>dp-time-interval</code></td>
+                            <td>Définit l'intervalle des minutes pour ce sélecteur (remplace l'option globale).</td>
+                             <td><code>&lt;input dp-input dp-time dp-time-interval="30"&gt;</code></td>
+                         </tr>
+                        <tr>
+                            <td><code>dp-min</code></td>
+                            <td>Date minimum sélectionnable (format YYYY-MM-DD).</td>
+                             <td><code>&lt;input dp-input dp-min="2024-01-01"&gt;</code></td>
+                         </tr>
+                        <tr>
+                            <td><code>dp-max</code></td>
+                            <td>Date maximum sélectionnable (format YYYY-MM-DD).</td>
+                            <td><code>&lt;input dp-input dp-max="2024-12-31"&gt;</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>dp-date</code></td>
+                             <td>Date ou date/heure initiale si l'input est vide (utilise le <code>dp-format</code> si spécifié, sinon le format global).</td>
+                             <td><code>&lt;input dp-input dp-date="01.01.2025"&gt;</code><br><code>&lt;input dp-input dp-time dp-date="01.01.2025 14:30"&gt;</code></td>
+                        </tr>
+                        <tr>
+                             <td><code>dp-show-buttons</code></td>
+                             <td>Affiche les boutons "Aujourd'hui" et "Effacer" sous le calendrier/sélecteur d'heure.</td>
+                             <td><code>&lt;input dp-input dp-show-buttons&gt;</code></td>
+                         </tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="fonctionnement">
+                <h2>Fonctionnement</h2>
+                <ul>
+                    <li><strong>Déclenchement :</strong> Le sélecteur s'ouvre lors d'un clic ou du focus sur l'input associé.</li>
+                    <li><strong>Calendrier :</strong> Affiche les jours du mois. Permet la navigation entre les mois et les années. Les jours en dehors de la plage min/max sont désactivés.</li>
+                    <li><strong>Sélecteur d'Heure :</strong> Deux listes déroulantes (<code>&lt;select&gt;</code>) pour choisir l'heure et les minutes. L'intervalle des minutes est configurable.</li>
+                    <li><strong>Positionnement :</strong> Le sélecteur se positionne sous l'input, en s'ajustant pour rester visible dans la fenêtre.</li>
+                    <li><strong>Fermeture :</strong> Le sélecteur se ferme lors de la sélection d'une date/heure, d'un clic en dehors, ou de l'appui sur la touche Echap.</li>
+                    <li><strong>Mise à jour de l'Input :</strong> La valeur de l'input est mise à jour automatiquement avec la date/heure sélectionnée, formatée selon l'attribut <code>dp-format</code> ou le format global.</li>
+                </ul>
+            </section>
+
+            <section id="personnalisation-css">
+                <h2>Personnalisation CSS</h2>
+                <p>Utilisez les classes CSS suivantes pour personnaliser l'apparence :</p>
+                <ul>
+                    <li><code>.date-flow-picker</code>: Le conteneur principal du sélecteur popup.</li>
+                    <li><code>.date-flow-header</code>: L'en-tête avec les boutons de navigation mois/année.</li>
+                    <li><code>.date-flow-prev</code>, <code>.date-flow-next</code>: Les boutons de navigation.</li>
+                    <li><code>.date-flow-month-year</code>: L'affichage du mois et de l'année.</li>
+                    <li><code>.date-flow-calendar</code>: Le conteneur de la grille du calendrier.</li>
+                    <li><code>.date-flow-weekdays</code>: Le conteneur des noms des jours.</li>
+                    <li><code>.date-flow-weekday</code>: Chaque nom de jour.</li>
+                    <li><code>.date-flow-days</code>: Le conteneur de la grille des jours.</li>
+                    <li><code>.date-flow-day</code>: Chaque cellule de jour (bouton).</li>
+                    <li><code>.date-flow-adjacent-month</code>: Classe pour les jours des mois précédents/suivants.</li>
+                    <li><code>.date-flow-today</code>: Classe pour le jour actuel.</li>
+                    <li><code>.date-flow-selected</code>: Classe pour le jour sélectionné.</li>
+                    <li><code>.date-flow-day:disabled</code>: Style pour les jours désactivés (hors plage min/max).</li>
+                    <li><code>.time-section</code>: Conteneur pour le sélecteur d'heure.</li>
+                    <li><code>.time-inputs</code>: Conteneur des selects heure/minute.</li>
+                    <li><code>.time-input-container</code>: Conteneur pour un select et son label.</li>
+                    <li><code>.time-input.hours</code>, <code>.time-input.minutes</code>: Les éléments select pour l'heure et les minutes.</li>
+                    <li><code>.date-flow-buttons</code>: Conteneur pour les boutons "Aujourd'hui" / "Effacer".</li>
+                    <li><code>.date-flow-today</code>, <code>.date-flow-clear</code>: Les boutons optionnels.</li>
+                </ul>
+                 <pre><code class="language-css">/* Exemple : Changer la couleur du jour sélectionné */
+.date-flow-day.date-flow-selected {
+    background-color: #16a34a; /* Vert */
+    color: white;
+}
+
+/* Exemple : Arrondir le picker */
+.date-flow-picker {
+    border-radius: 8px;
+}</code></pre>
+            </section>
+
+             <section id="api-javascript">
+                 <h2>API JavaScript (Méthodes sur l'instance)</h2>
+                 <p>L'instance <code>DateFlow</code> expose quelques méthodes publiques :</p>
+                 <table>
+                     <thead>
+                         <tr>
+                             <th>Méthode</th>
+                             <th>Arguments</th>
+                             <th>Description</th>
+                             <th>Retour</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td><code>init()</code></td>
+                             <td>-</td>
+                             <td>Initialise DateFlow. Détecte les inputs existants et configure les écouteurs globaux. Appelé automatiquement par le constructeur.</td>
+                             <td><code>void</code></td>
+                         </tr>
+                         <tr>
+                             <td><code>destroy()</code></td>
+                             <td>-</td>
+                             <td>Nettoie les ressources : supprime tous les pickers du DOM et les écouteurs d'événements globaux.</td>
+                             <td><code>void</code></td>
+                         </tr>
+                         <tr>
+                             <td><code>getPicker(inputElement)</code></td>
+                              <td><code>inputElement</code> (HTMLElement)</td>
+                             <td>Récupère l'élément DOM du picker associé à un input donné.</td>
+                             <td><code>HTMLElement|null</code></td>
+                         </tr>
+                          <tr>
+                             <td><code>formatDate(date, config)</code></td>
+                             <td><code>date</code> (Date), <code>config</code> (Object)</td>
+                             <td>Formate un objet Date selon la configuration fournie (ou la config globale). Utile pour formater des dates manuellement avec les mêmes règles.</td>
+                              <td><code>string</code></td>
+                          </tr>
+                           <tr>
+                             <td><code>parseDate(dateStr, config)</code></td>
+                              <td><code>dateStr</code> (string), <code>config</code> (Object)</td>
+                             <td>Tente de parser une chaîne de date/heure selon la configuration fournie (ou la config globale) et retourne un objet Date.</td>
+                             <td><code>Date|null</code></td>
+                           </tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="exemples">
+                <h2>Exemples</h2>
+
+                <div class="example">
+                    <div class="example-preview">
+                        <div>
+                            <label>Date Simple:</label><br>
+                            <input type="text" dp-input placeholder="jj.mm.aaaa"/>
+                        </div>
+                        <div>
+                            <label>Date et Heure (Intervalle 30min):</label><br>
+                            <input type="text" dp-input dp-time dp-time-interval="30" placeholder="jj.mm.aaaa hh:mm"/>
+                        </div>
+                        <div>
+                            <label>Heure Seule:</label><br>
+                            <input type="text" dp-input dp-time-only placeholder="hh:mm"/>
+                        </div>
+                         <div>
+                            <label>Date (Format YYYY-MM-DD):</label><br>
+                            <input type="text" dp-input dp-format="YYYY-MM-DD" placeholder="aaaa-mm-jj"/>
+                        </div>
+                        <div>
+                            <label>Plage Limitée (2024):</label><br>
+                            <input type="text" dp-input dp-min="2024-01-01" dp-max="2024-12-31" placeholder="Date en 2024"/>
+                        </div>
+                        <div>
+                            <label>Avec Boutons:</label><br>
+                             <input type="text" dp-input dp-show-buttons placeholder="Date avec boutons"/>
+                         </div>
+                    </div>
+                    <div class="example-code">
+                        <pre><code>&lt;!-- Date Simple --&gt;
+&lt;input type="text" dp-input placeholder="jj.mm.aaaa"/&gt;
+
+&lt;!-- Date et Heure (Intervalle 30min) --&gt;
+&lt;input type="text" dp-input dp-time dp-time-interval="30" placeholder="jj.mm.aaaa hh:mm"/&gt;
+
+&lt;!-- Heure Seule --&gt;
+&lt;input type="text" dp-input dp-time-only placeholder="hh:mm"/&gt;
+
+&lt;!-- Date (Format YYYY-MM-DD) --&gt;
+&lt;input type="text" dp-input dp-format="YYYY-MM-DD" placeholder="aaaa-mm-jj"/&gt;
+
+&lt;!-- Plage Limitée (2024) --&gt;
+&lt;input type="text" dp-input dp-min="2024-01-01" dp-max="2024-12-31" placeholder="Date en 2024"/&gt;
+
+&lt;!-- Avec Boutons --&gt;
+&lt;input type="text" dp-input dp-show-buttons placeholder="Date avec boutons"/&gt;</code></pre>
+                    </div>
+                </div>
+            </section>
+
         </div>
-    </section>
-
-    <section>
-        <h2>Initialisation</h2>
-        <p>Initialisez DateFlow en créant une nouvelle instance :</p>
-        <div class="code-block">
-            <pre>const datePicker = new DateFlow();</pre>
-        </div>
-    </section>
-
-    <section>
-        <h2>Attributs disponibles</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Attribut</th>
-                    <th>Description</th>
-                    <th>Exemple</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="attribute">dp-input</span></td>
-                    <td>Active le DateFlow sur l'input</td>
-                    <td><code>&lt;input dp-input&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-format</span></td>
-                    <td>Définit le format de date (YYYY-MM-DD par défaut)</td>
-                    <td><code>&lt;input dp-input dp-format="DD/MM/YYYY"&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-time</span></td>
-                    <td>Active la sélection de l'heure</td>
-                    <td><code>&lt;input dp-input dp-time&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-time-only</span></td>
-                    <td>Active uniquement la sélection de l'heure</td>
-                    <td><code>&lt;input dp-input dp-time-only&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-time-interval</span></td>
-                    <td>Définit l'intervalle des minutes (15 par défaut)</td>
-                    <td><code>&lt;input dp-input dp-time dp-time-interval="30"&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-min</span></td>
-                    <td>Date minimum sélectionnable</td>
-                    <td><code>&lt;input dp-input dp-min="2024-01-01"&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-max</span></td>
-                    <td>Date maximum sélectionnable</td>
-                    <td><code>&lt;input dp-input dp-max="2024-12-31"&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-date</span></td>
-                    <td>Date par défaut</td>
-                    <td><code>&lt;input dp-input dp-date="2024-01-01"&gt;</code></td>
-                </tr>
-                <tr>
-                    <td><span class="attribute">dp-show-buttons</span></td>
-                    <td>Affiche les boutons "Aujourd'hui" et "Effacer"</td>
-                    <td><code>&lt;input dp-input dp-show-buttons&gt;</code></td>
-                </tr>
-            </tbody>
-        </table>
-    </section>
-
-    <section>
-        <h2>Exemples d'utilisation</h2>
-
-        <div class="demo-section">
-            <h3>1. Date simple</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date1" dp-input>
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-
-        <div class="demo-section">
-            <h3>2. Date avec format personnalisé</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date2" dp-input dp-format="DD/MM/YYYY">
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input dp-format="DD/MM/YYYY"&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-
-        <div class="demo-section">
-            <h3>3. Date et Heure</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date3" dp-input dp-time>
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input dp-time&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-
-        <div class="demo-section">
-            <h3>4. Heure uniquement (intervalle 30 minutes)</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date4" dp-input dp-time-only dp-time-interval="30">
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input dp-time-only dp-time-interval="30"&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-
-        <div class="demo-section">
-            <h3>5. Date avec plage limitée</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date5" dp-input dp-min="2024-01-01" dp-max="2024-12-31">
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input dp-min="2024-01-01" dp-max="2024-12-31"&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-
-        <div class="demo-section">
-            <h3>6. Date avec valeur par défaut et boutons</h3>
-            <div class="input-group date-flow">
-                <input type="text" id="date6" dp-input dp-date="2024-01-01" dp-show-buttons="true">
-            </div>
-            <div class="code-block">
-                <pre>&lt;div class="date-flow"&gt;
-    &lt;input type="text" dp-input dp-date="2024-01-01" dp-show-buttons="true"&gt;
-&lt;/div&gt;</pre>
-            </div>
-        </div>
-    </section>
-
-    <section>
-        <h2>Notes importantes</h2>
-        <div class="note">
-            <p>1. L'élément input doit toujours être à l'intérieur d'un conteneur avec la classe <code>date-flow</code>.</p>
-            <p>2. L'attribut <code>dp-input</code> est obligatoire pour activer le DateFlow sur un input.</p>
-            <p>3. Les formats de date supportés sont : YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY</p>
-            <p>4. Pour le sélecteur d'heure, les intervalles possibles sont : 5, 10, 15, 30, 60 minutes</p>
-        </div>
-    </section>
-
+    </div>
+    <!-- Assurez-vous que le script est chargé -->
     <script src="../src/dateFlow.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const datePicker = new DateFlow();
+        // Initialisation pour les exemples
+        document.addEventListener('DOMContentLoaded', () => {
+             new DateFlow(); // Initialise avec les options par défaut
         });
     </script>
 </body>

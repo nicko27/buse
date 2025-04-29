@@ -1,5 +1,4 @@
 <?php
-
 namespace Commun\Utils;
 
 class FileListUtils
@@ -7,21 +6,21 @@ class FileListUtils
     /**
      * Liste les fichiers d'un répertoire avec leurs dates et tailles
      */
-    public static function listFiles(string $directory, array $extensions = ['html', 'ods']): array
+    public static function listFiles(string $directory, array $extensions = ['html', 'ods', 'xlsx']): array
     {
         $result = [
-            'ok' => true,
+            'ok'       => true,
             'msgError' => '',
-            'files' => []
+            'files'    => [],
         ];
 
         try {
-            if (!is_dir($directory)) {
+            if (! is_dir($directory)) {
                 throw new \Exception("Le dossier spécifié n'existe pas");
             }
 
             // Récupérer la date d'aujourd'hui et d'hier
-            $aujourdhui = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
+            $aujourdhui    = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
             $aujourdhuiStr = $aujourdhui->format('Y-m-d');
 
             $hier = clone $aujourdhui;
@@ -30,14 +29,14 @@ class FileListUtils
 
             // Construire le pattern de recherche
             $pattern = $directory . "/*.{" . implode(",", $extensions) . "}";
-            $files = glob($pattern, GLOB_BRACE);
+            $files   = glob($pattern, GLOB_BRACE);
 
             foreach ($files as $file) {
                 if (is_file($file)) {
-                    $fileName = basename($file);
-                    $dateModif = filemtime($file);
-                    $taille = filesize($file);
-                    $dateModifDate = date('Y-m-d', $dateModif);
+                    $fileName       = basename($file);
+                    $dateModif      = filemtime($file);
+                    $taille         = filesize($file);
+                    $dateModifDate  = date('Y-m-d', $dateModif);
                     $dateModifHeure = date('H:i', $dateModif);
 
                     // Formater la taille du fichier
@@ -55,33 +54,33 @@ class FileListUtils
                     } elseif ($dateModifDate == $hierStr) {
                         $dateLabel = 'hier';
                     } else {
-                        $dateObj = \DateTime::createFromFormat('Y-m-d', $dateModifDate);
+                        $dateObj   = \DateTime::createFromFormat('Y-m-d', $dateModifDate);
                         $dateLabel = $dateObj->format('d/m/Y');
                     }
 
                     $result['files'][] = [
-                        'nom' => $fileName,
-                        'chemin' => $file,
-                        'date' => $dateLabel,
-                        'heure' => $dateModifHeure,
-                        'taille' => $tailleFormatee,
-                        'timestamp' => $dateModif
+                        'nom'       => $fileName,
+                        'chemin'    => $file,
+                        'date'      => $dateLabel,
+                        'heure'     => $dateModifHeure,
+                        'taille'    => $tailleFormatee,
+                        'timestamp' => $dateModif,
                     ];
                 }
             }
 
             // Trier les fichiers par date de modification (plus récent en premier)
-            usort($result['files'], function($a, $b) {
+            usort($result['files'], function ($a, $b) {
                 return $b['timestamp'] - $a['timestamp'];
             });
 
         } catch (\Exception $e) {
-            $result['ok'] = false;
+            $result['ok']       = false;
             $result['msgError'] = $e->getMessage();
             \Commun\Logger\Logger::getInstance()->error("Erreur lors de la liste des fichiers", [
-                'directory' => $directory,
+                'directory'  => $directory,
                 'extensions' => $extensions,
-                'error' => $result['msgError']
+                'error'      => $result['msgError'],
             ]);
         }
 
@@ -90,7 +89,7 @@ class FileListUtils
 
     /**
      * Supprime les fichiers plus vieux que X jours dans un répertoire
-     * 
+     *
      * @param string $directory Chemin du répertoire
      * @param int $days Nombre de jours avant suppression
      * @param array $extensions Extensions de fichiers à traiter (par défaut html et ods)
@@ -99,46 +98,46 @@ class FileListUtils
     public static function cleanOldFiles(string $directory, int $days, array $extensions = ['html', 'ods']): array
     {
         $result = [
-            'ok' => true,
-            'msgError' => '',
+            'ok'           => true,
+            'msgError'     => '',
             'filesDeleted' => [],
-            'countDeleted' => 0
+            'countDeleted' => 0,
         ];
 
         try {
-            if (!is_dir($directory)) {
+            if (! is_dir($directory)) {
                 throw new \Exception("Le dossier spécifié n'existe pas");
             }
 
             // Calculer la date limite
-            $now = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
-            $limitDate = $now->sub(new \DateInterval("P{$days}D"));
+            $now            = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
+            $limitDate      = $now->sub(new \DateInterval("P{$days}D"));
             $limitTimestamp = $limitDate->getTimestamp();
 
             // Construire le pattern de recherche
             $pattern = $directory . "/*.{" . implode(",", $extensions) . "}";
-            $files = glob($pattern, GLOB_BRACE);
+            $files   = glob($pattern, GLOB_BRACE);
 
             foreach ($files as $file) {
                 if (is_file($file)) {
                     $dateModif = filemtime($file);
-                    
+
                     // Si le fichier est plus vieux que la date limite
                     if ($dateModif < $limitTimestamp) {
                         $fileName = basename($file);
-                        
+
                         // Tentative de suppression
                         if (unlink($file)) {
                             $result['filesDeleted'][] = [
-                                'nom' => $fileName,
+                                'nom'    => $fileName,
                                 'chemin' => $file,
-                                'date' => date('Y-m-d H:i:s', $dateModif)
+                                'date'   => date('Y-m-d H:i:s', $dateModif),
                             ];
                             $result['countDeleted']++;
                         } else {
                             \Commun\Logger\Logger::getInstance()->warning("Impossible de supprimer le fichier", [
                                 'file' => $file,
-                                'date' => date('Y-m-d H:i:s', $dateModif)
+                                'date' => date('Y-m-d H:i:s', $dateModif),
                             ]);
                         }
                     }
@@ -146,13 +145,13 @@ class FileListUtils
             }
 
         } catch (\Exception $e) {
-            $result['ok'] = false;
+            $result['ok']       = false;
             $result['msgError'] = $e->getMessage();
             \Commun\Logger\Logger::getInstance()->error("Erreur lors du nettoyage des vieux fichiers", [
-                'directory' => $directory,
-                'days' => $days,
+                'directory'  => $directory,
+                'days'       => $days,
                 'extensions' => $extensions,
-                'error' => $result['msgError']
+                'error'      => $result['msgError'],
             ]);
         }
 

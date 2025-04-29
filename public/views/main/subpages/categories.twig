@@ -1,0 +1,128 @@
+<div class="flex-h w-available">
+    <div class="block" id="categories">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des communes et des brigades territorialement compétentes
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="categoriesTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide>id</th>
+                        <th id="niveau" th-edit th-class="small-caps-under">Niveau</th>
+                        <th id="categorie" th-edit th-sort th-class="small-caps-under">Catégorie</th>
+                        <th id="nature" th-edit th-sort th-class="small-caps-under">Nature de l'évènement</th>
+                        <th id="send" th-choice>A Transmettre</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in categories_tbl %}
+                        <tr id="{{c.id}}" name="{{ c.id }}">
+                            <td id="id_{{ c.id }}" name="name_{{ c.id }}">{{ c.id }}</td>
+                            <td id="niveau_{{ c.id }}" name="niveau_{{ c.id }}">{{ c.niveau }}</td>
+                            <td id="categorie_{{ c.id }}" name="categorie_{{ c.id }}">{{ c.categorie }}</td>
+                            <td id="nature_{{ c.id }}" name="nature_{{ c.id }}">{{ c.nature }}</td>
+                            <td id="send_{{ c.id }}" name="send_{{ c.id }}">{{ c.send }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+             <div class="block__buttons">
+                <div class="block__search">
+                    <div class="filter-group">
+                        <span>Rechercher dans le tableau</span>
+                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    const categoriesTable = new TableFlow({
+        tableId: 'categoriesTbl',
+        debug: true,
+        plugins: {
+            names: ['FilterAndPaginate', 'Edit', 'Sort', 'Actions', 'Choice','Hide'],
+            filterandpaginate: {
+                enableFilter: true,
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                icons: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    prev: '<i class="fas fa-chevron-left"></i>',
+                    next: '<i class="fas fa-chevron-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                columns: {
+                    'send': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: green">Transmis par mail</span>' },
+                            { value: '1', label: '<span style="color: red">Non transmis</span>' }
+                        ]
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: true,
+                actions: {
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            const data = {
+                                ...context.data,
+                                table: 'categories',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "categories", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

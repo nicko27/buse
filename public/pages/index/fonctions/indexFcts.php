@@ -9,37 +9,39 @@ $logger = Logger::getInstance()->getLogger();
 
 function initVars($get = [])
 {
-    $config                        = Config::getInstance();
-    $vars                          = [];
-    $vars['CSRF_TOKEN']            = $_SESSION['CSRF_TOKEN'];
-    $vars['ASSETS_DIR']            = $config->get('ASSETS_DIR');
-    $vars['SHORTCUT_ICON']         = $config->get('SHORTCUT_ICON');
-    $vars['WEB_ASSETS']            = $config->get('WEB_ASSETS');
-    $vars['PAGE_SHOW_PERMANENCES'] = $config->get('PAGE_SHOW_PERMANENCES');
-    $vars['PAGE_SHOW_TIMELINE']    = $config->get('PAGE_SHOW_TIMELINE');
-    $vars['PAGE_ACCUEIL']          = $config->get('PAGE_ACCUEIL');
-    $vars['PAGE_INDEX']            = $config->get('PAGE_INDEX');
-    $vars['PAGE_MAJ']              = $config->get('PAGE_MAJ');
-    $vars['INDEX']                 = $config->get('INDEX');
-    $vars['page']                  = $config->get('PAGE_INDEX');
-    $vars['VIEWS']                 = $config->get('VIEWS');
-    $vars['WEB_PAGES']             = $config->get('WEB_PAGES');
-    $vars['SITE']                  = $config->get('SITE');
-    $vars['SITE_FIRST_MAJ']        = ucfirst(strtolower($config->get('SITE')));
-    $vars['SITE_LONG_NAME']        = $config->get('SITE_LONG_NAME');
-    $vars['debug']                 = isset($_GET['debug']) ? $_GET['debug'] : 0;
-    $vars['SUBPAGE_SUIVI']         = $config->get('SUBPAGE_SUIVI');
-    $vars['SUBPAGE_UPDATE']        = $config->get('SUBPAGE_UPDATE');
-    $vars['SUBPAGE_SITES']         = $config->get('SUBPAGE_SITES');
-    $vars['SUBPAGE_CIES']          = $config->get('SUBPAGE_CIES');
-    $vars['SUBPAGE_SERVICES']      = $config->get('SUBPAGE_SERVICES');
-    $vars['SUBPAGE_UNITES']        = $config->get('SUBPAGE_UNITES');
-    $vars['SUBPAGE_UNITES_MANUAL'] = $config->get('SUBPAGE_UNITES_MANUAL');
-    $vars['SUBPAGE_UNITES_LDAP']   = $config->get('SUBPAGE_UNITES_LDAP');
-    $vars['SUBPAGE_SYNTHESE']      = $config->get('SUBPAGE_SYNTHESE');
-    $vars['WEB_PUBLIC']            = $config->get('WEB_PUBLIC');
-    $vars['WEB_SERVER']            = $config->get('WEB_SERVER');
-    $vars['PAGES']                 = $config->get('PAGES');
+    $config                           = Config::getInstance();
+    $vars                             = [];
+    $vars['CSRF_TOKEN']               = $_SESSION['CSRF_TOKEN'];
+    $vars['ASSETS_DIR']               = $config->get('ASSETS_DIR');
+    $vars['SHORTCUT_ICON']            = $config->get('SHORTCUT_ICON');
+    $vars['WEB_ASSETS']               = $config->get('WEB_ASSETS');
+    $vars['PAGE_SHOW_PERMANENCES']    = $config->get('PAGE_SHOW_PERMANENCES');
+    $vars['PAGE_SHOW_TIMELINE']       = $config->get('PAGE_SHOW_TIMELINE');
+    $vars['PAGE_ACCUEIL']             = $config->get('PAGE_ACCUEIL');
+    $vars['PAGE_INDEX']               = $config->get('PAGE_INDEX');
+    $vars['PAGE_MAJ']                 = $config->get('PAGE_MAJ');
+    $vars['INDEX']                    = $config->get('INDEX');
+    $vars['page']                     = $config->get('PAGE_INDEX');
+    $vars['VIEWS']                    = $config->get('VIEWS');
+    $vars['WEB_PAGES']                = $config->get('WEB_PAGES');
+    $vars['SITE']                     = $config->get('SITE');
+    $vars['SITE_FIRST_MAJ']           = ucfirst(strtolower($config->get('SITE')));
+    $vars['SITE_LONG_NAME']           = $config->get('SITE_LONG_NAME');
+    $vars['debug']                    = isset($_GET['debug']) ? $_GET['debug'] : 0;
+    $vars['SUBPAGE_SUIVI']            = $config->get('SUBPAGE_SUIVI');
+    $vars['SUBPAGE_UPDATE']           = $config->get('SUBPAGE_UPDATE');
+    $vars['SUBPAGE_SITES']            = $config->get('SUBPAGE_SITES');
+    $vars['SUBPAGE_CIES']             = $config->get('SUBPAGE_CIES');
+    $vars['SUBPAGE_SERVICES']         = $config->get('SUBPAGE_SERVICES');
+    $vars['SUBPAGE_UNITES']           = $config->get('SUBPAGE_UNITES');
+    $vars['SUBPAGE_UNITES_MANUELLES'] = $config->get('SUBPAGE_UNITES_MANUELLES');
+    $vars['SUBPAGE_UNITES_LDAP']      = $config->get('SUBPAGE_UNITES_LDAP');
+    $vars['SUBPAGE_SYNTHESE']         = $config->get('SUBPAGE_SYNTHESE');
+    $vars['SUBPAGE_CATEGORIES']       = $config->get('SUBPAGE_CATEGORIES');
+    $vars['SUBPAGE_CITIES']           = $config->get('SUBPAGE_CITIES');
+    $vars['WEB_PUBLIC']               = $config->get('WEB_PUBLIC');
+    $vars['WEB_SERVER']               = $config->get('WEB_SERVER');
+    $vars['PAGES_DIR']                = $config->get('PAGES_DIR');
 
     return $vars;
 }
@@ -50,8 +52,8 @@ function getPagesVars($page, $vars, $get)
     $vars['page']      = $page;
     $vars['page_root'] = $config->get('PAGES_LIST')[$vars['page']];
 
-    $pagePath = $config->get('PAGES') . "/" . $config->get('PAGES_LIST')[$page] . ".php";
-    if (!file_exists($pagePath)) {
+    $pagePath = $config->get('PAGES_DIR') . "/" . $config->get('PAGES_LIST')[$page] . ".php";
+    if (! file_exists($pagePath)) {
         throw new \Exception("Page file not found: " . $pagePath);
     }
     require_once $pagePath;

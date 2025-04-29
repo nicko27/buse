@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,75 +7,72 @@
     <title>Documentation TableFlow</title>
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --text-color: #333;
-            --code-bg: #f8f9fa;
-            --border-color: #e9ecef;
+            --primary-color: #4f46e5; /* Indigo */
+            --secondary-color: #10b981; /* Emerald */
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --code-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+            --nav-width: 280px; /* Largeur ajustée pour plus de contenu */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
             color: var(--text-color);
-            margin: 0;
-            padding: 0;
+            background: var(--bg-color);
+            padding: 2rem;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px; /* Augmenté pour plus d'espace */
             margin: 0 auto;
-            padding: 2rem;
         }
 
-        header {
-            background: var(--primary-color);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-        }
-
-        header .container {
-            text-align: center;
-        }
-
-        h1, h2, h3 {
+        h1, h2, h3, h4 {
+            margin: 1.5rem 0 1rem;
             color: var(--primary-color);
         }
 
-        header h1 {
-            color: white;
+        h1 {
+            font-size: 2.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
         }
 
-        .nav {
-            background: var(--secondary-color);
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        h2 {
+            font-size: 2rem;
+            margin-top: 3rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.4rem;
         }
 
-        .nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
+        h3 {
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            color: var(--secondary-color);
+        }
+         h4 {
+            font-size: 1.2rem;
+            margin-top: 2rem;
+            color: var(--text-color);
+            font-weight: 600;
         }
 
-        .nav a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
+
+        p, ul, ol {
+            margin-bottom: 1rem;
         }
 
-        .section {
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        ul, ol {
+            padding-left: 2rem;
         }
 
         code {
@@ -82,6 +80,7 @@
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
             font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
         }
 
         pre {
@@ -89,245 +88,961 @@
             padding: 1rem;
             border-radius: 8px;
             overflow-x: auto;
+            margin: 1rem 0;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
         }
 
         th, td {
-            padding: 0.75rem;
+            padding: 0.8rem 1rem; /* Padding augmenté */
+            text-align: left;
             border: 1px solid var(--border-color);
+            vertical-align: top; /* Meilleur alignement vertical */
         }
 
         th {
-            background: var(--primary-color);
-            color: white;
+            background: #f9fafb; /* Fond légèrement différent pour th */
+            font-weight: 600;
         }
 
-        .plugin-card {
+        .example {
             border: 1px solid var(--border-color);
             border-radius: 8px;
+            margin: 1.5rem 0;
+            background-color: #ffffff; /* Fond blanc pour exemples */
+        }
+
+        .example-preview {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .example-code {
             padding: 1rem;
+            background: var(--code-bg);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .nav {
+            position: fixed;
+            top: 1rem; /* Réduit l'espace en haut */
+            bottom: 1rem;
+            left: 1rem;
+            width: var(--nav-width);
+            overflow-y: auto;
+            padding: 1.5rem; /* Padding augmenté */
+            background: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            font-size: 0.9em;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            border-radius: 8px; /* Bords arrondis */
+        }
+
+        .nav h3 {
+            margin-top: 0;
+            font-size: 1.2em; /* Taille augmentée */
             margin-bottom: 1rem;
         }
+
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+         .nav > ul > li { /* Seulement le premier niveau */
+             margin-bottom: 0.8rem;
+             font-weight: 500;
+         }
+
+         .nav ul ul { /* Sous-menu pour les plugins */
+             padding-left: 1rem;
+             margin-top: 0.3rem;
+             font-weight: normal;
+         }
+         .nav ul ul li {
+             margin-bottom: 0.3rem;
+         }
+
+
+        .nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0; /* Padding augmenté */
+            border-radius: 4px;
+            padding-left: 0.5rem;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .nav a:hover, .nav a.active { /* Style actif ajouté */
+            text-decoration: none;
+            background-color: #eef2ff; /* Fond léger indigo */
+            color: #3730a3; /* Indigo foncé */
+        }
+
+        .content {
+            margin-left: calc(var(--nav-width) + 3rem); /* Marge augmentée */
+        }
+
+        .info-block, .warning-block {
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            border-left-width: 5px; /* Bordure plus épaisse */
+            border-left-style: solid;
+        }
+
+        .info-block {
+            background-color: #eef2ff; /* indigo-100 */
+            border-color: var(--primary-color);    /* indigo-600 */
+            color: #3730a3;       /* indigo-800 */
+        }
+
+        .warning-block {
+            background-color: #fffbeb;
+            border-color: #facc15;
+            color: #713f12;
+        }
+
+        /* Classe pour les attributs dans les tables */
+        .attr {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #c0392b; /* Rouge */
+        }
+        .type {
+            font-style: italic;
+            color: #7f8c8d; /* Gris */
+        }
+        .default {
+             font-family: 'Courier New', Courier, monospace;
+             color: #27ae60; /* Vert */
+             font-size: 0.9em;
+        }
+
+        @media (max-width: 1024px) { /* Ajusté le breakpoint */
+            .nav {
+                display: none;
+            }
+            .content {
+                margin-left: 0;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.6rem; }
+            h3 { font-size: 1.2rem; }
+            .container {
+                 padding: 1rem;
+            }
+            .example-preview, .example-code {
+                 padding: 1rem;
+            }
+        }
     </style>
+    <!-- Assurez-vous d'inclure tableFlow.css -->
+    <link rel="stylesheet" href="../src/tableFlow.css">
+    <!-- FontAwesome pour les icônes (utilisé par certains plugins) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 </head>
 <body>
-    <header>
-        <div class="container">
-            <h1>Documentation TableFlow</h1>
-            <p>Une bibliothèque JavaScript moderne pour la gestion des tableaux interactifs</p>
-        </div>
-    </header>
-
-    <nav class="nav">
-        <ul>
-            <li><a href="#introduction">Introduction</a></li>
-            <li><a href="#installation">Installation</a></li>
-            <li><a href="#configuration">Configuration</a></li>
-            <li><a href="#plugins">Plugins</a></li>
-            <li><a href="#exemples">Exemples</a></li>
-        </ul>
-    </nav>
-
     <div class="container">
-        <section id="introduction" class="section">
-            <h2>Introduction</h2>
-            <p>TableFlow est une bibliothèque JavaScript qui permet de créer des tableaux interactifs avec des fonctionnalités avancées comme l'édition en ligne, le tri, la pagination, et plus encore.</p>
-        </section>
+        <nav class="nav">
+            <h3>TableFlow</h3>
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#initialisation">Initialisation</a></li>
+                <li><a href="#concepts">Concepts Clés</a></li>
+                <li><a href="#api-core">API Core</a></li>
+                <li><a href="#plugins">Plugins Disponibles</a>
+                    <ul>
+                         <li><a href="#plugin-edit">Edit</a></li>
+                         <li><a href="#plugin-hide">Hide</a></li>
+                         <li><a href="#plugin-sort">Sort</a></li>
+                         <li><a href="#plugin-actions">Actions</a></li>
+                         <li><a href="#plugin-choice">Choice</a></li>
+                         <li><a href="#plugin-color">Color</a></li>
+                         <li><a href="#plugin-filterandpaginate">Filter & Paginate</a></li>
+                         <li><a href="#plugin-select">Select (Alternative)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#exemple-complet">Exemple Complet</a></li>
+                 <li><a href="#personnalisation-css">Personnalisation CSS</a></li>
+            </ul>
+        </nav>
 
-        <section id="installation" class="section">
-            <h2>Installation</h2>
-            <p>Pour utiliser TableFlow, importez simplement le module dans votre projet :</p>
-            <pre><code>import TableFlow from './path/to/tableFlow.js';</code></pre>
-        </section>
+        <div class="content">
+            <h1>Documentation TableFlow</h1>
 
-        <section id="configuration" class="section">
-            <h2>Configuration de base</h2>
-            <p>Voici un exemple de configuration basique :</p>
-            <pre><code>const table = new TableFlow({
-    tableId: 'monTableau',
-    debug: false,
-    cellWrapper: true,
-    plugins: {
-        // Configuration des plugins
-    }
-});</code></pre>
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>TableFlow est une bibliothèque JavaScript conçue pour transformer des tableaux HTML standard en composants interactifs et riches en fonctionnalités. Grâce à son système de plugins modulaires, vous pouvez facilement ajouter des capacités telles que l'édition en ligne, le tri, le filtrage, la pagination, la gestion des couleurs, les actions sur les lignes, et bien plus encore.</p>
+                <p>L'objectif est de fournir une base solide et extensible pour manipuler et interagir avec des données tabulaires directement dans le navigateur.</p>
+            </section>
 
-            <h3>Options principales</h3>
-            <table>
-                <tr>
-                    <th>Option</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                </tr>
-                <tr>
-                    <td>tableId</td>
-                    <td>string</td>
-                    <td>ID de l'élément table HTML</td>
-                </tr>
-                <tr>
-                    <td>debug</td>
-                    <td>boolean</td>
-                    <td>Active/désactive le mode debug</td>
-                </tr>
-                <tr>
-                    <td>cellWrapper</td>
-                    <td>boolean</td>
-                    <td>Ajoute un wrapper autour des cellules</td>
-                </tr>
-            </table>
-        </section>
+            <section id="installation">
+                <h2>Installation</h2>
+                <p>Pour utiliser TableFlow et ses plugins, vous devez inclure le fichier JavaScript principal <code>tableFlow.js</code>. Les plugins sont généralement chargés dynamiquement par le script principal à partir d'un dossier spécifié.</p>
+                <pre><code>&lt;!-- Feuille de style de TableFlow (Optionnel mais recommandé) --&gt;
+&lt;link rel="stylesheet" href="path/to/tableFlow.css"&gt;
 
-        <section id="plugins" class="section">
-            <h2>Plugins disponibles</h2>
+&lt;!-- FontAwesome (si vous utilisez les icônes par défaut des plugins Actions/Sort) --&gt;
+&lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"&gt;
 
-            <div class="plugin-card">
-                <h3>Plugin d'édition (edit.js)</h3>
-                <p>Permet l'édition directe des cellules du tableau.</p>
-                <pre><code>edit: {
-    path: '../plugins/edit.js'
-}</code></pre>
-            </div>
+&lt;!-- Script principal de TableFlow (doit être de type module si les plugins utilisent import/export) --&gt;
+&lt;script type="module" src="path/to/tableFlow.js"&gt;&lt;/script&gt;
 
-            <div class="plugin-card">
-                <h3>Plugin de tri (sort.js)</h3>
-                <p>Ajoute la fonctionnalité de tri sur les colonnes.</p>
-                <pre><code>sort: {
-    path: '../plugins/sort.js',
-    config: {
-        sortableAttribute: 'th-sort'
-    }
-}</code></pre>
-            </div>
+&lt;!-- Initialisation dans votre script --&gt;
+&lt;script type="module"&gt;
+  import TableFlow from './path/to/tableFlow.js'; // Ajustez le chemin
+  document.addEventListener('DOMContentLoaded', () => {
+    const table = new TableFlow({
+      tableId: 'monTableau',
+      // ... configuration ...
+    });
+  });
+&lt;/script&gt;</code></pre>
+                 <div class="info-block">
+                     <strong>Note :</strong> Le script principal <code>tableFlow.js</code> et les scripts des plugins utilisent la syntaxe des modules ES6 (<code>import</code>/<code>export</code>). Assurez-vous que votre environnement les supporte ou utilisez un bundler (Webpack, Rollup, Parcel) pour les transpiler. Le script principal doit être chargé avec <code>type="module"</code>.
+                </div>
+            </section>
 
-            <div class="plugin-card">
-                <h3>Plugin de couleur (color.js)</h3>
-                <p>Permet la gestion des couleurs dans les cellules.</p>
-                <pre><code>color: {
-    path: '../plugins/color.js',
-    config: {
-        colorAttribute: 'th-color',
-        customClass: 'glass'
-    }
-}</code></pre>
-            </div>
+            <section id="initialisation">
+                <h2>Initialisation</h2>
+                <p>Vous initialisez TableFlow en créant une nouvelle instance de la classe <code>TableFlow</code> et en lui passant un objet de configuration.</p>
+                 <pre><code class="language-javascript">// Exemple d'initialisation
+document.addEventListener('DOMContentLoaded', () => {
+    const table = new TableFlow({
+        tableId: 'monTableau', // Requis: ID de l'élément <table>
+        pluginsPath: '../plugins', // Chemin vers le dossier des plugins .js
+        debug: false, // Active les logs dans la console
+        cellWrapper: true, // Ajoute un <div class="cell-wrapper"> dans chaque <td>
+        headWrapper: true, // Ajoute un <div class="head-wrapper"> dans chaque <th>
+        cellWrapperClass: 'cell-wrapper', // Classe CSS pour le wrapper de cellule
+        headWrapperClass: 'head-wrapper', // Classe CSS pour le wrapper d'en-tête
 
-            <div class="plugin-card">
-                <h3>Plugin d'actions (actions.js)</h3>
-                <p>Ajoute des boutons d'action pour chaque ligne.</p>
-                <pre><code>actions: {
-    path: '../plugins/actions.js',
-    config: {
-        actionAttribute: 'th-actions',
-        cellClass: 'td-actions',
-        useIcons: true,
-        actions: {
-            delete: (context) => handleAction(context, 'delete'),
-            save: (context) => handleAction(context, 'save')
-        }
-    }
-}</code></pre>
-            </div>
+        // Configuration des plugins à activer
+        plugins: {
+            // Liste des noms de plugins (correspondant aux noms de fichiers .js sans extension)
+            names: ['Sort', 'Edit', 'Actions'],
 
-            <div class="plugin-card">
-                <h3>Plugin de filtrage et pagination (filterandpaginate.js)</h3>
-                <p>Ajoute des fonctionnalités de filtrage et pagination au tableau.</p>
-                <pre><code>filterAndPaginate: {
-    path: '../plugins/filterandpaginate.js',
-    config: {
-        itemsPerPage: 10,
-        filterAttribute: 'th-filter'
-    }
-}</code></pre>
-            </div>
-
-            <div class="plugin-card">
-                <h3>Plugin de sélection (select.js)</h3>
-                <p>Permet la sélection de lignes avec des cases à cocher.</p>
-                <pre><code>select: {
-    path: '../plugins/select.js',
-    config: {
-        selectableAttribute: 'th-select',
-        multiSelect: true
-    }
-}</code></pre>
-            </div>
-        </section>
-
-        <section id="exemples" class="section">
-            <h2>Exemples d'utilisation</h2>
-
-            <h3>Configuration complète</h3>
-            <pre><code>const ACTIONS_URL = "/main/actions.php";
-const PLUGINS_BASE_PATH = '../plugins/';
-
-const handleAction = (context, action, module = "default") => {
-    actionRow(ACTIONS_URL, context.data, module, action)
-        .then(result => {
-            if (result) {
-                successNotice('Ligne mise à jour avec succès');
-                context.tableHandler.markRowAsSaved(context.row, action);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-};
-
-const table = new TableFlow({
-    tableId: 'monTableau',
-    debug: false,
-    cellWrapper: true,
-    plugins: {
-        edit: {
-            path: PLUGINS_BASE_PATH + 'edit.js'
-        },
-        sort: {
-            path: PLUGINS_BASE_PATH + 'sort.js',
-            config: {
-                sortableAttribute: 'th-sort'
-            }
-        },
-        color: {
-            path: PLUGINS_BASE_PATH + 'color.js',
-            config: {
-                colorAttribute: 'th-color'
-            }
-        },
-        actions: {
-            path: PLUGINS_BASE_PATH + 'actions.js',
-            config: {
+            // Configuration spécifique pour chaque plugin activé (clé = nom du plugin en minuscules)
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true
+            },
+            edit: {
+                editAttribute: 'th-edit',
+                // ... autres options pour 'edit'
+            },
+            actions: {
                 actionAttribute: 'th-actions',
-                useIcons: true,
-                actions: {
-                    delete: (context) => handleAction(context, 'delete'),
-                    save: (context) => handleAction(context, 'save')
-                }
+                actions: { /* ... définitions des handlers ... */ }
             }
-        }
-    }
+            // ... configuration pour d'autres plugins ...
+        },
+
+        // Callbacks globaux (optionnel)
+        onSort: (details) => console.log('Tri effectué:', details),
+        onFilter: (filterValue) => console.log('Filtrage:', filterValue),
+        onEdit: (details) => console.log('Cellule éditée:', details), // Note: plus spécifique via plugin
+        onChoice: (details) => console.log('Choix effectué:', details) // Note: plus spécifique via plugin
+    });
 });</code></pre>
 
-            <h3>Structure HTML correspondante</h3>
-            <pre><code>&lt;table id="monTableau"&gt;
+                <h3>Options d'Initialisation</h3>
+                <table>
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">tableId</code></td><td class="type">string</td><td><i>Requis</i></td><td>ID de l'élément <code>&lt;table&gt;</code> HTML à cibler.</td></tr>
+                        <tr><td><code class="attr">plugins</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet pour configurer les plugins. Contient une clé <code>names</code> (tableau des noms de plugins à charger) et des clés additionnelles (nom du plugin en minuscules) pour leur configuration spécifique.</td></tr>
+                        <tr><td><code class="attr">pluginsPath</code></td><td class="type">string</td><td><code>'../plugins'</code></td><td>Chemin relatif (depuis `tableFlow.js`) ou absolu vers le dossier contenant les fichiers <code>.js</code> des plugins.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Si <code>true</code>, active les messages de débogage dans la console.</td></tr>
+                        <tr><td><code class="attr">cellWrapper</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si <code>true</code>, enveloppe le contenu de chaque <code>&lt;td&gt;</code> dans un <code>&lt;div&gt;</code> avec la classe définie par <code>cellWrapperClass</code>. Utile pour certains plugins.</td></tr>
+                         <tr><td><code class="attr">headWrapper</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si <code>true</code>, enveloppe le contenu de chaque <code>&lt;th&gt;</code> dans un <code>&lt;div&gt;</code> avec la classe définie par <code>headWrapperClass</code>.</td></tr>
+                         <tr><td><code class="attr">cellWrapperClass</code></td><td class="type">string</td><td><code class="default">'cell-wrapper'</code></td><td>Classe CSS appliquée aux wrappers de cellules si <code>cellWrapper</code> est <code>true</code>.</td></tr>
+                        <tr><td><code class="attr">headWrapperClass</code></td><td class="type">string</td><td><code class="default">'head-wrapper'</code></td><td>Classe CSS appliquée aux wrappers d'en-têtes si <code>headWrapper</code> est <code>true</code>.</td></tr>
+                        <tr><td><code class="attr">onSort</code></td><td class="type">function</td><td><code>null</code></td><td>Callback appelé après un tri. Reçoit un objet détail.</td></tr>
+                        <tr><td><code class="attr">onFilter</code></td><td class="type">function</td><td><code>null</code></td><td>Callback appelé après un filtrage. Reçoit la valeur du filtre.</td></tr>
+                        <tr><td><code class="attr">onEdit</code></td><td class="type">function</td><td><code>null</code></td><td>Callback général d'édition (souvent géré plus finement par le plugin Edit).</td></tr>
+                         <tr><td><code class="attr">onChoice</code></td><td class="type">function</td><td><code>null</code></td><td>Callback général de sélection (souvent géré plus finement par le plugin Choice/Select).</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+             <section id="concepts">
+                <h2>Concepts Clés</h2>
+                <ul>
+                    <li><strong>Système de Plugins :</strong> TableFlow charge dynamiquement les plugins spécifiés. Chaque plugin ajoute une fonctionnalité spécifique (tri, édition, etc.).</li>
+                    <li><strong>Attributs HTML :</strong> La configuration au niveau des colonnes (activer le tri, l'édition, définir des actions) se fait principalement via des attributs <code>th-*</code> sur les balises <code>&lt;th&gt;</code>.</li>
+                     <li><strong>Wrappers de Cellules :</strong> Les options <code>cellWrapper</code> et <code>headWrapper</code> ajoutent des <code>&lt;div&gt;</code> autour du contenu des cellules et en-têtes. C'est souvent utile pour le style et pour certains plugins qui manipulent le contenu sans casser la structure de la cellule.</li>
+                    <li><strong>Gestion d'État :</strong> Les plugins (comme Edit, Actions) tracent l'état initial et modifié des cellules/lignes en utilisant des attributs `data-initial-value`, `data-value` et la classe `modified`.</li>
+                    <li><strong>Événements :</strong> Les plugins communiquent et réagissent aux changements via des événements DOM personnalisés (ex: <code>cell:change</code>, <code>row:saved</code>, <code>sortAppened</code>).</li>
+                </ul>
+             </section>
+
+            <section id="api-core">
+                 <h2>API Core (Méthodes de l'instance TableFlow)</h2>
+                 <p>L'instance créée avec <code>new TableFlow(...)</code> expose plusieurs méthodes pour interagir avec le tableau :</p>
+                 <table>
+                     <thead>
+                         <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code>getVisibleRows()</code></td><td>-</td><td>Retourne un tableau des éléments <code>&lt;tr&gt;</code> actuellement visibles (non filtrés).</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
+                         <tr><td><code>getAllRows()</code></td><td>-</td><td>Retourne un tableau de tous les éléments <code>&lt;tr&gt;</code> du <code>&lt;tbody&gt;</code>.</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
+                         <tr><td><code>getHeaderCell(columnIndex)</code></td><td><code class="attr">columnIndex</code> <span class="type">(number)</span></td><td>Retourne l'élément <code>&lt;th&gt;</code> à l'index spécifié.</td><td class="type">HTMLTableCellElement | null</td></tr>
+                         <tr><td><code>isEditable()</code></td><td>-</td><td>Vérifie si la table est éditable (basé sur l'attribut <code>th-readonly</code> sur <code>&lt;table&gt;</code> - non documenté mais présent dans le code ? *Vérifier*). Actuellement retourne toujours `true`.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>isRowModified(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Vérifie si une ligne a été modifiée par rapport à son état initial (basé sur la classe `modified`, les attributs `data-modified` ou la comparaison `data-value` vs `data-initial-value`).</td><td class="type">boolean</td></tr>
+                         <tr><td><code>markRowAsModified(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Ajoute/retire la classe <code>modified</code> sur la ligne en fonction de son état de modification actuel.</td><td class="type">void</td></tr>
+                         <tr><td><code>updateCellValue(row, columnId, value)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span>, <code class="attr">columnId</code> <span class="type">(string)</span>, <code class="attr">value</code> <span class="type">(any)</span></td><td>Met à jour le contenu textuel de la cellule correspondant à `columnId` dans la `row` spécifiée. Utilise le wrapper si présent. Marque la ligne comme modifiée.</td><td class="type">void</td></tr>
+                         <tr><td><code>markRowAsSaved(row, options)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span>, <code class="attr">options</code> <span class="type">(object, optionnel)</span></td><td>Marque une ligne comme sauvegardée : met à jour les `data-initial-value` avec les `data-value` actuels, retire la classe `modified`, et déclenche l'événement `row:saved` (en passant l'`options` aux plugins).</td><td class="type">void</td></tr>
+                         <tr><td><code>addRow(data, position)</code></td><td><code class="attr">data</code> <span class="type">(Array|Object, optionnel)</span>, <code class="attr">position</code> <span class="type">(string, optionnel)</span></td><td>Ajoute une nouvelle ligne au tableau. `data` peut être un tableau de valeurs (ordre des colonnes) ou un objet `{ columnId: value }`. `position` peut être <code>'start'</code> ou <code>'end'</code> (défaut). Déclenche `row:added` et rafraîchit les plugins.</td><td class="type">HTMLTableRowElement</td></tr>
+                         <tr><td><code>removeRow(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Supprime une ligne du tableau. Déclenche `row:removing` avant et `row:removed` après. Rafraîchit les plugins.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>getRowData(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Récupère les données d'une ligne sous forme d'objet `{ columnId: value }`, en utilisant `data-value` si présent, sinon le contenu textuel. Exclut les colonnes d'actions. Ajoute `id` si la ligne a un ID.</td><td class="type">object</td></tr>
+                         <tr><td><code>refreshPlugins()</code></td><td>-</td><td>Appelle la méthode `refresh()` (si elle existe) sur tous les plugins actifs.</td><td class="type">void</td></tr>
+                         <tr><td><code>destroy()</code></td><td>-</td><td>Nettoie l'instance TableFlow et appelle `destroy()` sur tous les plugins actifs.</td><td class="type">void</td></tr>
+                         <tr><td><code>hasPlugin(name)</code></td><td><code class="attr">name</code> <span class="type">(string)</span></td><td>Vérifie si un plugin est actif.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>getPlugin(name)</code></td><td><code class="attr">name</code> <span class="type">(string)</span></td><td>Retourne l'instance d'un plugin actif.</td><td class="type">object | null</td></tr>
+                         <tr><td><code>notify(type, message)</code></td><td><code class="attr">type</code> <span class="type">(string)</span>, <code class="attr">message</code> <span class="type">(string)</span></td><td>Affiche une notification en utilisant le système configuré (si fourni dans les options `notifications`).</td><td class="type">void</td></tr>
+                     </tbody>
+                 </table>
+             </section>
+
+            <section id="plugins">
+                <h2>Plugins Disponibles</h2>
+                <p>Activez les plugins en les listant dans l'option <code>plugins.names</code> et configurez-les via <code>plugins.[nom_plugin_minuscule]</code>.</p>
+
+                <!-- Documentation pour chaque plugin -->
+                <h3 id="plugin-edit">Plugin Edit (<code>edit.js</code>)</h3>
+                <p>Permet l'édition en ligne des cellules par double-clic et intègre la validation.</p>
+                <h4>Attributs HTML</h4>
+                <ul>
+                    <li><code>th-edit</code>: Sur <code>&lt;th&gt;</code> pour rendre la colonne éditable.</li>
+                    <li><code>th-validate</code>: Sur <code>&lt;th&gt;</code>. Contient une chaîne JSON pour configurer la validation (voir ci-dessous).</li>
+                </ul>
+                <h4>Configuration JS (<code>plugins.edit</code>)</h4>
+                <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">editAttribute</code></td><td class="type">string</td><td><code class="default">'th-edit'</code></td><td>Attribut pour identifier les colonnes éditables.</td></tr>
+                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-edit'</code></td><td>Classe CSS ajoutée aux cellules éditables.</td></tr>
+                         <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS pour marquer une cellule comme non éditable (ajoutée manuellement ou par un autre plugin).</td></tr>
+                         <tr><td><code class="attr">inputClass</code></td><td class="type">string</td><td><code class="default">'edit-input'</code></td><td>Classe CSS de l'input créé lors de l'édition.</td></tr>
+                         <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS ajoutée à la ligne (`tr`) si une cellule est modifiée.</td></tr>
+                         <tr><td><code class="attr">validateAttribute</code></td><td class="type">string</td><td><code class="default">'th-validate'</code></td><td>Attribut pour la configuration de validation.</td></tr>
+                         <tr><td><code class="attr">validateClass</code></td><td class="type">string</td><td><code class="default">'validate-cell'</code></td><td>Classe CSS ajoutée aux cellules avec validation.</td></tr>
+                         <tr><td><code class="attr">invalidClass</code></td><td class="type">string</td><td><code class="default">'invalid'</code></td><td>Classe CSS ajoutée à la cellule si la validation échoue.</td></tr>
+                         <tr><td><code class="attr">errorClass</code></td><td class="type">string</td><td><code class="default">'validation-error'</code></td><td>Classe CSS du conteneur du message d'erreur.</td></tr>
+                         <tr><td><code class="attr">validators</code></td><td class="type">object</td><td>Voir code</td><td>Permet de surcharger ou d'ajouter des fonctions de validation globales.</td></tr>
+                     </tbody>
+                </table>
+                 <h4>Validation (Attribut <code>th-validate</code> JSON)</h4>
+                 <pre><code>&lt;th th-edit th-validate='{
+    "required": true,           // Champ obligatoire
+    "minLength": 5,             // Longueur minimale
+    "maxLength": 50,            // Longueur maximale
+    "type": "email"             // Type prédéfini: "email", "number", "date", "regex", "custom"
+    "min": 10,                  // Pour type="number" ou "date" (format AAAA-MM-JJ)
+    "max": 100,                 // Pour type="number" ou "date" (format AAAA-MM-JJ)
+    "integer": true,            // Pour type="number", si entier requis
+    "pattern": "^[A-Z]+$",      // Pour type="regex", expression régulière
+    "patternMessage": "Majuscules uniquement" // Message si pattern échoue
+}'&gt;Colonne Validée&lt;/th&gt;</code></pre>
+                <p>Le type <code>custom</code> n'est pas directement utilisable via JSON mais via l'option JS <code>validators</code>.</p>
+                <h4>Fonctionnement</h4>
+                <p>Double-cliquez sur une cellule pour l'éditer. Un champ <code>&lt;input&gt;</code> approprié apparaît. La validation (si configurée) s'applique en temps réel. Appuyez sur <code>Entrée</code> ou cliquez en dehors pour sauvegarder (si valide). Appuyez sur <code>Échap</code> pour annuler. Déclenche l'événement <code>cell:change</code>.</p>
+
+
+                <h3 id="plugin-hide">Plugin Hide (<code>hide.js</code>)</h3>
+                 <p>Permet de masquer des colonnes au chargement.</p>
+                 <h4>Attributs HTML</h4>
+                <ul>
+                    <li><code>th-hide</code>: Sur <code>&lt;th&gt;</code> pour masquer la colonne correspondante.</li>
+                </ul>
+                 <h4>Configuration JS (<code>plugins.hide</code>)</h4>
+                 <p>Aucune option de configuration spécifique dans cette version.</p>
+                <h4>Fonctionnement</h4>
+                <p>Les colonnes (<code>th</code> et <code>td</code> correspondantes) ayant l'attribut <code>th-hide</code> sur leur en-tête seront masquées (<code>display: none</code>) lors de l'initialisation et du rafraîchissement.</p>
+
+                <h3 id="plugin-sort">Plugin Sort (<code>sort.js</code>)</h3>
+                <p>Permet de trier le tableau en cliquant sur les en-têtes de colonnes.</p>
+                 <h4>Attributs HTML</h4>
+                 <ul>
+                    <li><code>th-sort</code>: Sur <code>&lt;th&gt;</code> pour activer le tri sur cette colonne.</li>
+                    <li><code>data-sort-value</code>: Sur <code>&lt;td&gt;</code> (optionnel) pour fournir une valeur de tri différente du contenu textuel (ex: timestamp pour une date formatée).</li>
+                 </ul>
+                 <h4>Configuration JS (<code>plugins.sort</code>)</h4>
+                <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">sortableAttribute</code></td><td class="type">string</td><td><code class="default">'th-sort'</code></td><td>Attribut pour identifier les colonnes triables.</td></tr>
+                         <tr><td><code class="attr">showIcons</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher les icônes de tri dans l'en-tête.</td></tr>
+                         <tr><td><code class="attr">icons</code></td><td class="type">object</td><td>Voir code</td><td>Objet contenant le HTML des icônes pour les états `asc`, `desc`, `none`.</td></tr>
+                         <tr><td><code class="attr">iconAsc</code>, <code>iconDesc</code>, <code>iconNone</code></td><td class="type">string</td><td>HTML FontAwesome</td><td>HTML pour chaque icône (alternative à `icons`).</td></tr>
+                         <tr><td><code class="attr">ignoreCase</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Ignorer la casse lors du tri textuel.</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Fonctionnement</h4>
+                 <p>Cliquez sur un en-tête avec <code>th-sort</code> pour trier. Les clics successifs alternent entre ordre ascendant, descendant et retour à l'ordre initial. Le tri essaie de détecter les nombres. Déclenche l'événement <code>sortAppened</code>.</p>
+
+                <h3 id="plugin-actions">Plugin Actions (<code>actions.js</code>)</h3>
+                <p>Ajoute des boutons d'action (ex: sauvegarder, supprimer) à une colonne spécifique pour chaque ligne.</p>
+                <h4>Attributs HTML</h4>
+                <ul>
+                    <li><code>th-actions="action1,action2,..."</code>: Sur <code>&lt;th&gt;</code> pour définir les actions disponibles dans cette colonne. Les noms d'action doivent correspondre aux clés de l'objet <code>actions</code> dans la configuration JS.</li>
+                    <li><code>th-sql-exclude</code>: Sur <code>&lt;th&gt;</code> d'une colonne de données pour l'exclure des données récupérées par <code>getRowData()</code> (utilisé par le handler d'action).</li>
+                </ul>
+                <h4>Configuration JS (<code>plugins.actions</code>)</h4>
+                 <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">actionAttribute</code></td><td class="type">string</td><td><code class="default">'th-actions'</code></td><td>Attribut pour définir les actions sur le <code>th</code>.</td></tr>
+                         <tr><td><code class="attr">sqlExcludeAttribute</code></td><td class="type">string</td><td><code class="default">'th-sql-exclude'</code></td><td>Attribut pour exclure une colonne des données envoyées.</td></tr>
+                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-actions'</code></td><td>Classe CSS ajoutée à la cellule contenant les actions.</td></tr>
+                         <tr><td><code class="attr">useIcons</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Utiliser les icônes définies dans `icons` au lieu des labels définis dans `labels`.</td></tr>
+                         <tr><td><code class="attr">showOnChange</code></td><td class="type">boolean|Array&lt;string&gt;</td><td><code>[]</code></td><td>Si `true`, toutes les actions (sauf si surchargé par action) ne s'affichent que si la ligne est modifiée. Si c'est un tableau de noms d'actions, seules ces actions s'afficheront si la ligne est modifiée.</td></tr>
+                         <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour détecter si une ligne est modifiée.</td></tr>
+                          <tr><td><code class="attr">actions</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet définissant les actions. Clé = nom de l'action. Valeur = objet <code>{ handler: function(context), showOnChange: boolean, autoSave: boolean }</code>. Le `handler` reçoit un objet `context` avec `{ row, cell, tableHandler, data, source }`.</td></tr>
+                          <tr><td><code class="attr">icons</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet mapant les noms d'action à leur code HTML d'icône.</td></tr>
+                         <tr><td><code class="attr">labels</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet mapant les noms d'action à leur label textuel (utilisé si `useIcons` est `false`).</td></tr>
+                         <tr><td><code class="attr">confirmMessages</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet mapant les noms d'action à un message de confirmation à afficher avant d'exécuter l'action.</td></tr>
+                         <tr><td><code class="attr">autoSave</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Si `true`, déclenche automatiquement l'action 'save' (si elle existe) après chaque modification de cellule validée. Peut être surchargé par action.</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Fonctionnement</h4>
+                 <p>Le plugin ajoute les boutons définis dans les cellules de la colonne marquée par <code>th-actions</code>. Cliquer sur un bouton exécute le `handler` correspondant. Il gère l'affichage conditionnel des boutons basé sur l'état `modified` de la ligne et peut demander confirmation.</p>
+
+                <h3 id="plugin-choice">Plugin Choice (<code>choice.js</code>)</h3>
+                <p>Transforme les cellules en sélecteurs de valeurs prédéfinies, avec un mode 'toggle' (clic pour changer) ou 'searchable' (liste déroulante avec recherche).</p>
+                <h4>Attributs HTML</h4>
+                <ul>
+                    <li><code>th-choice</code>: Sur <code>&lt;th&gt;</code> pour activer le plugin. La valeur de l'attribut peut être <code>"toggle"</code> ou <code>"searchable"</code> pour forcer un mode (sinon défini par la config JS). L'ID du <code>th</code> est utilisé pour lier à la configuration JS.</li>
+                    <li><code>data-value</code>: Sur <code>&lt;td&gt;</code> pour stocker la valeur sélectionnée.</li>
+                </ul>
+                 <h4>Configuration JS (<code>plugins.choice</code>)</h4>
+                 <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">choiceAttribute</code></td><td class="type">string</td><td><code class="default">'th-choice'</code></td><td>Attribut pour identifier les colonnes de choix.</td></tr>
+                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'choice-cell'</code></td><td>Classe CSS ajoutée aux cellules gérées.</td></tr>
+                         <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS pour marquer une cellule non modifiable.</td></tr>
+                         <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS ajoutée à la ligne si la valeur change.</td></tr>
+                         <tr><td><code class="attr">columns</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet clé/valeur où la clé est l'ID du <code>th</code> et la valeur est l'objet de configuration de la colonne (voir ci-dessous).</td></tr>
+                     </tbody>
+                 </table>
+                  <h4>Configuration par Colonne (dans <code>plugins.choice.columns</code>)</h4>
+                   <pre><code>columns: {
+    'colonneId': {
+        type: 'toggle', // ou 'searchable'. Défaut: 'toggle'
+        values: [       // Requis: Tableau des choix disponibles
+            { value: 'val1', label: 'Libellé 1' },
+            { value: 'val2', label: 'Libellé 2', class: 'css-val2' }, // Classe CSS optionnelle
+            // ... autres valeurs ...
+        ],
+        readOnlyValues: [ // Optionnel: Valeurs qui ne peuvent pas être sélectionnées
+             { value: 'valReadOnly', class: 'locked-style' }
+        ],
+        searchable: { // Options spécifiques pour type='searchable'
+            minWidth: '180px',
+            dropdownClass: 'custom-dropdown',
+            optionClass: 'custom-option',
+            searchClass: 'custom-search',
+            placeholder: 'Filtrer...',
+            noResultsText: 'Rien trouvé'
+        }
+    }
+}</code></pre>
+                 <h4>Fonctionnement</h4>
+                 <ul>
+                     <li><strong>Toggle :</strong> Cliquer sur la cellule fait défiler les <code>values</code> disponibles.</li>
+                     <li><strong>Searchable :</strong> Cliquer sur la cellule ouvre une liste déroulante avec un champ de recherche pour filtrer les <code>values</code>.</li>
+                 </ul>
+                 <p>Met à jour <code>data-value</code> et le contenu de la cellule (affiche le `label`). Déclenche <code>cell:change</code>.</p>
+
+                 <h3 id="plugin-color">Plugin Color (<code>color.js</code>)</h3>
+                 <p>Permet de sélectionner une couleur pour une cellule à l'aide de la bibliothèque externe `ColorFlow`.</p>
+                 <h4>Attributs HTML</h4>
+                 <ul>
+                    <li><code>th-color</code>: Sur <code>&lt;th&gt;</code> pour activer le sélecteur de couleur.</li>
+                     <li><code>data-value</code>: Sur <code>&lt;td&gt;</code>, stocke la couleur au format hexadécimal.</li>
+                 </ul>
+                 <h4>Configuration JS (<code>plugins.color</code>)</h4>
+                 <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">colorAttribute</code></td><td class="type">string</td><td><code class="default">'th-color'</code></td><td>Attribut pour identifier les colonnes couleur.</td></tr>
+                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-color'</code></td><td>Classe CSS ajoutée aux cellules couleur.</td></tr>
+                          <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe pour marquer la cellule non modifiable.</td></tr>
+                          <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe ajoutée à la ligne si la couleur change.</td></tr>
+                         <tr><td><code class="attr">customClass</code></td><td class="type">string</td><td><code>''</code></td><td>Classe CSS personnalisée passée à l'instance `ColorFlow` pour styler le sélecteur.</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Fonctionnement</h4>
+                 <p>Transforme le contenu de la cellule en un input `ColorFlow` (avec aperçu). Cliquer ouvre le sélecteur ColorFlow. La valeur est stockée dans `data-value` en hexadécimal. Déclenche <code>cell:change</code>.</p>
+                 <div class="warning-block">
+                    <strong>Dépendance :</strong> Ce plugin nécessite que la bibliothèque `ColorFlow` (fournie dans tes fichiers) soit chargée et disponible globalement (ou via module).
+                 </div>
+
+                <h3 id="plugin-filterandpaginate">Plugin Filter & Paginate (<code>filterandpaginate.js</code>)</h3>
+                <p>Ajoute un filtre global (et potentiellement par colonne) ainsi qu'une pagination au tableau.</p>
+                 <h4>Attributs HTML</h4>
+                 <ul>
+                     <li><code>data-filter-value</code>: Sur <code>&lt;td&gt;</code> (optionnel) pour fournir une valeur de filtrage différente du contenu textuel.</li>
+                 </ul>
+                 <h4>Configuration JS (<code>plugins.filterandpaginate</code>)</h4>
+                <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">enableFilter</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Activer la fonctionnalité de filtrage.</td></tr>
+                         <tr><td><code class="attr">globalFilter</code></td><td class="type">string</td><td><code>null</code></td><td>Sélecteur CSS pour l'input de filtre global.</td></tr>
+                         <tr><td><code class="attr">debounceTime</code></td><td class="type">number</td><td><code class="default">300</code></td><td>Délai (ms) avant d'appliquer le filtre après saisie.</td></tr>
+                         <tr><td><code class="attr">pageSize</code></td><td class="type">number</td><td><code class="default">10</code></td><td>Nombre de lignes par page par défaut.</td></tr>
+                         <tr><td><code class="attr">pageSizes</code></td><td class="type">Array&lt;number&gt;</td><td><code>[10, 25, 50, 100]</code></td><td>Options pour le sélecteur de taille de page.</td></tr>
+                         <tr><td><code class="attr">containerClass</code></td><td class="type">string</td><td><code class="default">'pagination-container'</code></td><td>Classe CSS du conteneur global (ajouté après la table).</td></tr>
+                         <tr><td><code class="attr">paginationClass</code></td><td class="type">string</td><td><code class="default">'pagination'</code></td><td>Classe CSS du conteneur des boutons de pagination.</td></tr>
+                         <tr><td><code class="attr">activeClass</code></td><td class="type">string</td><td><code class="default">'active'</code></td><td>Classe CSS pour le bouton de page active.</td></tr>
+                         <tr><td><code class="attr">disabledClass</code></td><td class="type">string</td><td><code class="default">'disabled'</code></td><td>Classe CSS pour les boutons désactivés.</td></tr>
+                         <tr><td><code class="attr">selectClass</code></td><td class="type">string</td><td><code class="default">'form-select'</code></td><td>Classe CSS pour le sélecteur de taille de page.</td></tr>
+                         <tr><td><code class="attr">btnClass</code></td><td class="type">string</td><td><code class="default">'btn btn-glass btn-glass-blue'</code></td><td>Classe(s) CSS pour les boutons de pagination.</td></tr>
+                         <tr><td><code class="attr">showPageSizes</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher le sélecteur de taille de page.</td></tr>
+                         <tr><td><code class="attr">showInfo</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher l'info "Affichage de X à Y sur Z entrées".</td></tr>
+                         <tr><td><code class="attr">labels</code></td><td class="type">object</td><td>Voir code</td><td>Textes pour les boutons et l'info.</td></tr>
+                          <tr><td><code class="attr">icons</code></td><td class="type">object</td><td>Voir code</td><td>HTML pour les icônes des boutons (alternative aux `labels`).</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Fonctionnement</h4>
+                 <p>Ajoute des contrôles de pagination et de filtrage (si configuré) sous le tableau. Le filtre masque les lignes qui ne correspondent pas à la recherche (en vérifiant `data-filter-value` puis `textContent`). La pagination affiche uniquement les lignes correspondant à la page courante. S'adapte automatiquement au tri.</p>
+
+                <h3 id="plugin-select">Plugin Select (<code>select.js</code>) - Alternative à Choice?</h3>
+                <p>Ce plugin semble offrir une fonctionnalité similaire au mode 'searchable' du plugin 'Choice', en transformant une cellule en liste déroulante avec recherche.</p>
+                 <div class="warning-block">
+                     <strong>Note :</strong> Ce plugin a des fonctionnalités qui se chevauchent avec le mode 'searchable' du plugin <code>Choice</code>. Il est recommandé d'utiliser <strong>soit l'un, soit l'autre</strong> pour les colonnes de type sélection/recherche pour éviter les conflits. Le plugin <code>Choice</code> est peut-être plus récent ou plus complet car il gère aussi le mode 'toggle'. Vérifiez lequel correspond le mieux à vos besoins.
+                 </div>
+                <h4>Attributs HTML</h4>
+                <ul>
+                    <li><code>th-select</code>: Sur <code>&lt;th&gt;</code> pour activer ce plugin. L'ID du <code>th</code> est utilisé pour lier à la configuration JS.</li>
+                     <li><code>data-value</code>: Sur <code>&lt;td&gt;</code> pour stocker la valeur sélectionnée.</li>
+                </ul>
+                <h4>Configuration JS (<code>plugins.select</code>)</h4>
+                 <table>
+                     <thead><tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+                     <tbody>
+                         <tr><td><code class="attr">selectAttribute</code></td><td class="type">string</td><td><code class="default">'th-select'</code></td><td>Attribut pour identifier les colonnes gérées.</td></tr>
+                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'select-cell'</code></td><td>Classe CSS ajoutée aux cellules gérées.</td></tr>
+                         <tr><td><code class="attr">dropdownClass</code></td><td class="type">string</td><td><code class="default">'select-dropdown'</code></td><td>Classe CSS du conteneur dropdown.</td></tr>
+                         <tr><td><code class="attr">optionClass</code></td><td class="type">string</td><td><code class="default">'select-option'</code></td><td>Classe CSS pour chaque option dans le dropdown.</td></tr>
+                         <tr><td><code class="attr">searchClass</code></td><td class="type">string</td><td><code class="default">'select-search'</code></td><td>Classe CSS de l'input de recherche.</td></tr>
+                          <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS pour marquer une cellule non modifiable.</td></tr>
+                         <tr><td><code class="attr">minWidth</code></td><td class="type">string</td><td><code class="default">'200px'</code></td><td>Largeur minimale du dropdown.</td></tr>
+                         <tr><td><code class="attr">placeholder</code></td><td class="type">string</td><td><code class="default">'Rechercher...'</code></td><td>Placeholder de l'input de recherche.</td></tr>
+                         <tr><td><code class="attr">noResultsText</code></td><td class="type">string</td><td><code class="default">'Aucun résultat'</code></td><td>Texte affiché si la recherche ne donne rien.</td></tr>
+                         <tr><td><code class="attr">options</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet clé/valeur où la clé est l'ID du <code>th</code> et la valeur est un tableau de choix (soit des strings, soit des objets <code>{ value: ..., label: ... }</code>).</td></tr>
+                          <tr><td><code class="attr">readOnlyValues</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet similaire à `options` pour définir les valeurs en lecture seule (non implémenté dans le code fourni ?).</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Fonctionnement</h4>
+                 <p>Un clic sur la cellule ouvre une liste déroulante avec un champ de recherche. La sélection d'une option met à jour la valeur (`data-value`) et le contenu (label) de la cellule. Déclenche <code>cell:change</code>.</p>
+
+            </section>
+
+             <section id="exemple-complet">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple combine plusieurs plugins pour une table interactive.</p>
+                <div class="example">
+                    <div class="example-preview">
+                         <div style="margin-bottom: 15px;">
+                             <input type="text" id="global-filter-input" placeholder="Filtrer tout..." style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                             <select id="role-filter-select" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                                <option value="">Tous les rôles</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                                <option value="guest">Guest</option>
+                             </select>
+                             <button id="add-row-button" style="padding: 8px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">+ Ajouter</button>
+                         </div>
+                        <table id="full-example-table" class="table table-striped table-hover">
+                             <thead>
+                                 <tr>
+                                     <th id="id" th-hide>ID</th>
+                                     <th id="nom" th-edit th-sort th-validate='{"required": true}'>Nom</th>
+                                     <th id="email" th-edit th-sort th-validate='{"type": "email"}'>Email</th>
+                                     <th id="role" th-choice="searchable" th-sort>Rôle</th>
+                                     <th id="prefColor" th-color th-sort>Couleur Pref.</th>
+                                     <th id="isActive" th-choice="toggle" th-sort>Actif</th>
+                                     <th id="actions" th-actions="save,delete">Actions</th>
+                                 </tr>
+                             </thead>
+                             <tbody>
+                                <tr id="row-1">
+                                    <td>1</td><td>Alice</td><td>alice@example.com</td><td>admin</td><td>#e0f2fe</td><td>true</td><td></td>
+                                </tr>
+                                <tr id="row-2">
+                                    <td>2</td><td>Bob</td><td>bob@sample.net</td><td>user</td><td>#fffbeb</td><td>true</td><td></td>
+                                </tr>
+                                <tr id="row-3">
+                                    <td>3</td><td>Charlie</td><td>charlie@mail.org</td><td>user</td><td>#ecfdf5</td><td>false</td><td></td>
+                                </tr>
+                                <!-- Plus de lignes pour la pagination -->
+                                 <tr id="row-4"><td>4</td><td>Diana</td><td>diana@test.co</td><td>guest</td><td>#ffedd5</td><td>true</td><td></td></tr>
+                                 <tr id="row-5"><td>5</td><td>Ethan</td><td>ethan@example.com</td><td>user</td><td>#eff6ff</td><td>false</td><td></td></tr>
+                                 <tr id="row-6"><td>6</td><td>Fiona</td><td>fiona@sample.net</td><td>admin</td><td>#f0fdf4</td><td>true</td><td></td></tr>
+                             </tbody>
+                         </table>
+                         <div id="pagination-controls-example"></div>
+                    </div>
+                     <div class="example-code">
+                        <pre><code>&lt;!-- HTML --&gt;
+&lt;div style="margin-bottom: 15px;"&gt;
+    &lt;input type="text" id="global-filter-input" placeholder="Filtrer tout..."&gt;
+    &lt;select id="role-filter-select"&gt;
+       &lt;option value=""&gt;Tous les rôles&lt;/option&gt;
+       &lt;option value="admin"&gt;Admin&lt;/option&gt;
+       &lt;option value="user"&gt;User&lt;/option&gt;
+       &lt;option value="guest"&gt;Guest&lt;/option&gt;
+    &lt;/select&gt;
+    &lt;button id="add-row-button"&gt;+ Ajouter&lt;/button&gt;
+&lt;/div&gt;
+&lt;table id="full-example-table" class="table table-striped table-hover"&gt;
     &lt;thead&gt;
         &lt;tr&gt;
-            &lt;th th-edit th-sort&gt;Nom&lt;/th&gt;
-            &lt;th th-edit th-color&gt;Couleur&lt;/th&gt;
-            &lt;th th-actions="delete,save"&gt;Actions&lt;/th&gt;
+            &lt;th id="id" th-hide&gt;ID&lt;/th&gt;
+            &lt;th id="nom" th-edit th-sort th-validate='{"required": true}'&gt;Nom&lt;/th&gt;
+            &lt;th id="email" th-edit th-sort th-validate='{"type": "email"}'&gt;Email&lt;/th&gt;
+            &lt;th id="role" th-choice="searchable" th-sort&gt;Rôle&lt;/th&gt;
+            &lt;th id="prefColor" th-color th-sort&gt;Couleur Pref.&lt;/th&gt;
+            &lt;th id="isActive" th-choice="toggle" th-sort&gt;Actif&lt;/th&gt;
+            &lt;th id="actions" th-actions="save,delete"&gt;Actions&lt;/th&gt;
         &lt;/tr&gt;
     &lt;/thead&gt;
     &lt;tbody&gt;
-        &lt;tr&gt;
-            &lt;td&gt;Exemple&lt;/td&gt;
-            &lt;td&gt;#FF0000&lt;/td&gt;
-            &lt;td&gt;&lt;/td&gt;
-        &lt;/tr&gt;
+       &lt;tr id="row-1"&gt;&lt;td&gt;1&lt;/td&gt;&lt;td&gt;Alice&lt;/td&gt;&lt;td&gt;alice@example.com&lt;/td&gt;&lt;td&gt;admin&lt;/td&gt;&lt;td&gt;#e0f2fe&lt;/td&gt;&lt;td&gt;true&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+       &lt;tr id="row-2"&gt;&lt;td&gt;2&lt;/td&gt;&lt;td&gt;Bob&lt;/td&gt;&lt;td&gt;bob@sample.net&lt;/td&gt;&lt;td&gt;user&lt;/td&gt;&lt;td&gt;#fffbeb&lt;/td&gt;&lt;td&gt;true&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+       &lt;tr id="row-3"&gt;&lt;td&gt;3&lt;/td&gt;&lt;td&gt;Charlie&lt;/td&gt;&lt;td&gt;charlie@mail.org&lt;/td&gt;&lt;td&gt;user&lt;/td&gt;&lt;td&gt;#ecfdf5&lt;/td&gt;&lt;td&gt;false&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+       &lt;tr id="row-4"&gt;&lt;td&gt;4&lt;/td&gt;&lt;td&gt;Diana&lt;/td&gt;&lt;td&gt;diana@test.co&lt;/td&gt;&lt;td&gt;guest&lt;/td&gt;&lt;td&gt;#ffedd5&lt;/td&gt;&lt;td&gt;true&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+       &lt;tr id="row-5"&gt;&lt;td&gt;5&lt;/td&gt;&lt;td&gt;Ethan&lt;/td&gt;&lt;td&gt;ethan@example.com&lt;/td&gt;&lt;td&gt;user&lt;/td&gt;&lt;td&gt;#eff6ff&lt;/td&gt;&lt;td&gt;false&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
+       &lt;tr id="row-6"&gt;&lt;td&gt;6&lt;/td&gt;&lt;td&gt;Fiona&lt;/td&gt;&lt;td&gt;fiona@sample.net&lt;/td&gt;&lt;td&gt;admin&lt;/td&gt;&lt;td&gt;#f0fdf4&lt;/td&gt;&lt;td&gt;true&lt;/td&gt;&lt;td&gt;&lt;/td&gt;&lt;/tr&gt;
     &lt;/tbody&gt;
-&lt;/table&gt;</code></pre>
-        </section>
+&lt;/table&gt;
+&lt;div id="pagination-controls-example"&gt;&lt;/div&gt;
+
+&lt;!-- JavaScript --&gt;
+&lt;script type="module"&gt;
+    import TableFlow from './src/tableFlow.js'; // Ajustez le chemin
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // Fonction de simulation de sauvegarde/suppression
+        const handleAction = (context, action) => {
+            console.log(`Action: ${action}`, context.data);
+            // Simuler une requête serveur
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    if (action === 'save') {
+                         if (!context.tableHandler.isRowModified(context.row)) {
+                            console.log('Aucune modification détectée pour la sauvegarde.');
+                            alert('Aucune modification à sauvegarder.');
+                            resolve(false); // Indique que la sauvegarde n'a pas eu lieu (aucune modif)
+                            return;
+                        }
+                        console.log('Ligne sauvegardée (simulation)', context.row.id);
+                         // Marquer comme sauvegardé après succès (dans une vraie app, attendre la réponse serveur)
+                        context.tableHandler.markRowAsSaved(context.row);
+                        alert('Ligne sauvegardée !');
+                    } else if (action === 'delete') {
+                        if (confirm('Supprimer cette ligne ?')) {
+                            console.log('Ligne supprimée (simulation)', context.row.id);
+                            context.tableHandler.removeRow(context.row);
+                             alert('Ligne supprimée !');
+                        } else {
+                             resolve(false); // Action annulée
+                             return;
+                        }
+                    }
+                    resolve(true); // Indique le succès de l'action
+                }, 300); // Simule délai réseau
+            });
+        };
+
+        const table = new TableFlow({
+            tableId: 'full-example-table',
+            pluginsPath: './plugins', // Assurez-vous que ce chemin est correct
+            debug: true,
+            cellWrapper: true,
+            headWrapper: true,
+            plugins: {
+                names: ['Edit', 'Hide', 'Sort', 'Actions', 'Choice', 'Color', 'FilterAndPaginate'],
+                sort: { showIcons: true },
+                choice: {
+                    choiceAttribute: 'th-choice',
+                    columns: {
+                        'role': {
+                            type: 'searchable', // Utiliser le dropdown avec recherche pour 'role'
+                            values: [
+                                { value: 'admin', label: 'Admin' },
+                                { value: 'user', label: 'User' },
+                                { value: 'guest', label: 'Guest' }
+                            ]
+                        },
+                        'isActive': {
+                             type: 'toggle', // Utiliser le toggle pour 'isActive'
+                             values: [
+                                { value: 'true', label: 'Oui' },
+                                { value: 'false', label: 'Non' }
+                             ]
+                        }
+                    }
+                },
+                actions: {
+                    actionAttribute: 'th-actions',
+                    useIcons: true,
+                    actions: {
+                        save: { handler: (context) => handleAction(context, 'save'), showOnChange: true }, // N'afficher que si modifié
+                        delete: { handler: (context) => handleAction(context, 'delete') }
+                    },
+                    icons: {
+                        delete: '&lt;i class="fas fa-trash" style="color: red;"&gt;&lt;/i&gt;',
+                        save: '&lt;i class="fas fa-save" style="color: green;"&gt;&lt;/i&gt;'
+                    }
+                },
+                filterandpaginate: {
+                    enableFilter: true,
+                    globalFilter: '#global-filter-input',
+                    // Note: Le filtrage par colonne via select nécessite une logique additionnelle
+                    // pour lier le <select> externe au plugin. Le plugin de base
+                    // ne gère que les inputs texte pour le filtrage par colonne.
+                    // On va se contenter du filtre global ici.
+                    pageSize: 3, // Moins de lignes par page pour l'exemple
+                    pageSizes: [3, 5, 10],
+                    containerClass: 'pagination-container mt-3 d-flex justify-content-between align-items-center',
+                    paginationClass: 'pagination justify-content-center',
+                    btnClass: 'btn btn-sm btn-outline-primary mx-1',
+                    selectClass: 'form-select form-select-sm w-auto',
+                    showPageSizes: true,
+                    showInfo: true
+                }
+                // Pas besoin de config spécifique pour Edit, Hide, Color, Validate ici
+            }
+        });
+
+        // Logique pour le bouton d'ajout
+         document.getElementById('add-row-button').addEventListener('click', () => {
+             const newRowData = {
+                 // L'ID sera généré, on fournit les autres champs
+                 nom: '',
+                 email: '',
+                 role: 'user', // Valeur par défaut
+                 prefColor: '#FFFFFF', // Valeur par défaut
+                 isActive: 'false' // Valeur par défaut
+             };
+             const newRow = table.addRow(newRowData);
+             table.markRowAsModified(newRow); // Marquer comme modifié pour afficher 'save'
+             alert('Nouvelle ligne ajoutée. Remplissez les champs et sauvegardez.');
+         });
+
+        // Logique additionnelle pour le filtre par rôle (exemple)
+         document.getElementById('role-filter-select').addEventListener('change', (e) => {
+             const selectedRole = e.target.value;
+             const filterPlugin = table.getPlugin('FilterAndPaginate'); // Nom corrigé
+             if (filterPlugin) {
+                 // Ceci est une implémentation simpliste.
+                 // Un vrai filtre par colonne nécessiterait d'étendre le plugin
+                 // ou d'utiliser une logique de filtrage externe qui manipule
+                 // la visibilité des lignes (tr.style.display).
+                 // Ici, on réapplique le filtre global pour forcer le refresh,
+                 // mais sans filtrer spécifiquement par rôle via le plugin.
+                 console.warn("Le filtrage par select externe n'est pas géré nativement par ce plugin. Seul le filtre global sera réappliqué.");
+                 const globalFilterInput = document.getElementById('global-filter-input');
+                  if(globalFilterInput) globalFilterInput.dispatchEvent(new Event('input'));
+             }
+         });
+    });
+&lt;/script&gt;
+</code></pre>
+                    </div>
+                </div>
+            </section>
+
+             <section id="personnalisation-css">
+                <h2>Personnalisation CSS</h2>
+                <p>Utilisez les classes CSS définies par défaut (ou celles configurées) par chaque plugin pour adapter l'apparence à votre design.</p>
+                <ul>
+                    <li>Classe de base de la table : (votre classe ou ID)</li>
+                    <li>Wrappers : <code>.cell-wrapper</code>, <code>.head-wrapper</code> (si activés)</li>
+                    <li>Lignes modifiées : <code>tr.modified</code></li>
+                    <li>Plugin Edit : <code>.td-edit</code>, <code>.edit-input</code>, <code>.invalid</code>, <code>.validation-error</code></li>
+                    <li>Plugin Sort : <code>th.sortable</code>, <code>span.sort-indicator</code></li>
+                    <li>Plugin Actions : <code>.td-actions</code>, <code>.th-actions</code>, <code>.th-action-btn</code> (ou classe configurée)</li>
+                    <li>Plugin Choice : <code>.choice-cell</code>, <code>.choice-dropdown</code>, <code>.choice-option</code>, etc. (ou classes configurées)</li>
+                    <li>Plugin Color : <code>.td-color</code>, <code>.tf-color-wrapper</code> (et classes de ColorFlow)</li>
+                    <li>Plugin Filter/Paginate : <code>.pagination-container</code>, <code>.pagination</code>, <code>.page-size-container</code>, <code>.pagination-info</code>, et classes pour boutons/select (ou classes configurées)</li>
+                    <li>Plugin Hide : (Utilise <code>display: none</code> directement)</li>
+                </ul>
+                <pre><code class="language-css">/* Exemple : Style pour les lignes modifiées */
+#full-example-table tbody tr.modified {
+    background-color: #fffbeb; /* Jaune très pâle */
+    font-style: italic;
+}
+
+/* Exemple : Style pour les boutons d'action */
+.th-actions .th-action-btn i {
+    font-size: 1.1em;
+    margin: 0 3px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+.th-actions .th-action-btn:hover i {
+    opacity: 1;
+}</code></pre>
+            </section>
+
+        </div>
     </div>
+    <!-- Charger les dépendances (si nécessaire, comme ColorFlow) AVANT tableFlow.js -->
+     <script src="../colorFlow/src/colorFlow.js"></script>
+    <!-- Charger le script TableFlow en tant que module -->
+    <script type="module">
+        import TableFlow from './src/tableFlow.js';
+
+        // Script de l'exemple complet (identique à celui dans le pre ci-dessus)
+         document.addEventListener('DOMContentLoaded', () => {
+
+            const handleAction = (context, action) => {
+                console.log(`Action: ${action}`, context.data);
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (action === 'save') {
+                            if (!context.tableHandler.isRowModified(context.row)) {
+                                console.log('Aucune modification détectée pour la sauvegarde.');
+                                // alert('Aucune modification à sauvegarder.'); // Optionnel: informer l'utilisateur
+                                resolve(false);
+                                return;
+                            }
+                            console.log('Ligne sauvegardée (simulation)', context.row.id);
+                            context.tableHandler.markRowAsSaved(context.row);
+                            alert('Ligne sauvegardée !');
+                        } else if (action === 'delete') {
+                            if (confirm('Supprimer cette ligne ?')) {
+                                console.log('Ligne supprimée (simulation)', context.row.id);
+                                context.tableHandler.removeRow(context.row);
+                                alert('Ligne supprimée !');
+                            } else {
+                                resolve(false);
+                                return;
+                            }
+                        }
+                        resolve(true);
+                    }, 300);
+                });
+            };
+
+            const table = new TableFlow({
+                tableId: 'full-example-table',
+                pluginsPath: './plugins',
+                debug: false, // Mis à false pour éviter trop de logs dans l'exemple final
+                cellWrapper: true,
+                headWrapper: true,
+                plugins: {
+                    names: ['Edit', 'Hide', 'Sort', 'Actions', 'Choice', 'Color', 'FilterAndPaginate'],
+                    sort: { showIcons: true },
+                    choice: {
+                        choiceAttribute: 'th-choice',
+                        columns: {
+                            'role': {
+                                type: 'searchable',
+                                values: [
+                                    { value: 'admin', label: 'Admin' },
+                                    { value: 'user', label: 'User' },
+                                    { value: 'guest', label: 'Guest' }
+                                ]
+                            },
+                             'isActive': {
+                                 type: 'toggle',
+                                 values: [
+                                    { value: 'true', label: 'Oui' },
+                                    { value: 'false', label: 'Non' }
+                                 ]
+                            }
+                        }
+                    },
+                    actions: {
+                        actionAttribute: 'th-actions',
+                        useIcons: true,
+                        actions: {
+                            save: { handler: (context) => handleAction(context, 'save'), showOnChange: true },
+                            delete: { handler: (context) => handleAction(context, 'delete') }
+                        },
+                        icons: {
+                             delete: '<i class="fas fa-trash" style="color: #dc3545; cursor:pointer;"></i>', // Rouge
+                             save: '<i class="fas fa-save" style="color: #198754; cursor:pointer;"></i>' // Vert
+                        }
+                    },
+                     filterandpaginate: {
+                        enableFilter: true,
+                        globalFilter: '#global-filter-input',
+                        pageSize: 3,
+                        pageSizes: [3, 5, 10],
+                        containerClass: 'pagination-container mt-3 d-flex justify-content-between align-items-center flex-wrap', // Added flex-wrap
+                        paginationClass: 'pagination justify-content-center mb-2 mb-md-0', // Margin bottom on small screens
+                        btnClass: 'btn btn-sm btn-outline-primary mx-1',
+                        selectClass: 'form-select form-select-sm w-auto ms-md-auto', // Margin left on medium+ screens
+                        showPageSizes: true,
+                        showInfo: true
+                    },
+                    color: { // Activer le plugin Color
+                         colorAttribute: 'th-color'
+                    }
+                }
+            });
+
+             document.getElementById('add-row-button').addEventListener('click', () => {
+                 const newRowData = {
+                    nom: '', email: '', role: 'user', prefColor: '#FFFFFF', isActive: 'false'
+                 };
+                 const newRow = table.addRow(newRowData);
+                 table.markRowAsModified(newRow);
+                 alert('Nouvelle ligne ajoutée. Remplissez et sauvegardez.');
+             });
+
+             document.getElementById('role-filter-select').addEventListener('change', (e) => {
+                 const selectedRole = e.target.value;
+                 const filterPlugin = table.getPlugin('FilterAndPaginate');
+                 if (filterPlugin) {
+                    // Ici on va filtrer manuellement car le plugin ne le gère pas via <select>
+                    const rows = table.getAllRows();
+                    rows.forEach(row => {
+                        const roleCell = row.querySelector('td[id^="role_"]'); // Trouve la cellule du rôle
+                        const roleValue = roleCell ? roleCell.getAttribute('data-value') : '';
+                        // Cache la ligne si un rôle est sélectionné ET que la cellule ne correspond pas
+                        if (selectedRole && roleValue !== selectedRole) {
+                             row.style.display = 'none';
+                        } else {
+                            // Sinon, laisse le plugin de pagination/filtre global gérer la visibilité
+                            row.style.display = '';
+                        }
+                    });
+                    // Important: Rafraîchir la pagination après avoir changé la visibilité manuellement
+                    filterPlugin.refresh();
+                 }
+             });
+
+        });
+    </script>
 </body>
 </html>

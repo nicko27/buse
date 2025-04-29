@@ -1,0 +1,141 @@
+<div class="flex-h w-available">
+    <div class="block" id="cities">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des communes et des brigades territorialement compétentes
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="citiesTbl">
+                <thead>
+                    <tr>
+                        <th id="name" th-filterAndPaginate th-sort th-class="small-caps-under">Nom</th>
+                        <th id="code_postal" th-edit>Code Postal</th>
+                        <th id="brigade" th-choice>Brigade Territorialement Compétente</th>
+                        <th id="maire" th-edit>Nom du maire</th>
+                        <th id="mail" th-edit>Adresse mail</th>
+                        <th th-actions="save">Actions</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cities_tbl %}
+                        <tr id="{{c.id}}" name="{{ c.id }}">
+                            <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
+                            <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
+                            <td id="brigade_{{ c.id }}" name="brigade_{{ c.id }}">{{ c.unit_id }}</td>
+                            <td id="maire_{{ c.id }}" name="maire_{{ c.id }}">{{ c.maire }}</td>
+                            <td id="mail_{{ c.id }}" name="mail_{{ c.id }}">{{ c.mail }}</td>
+                            <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+             <div class="block__buttons">
+                <div class="block__search">
+                    <div class="filter-group">
+                        <span>Rechercher dans le tableau</span>
+                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    const citiesTable = new TableFlow({
+        tableId: 'citiesTbl',
+        debug: true,
+        plugins: {
+            names: ['FilterAndPaginate', 'Edit', 'Sort', 'Actions', 'Choice'],
+            filterandpaginate: {
+                enableFilter: true,
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                icons: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    prev: '<i class="fas fa-chevron-left"></i>',
+                    next: '<i class="fas fa-chevron-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                columns: {
+                    'brigade': {
+                        type: 'searchable',
+                        values: [
+                            { value: '0', label: 'Non Renseigné', readOnly: false },
+                            {% for unit in unites_ldap_tbl %}
+                                {
+                                    value: '{{ unit.id }}',
+                                    label: '{{ unit.newName }}'
+                                },
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            minWidth: '250px',
+                            placeholder: 'Rechercher une unité...',
+                            noResultsText: 'Aucune unité trouvée'
+                        }
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: false,
+                actions: {
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/subpages/cities/update.php";
+                            const data = {
+                                ...context.data,
+                                table: 'unites_ldap',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "cities", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

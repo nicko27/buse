@@ -1,6 +1,6 @@
 {
     "require": {
-        "phpoffice/phpspreadsheet": "^2.1",
+        "phpoffice/phpspreadsheet": "^4.2",
         "twig/twig": "^3.10",
         "monolog/monolog": "^3.6",
         "symfony/css-selector": "^6.4",

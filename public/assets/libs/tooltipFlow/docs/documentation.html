@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TooltipFlow Documentation</title>
+    <title>Documentation TooltipFlow</title>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -11,6 +12,7 @@
             --bg-color: #ffffff;
             --code-bg: #f3f4f6;
             --border-color: #e5e7eb;
+            --nav-width: 250px;
         }
 
         * {
@@ -53,15 +55,19 @@
             margin-top: 2rem;
         }
 
-        p {
-            margin: 1rem 0;
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            padding-left: 2rem;
         }
 
         code {
             background: var(--code-bg);
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
-            font-family: 'Fira Code', monospace;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 0.9em;
         }
 
@@ -81,7 +87,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
         }
 
         th, td {
@@ -92,18 +98,22 @@
 
         th {
             background: var(--code-bg);
+            font-weight: 600;
         }
 
         .example {
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
+            background-color: #f9fafb;
         }
 
         .example-preview {
-            padding: 1rem;
+            padding: 1.5rem;
             border-bottom: 1px solid var(--border-color);
+        }
+         .example-preview button, .example-preview span, .example-preview div[data-tooltip], .example-preview div[data-tooltip-id] {
+            margin: 0 5px; /* Ajoute un peu d'espace entre les éléments d'exemple */
         }
 
         .example-code {
@@ -117,23 +127,83 @@
             top: 2rem;
             bottom: 2rem;
             left: 2rem;
-            width: 250px;
+            width: var(--nav-width);
             overflow-y: auto;
             padding: 1rem;
             background: var(--bg-color);
             border-right: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+
+        .nav h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.2rem 0;
+        }
+
+        .nav a:hover {
+            text-decoration: underline;
         }
 
         .content {
-            margin-left: 280px;
+            margin-left: calc(var(--nav-width) + 2rem);
         }
 
-        @media (max-width: 768px) {
+        .info-block, .warning-block {
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            border-left-width: 4px;
+            border-left-style: solid;
+        }
+
+        .info-block {
+            background-color: #e0f2fe; /* light-blue-100 */
+            border-color: #38bdf8;    /* light-blue-500 */
+            color: #0c4a6e;       /* light-blue-800 */
+        }
+
+        .warning-block {
+            background-color: #fffbeb; /* yellow-100 */
+            border-color: #facc15;    /* yellow-400 */
+            color: #713f12;       /* yellow-800 */
+        }
+
+        @media (max-width: 900px) {
             .nav {
                 display: none;
             }
             .content {
                 margin-left: 0;
+            }
+        }
+         @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.1rem; }
+            .container {
+                 padding: 1rem;
+            }
+            .example-preview, .example-code {
+                 padding: 1rem;
             }
         }
     </style>
@@ -143,340 +213,309 @@
         <nav class="nav">
             <h3>Table des matières</h3>
             <ul>
+                <li><a href="#introduction">Introduction</a></li>
                 <li><a href="#installation">Installation</a></li>
-                <li><a href="#configuration">Configuration</a></li>
-                <li><a href="#utilisation">Utilisation</a></li>
-                <li><a href="#options">Options</a></li>
-                <li><a href="#themes">Thèmes</a></li>
-                <li><a href="#avance">Fonctionnalités avancées</a></li>
-                <li><a href="#exemples">Exemples</a></li>
-                <li><a href="#modes-de-declenchement">Modes de déclenchement</a></li>
+                <li><a href="#initialisation">Initialisation</a></li>
+                <li><a href="#utilisation-de-base">Utilisation de Base</a></li>
+                <li><a href="#configuration-avancee">Configuration Avancée</a>
+                    <ul>
+                        <li><a href="#attributs-html">Attributs HTML</a></li>
+                        <li><a href="#positionnement">Positionnement</a></li>
+                        <li><a href="#themes">Thèmes</a></li>
+                        <li><a href="#modes-declenchement">Modes de Déclenchement</a></li>
+                        <li><a href="#interactivite">Interactivité</a></li>
+                        <li><a href="#delais">Délais</a></li>
+                        <li><a href="#masquer-fleche">Masquer la Flèche</a></li>
+                    </ul>
+                </li>
+                 <li><a href="#css">Personnalisation CSS</a></li>
+                <li><a href="#exemples">Exemples Interactifs</a></li>
             </ul>
         </nav>
 
         <div class="content">
-            <h1>TooltipFlow Documentation</h1>
-            
+            <h1>Documentation TooltipFlow</h1>
+
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>TooltipFlow est une bibliothèque JavaScript légère et flexible pour créer des info-bulles (tooltips) dynamiques et intelligentes. Elle gère automatiquement le positionnement, le contenu HTML, les thèmes, et différents modes de déclenchement.</p>
+                <p>Caractéristiques principales :</p>
+                <ul>
+                    <li>Positionnement automatique intelligent pour rester dans la fenêtre visible.</li>
+                    <li>Support du contenu texte simple et HTML complexe.</li>
+                    <li>Thèmes clair (défaut) et sombre intégrés.</li>
+                    <li>Modes de déclenchement : survol (<code>hover</code>), clic (<code>click</code>), double-clic (<code>dblclick</code>).</li>
+                    <li>Option pour rendre les tooltips interactifs (survolables).</li>
+                    <li>Configuration des délais d'affichage et de masquage.</li>
+                    <li>Possibilité de masquer la flèche du tooltip.</li>
+                    <li>Initialisation facile via attributs <code>data-</code> ou JavaScript.</li>
+                </ul>
+            </section>
+
             <section id="installation">
                 <h2>Installation</h2>
-                <p>Incluez les fichiers nécessaires dans votre HTML :</p>
-                <pre><code>&lt;link rel="stylesheet" href="assets/libs/tooltipFlow/src/tooltipFlow.css"&gt;
-&lt;script src="assets/libs/tooltipFlow/src/tooltipFlow.js"&gt;&lt;/script&gt;</code></pre>
+                <p>Pour utiliser TooltipFlow, incluez le fichier CSS et le fichier JavaScript dans votre page HTML :</p>
+                <pre><code>&lt;!-- Feuille de style de TooltipFlow --&gt;
+&lt;link rel="stylesheet" href="path/to/tooltipFlow.css"&gt;
+
+&lt;!-- Script de TooltipFlow --&gt;
+&lt;script src="path/to/tooltipFlow.js"&gt;&lt;/script&gt;</code></pre>
+                 <div class="info-block">
+                    <strong>Note :</strong> Assurez-vous que le chemin vers les fichiers <code>tooltipFlow.css</code> et <code>tooltipFlow.js</code> est correct par rapport à l'emplacement de votre fichier HTML.
+                </div>
             </section>
 
-            <section id="configuration">
-                <h2>Configuration</h2>
-                <p>Initialisez TooltipFlow avec vos options :</p>
-                <pre><code>document.addEventListener('DOMContentLoaded', () => {
+            <section id="initialisation">
+                <h2>Initialisation</h2>
+                <p>TooltipFlow s'initialise automatiquement en détectant les éléments avec les attributs <code>data-tooltip</code> ou <code>data-tooltip-id</code>. Cependant, vous pouvez personnaliser le comportement global en appelant la méthode <code>TooltipFlow.init()</code>, idéalement après le chargement du DOM.</p>
+                <pre><code class="language-javascript">document.addEventListener('DOMContentLoaded', () => {
     TooltipFlow.init({
-        debug: false,              // Active les logs de debug
-        defaultPosition: 'top',    // Position par défaut
-        margin: 8,                // Marge en pixels
-        showDelay: 200,           // Délai d'affichage en ms
-        hideDelay: 200,           // Délai de masquage en ms
-        interactive: false         // Interaction avec le tooltip
+        // Options globales (voir section Configuration Avancée)
+        debug: false,
+        defaultPosition: 'top', // Position par défaut si non spécifiée par data-tooltip-position
+        margin: 8,
+        showDelay: 100,        // Délai avant affichage (ms)
+        hideDelay: 100,        // Délai avant masquage (ms)
+        interactive: false,      // Le tooltip peut-il être survolé ?
+        triggerMode: 'hover'     // Mode de déclenchement par défaut ('hover', 'click', 'dblclick')
     });
 });</code></pre>
+                <p>L'appel à <code>TooltipFlow.init()</code> n'est nécessaire que si vous souhaitez modifier les options globales par défaut. Sinon, la bibliothèque fonctionnera avec ses paramètres par défaut dès l'inclusion du script.</p>
             </section>
 
-            <section id="utilisation">
-                <h2>Utilisation</h2>
+            <section id="utilisation-de-base">
+                <h2>Utilisation de Base</h2>
+                <p>Le moyen le plus simple d'ajouter un tooltip est d'utiliser l'attribut <code>data-tooltip</code> sur n'importe quel élément HTML.</p>
 
-                <h3>Tooltip Simple</h3>
                 <div class="example">
                     <div class="example-preview">
-                        <button data-tooltip="Exemple de tooltip">Survolez-moi</button>
+                        <button data-tooltip="Ceci est une info-bulle simple.">Survolez-moi</button>
+                        <span data-tooltip="Une autre info-bulle !" style="border-bottom: 1px dashed gray; cursor: help;">Texte avec tooltip</span>
                     </div>
                     <div class="example-code">
-                        <code>&lt;button data-tooltip="Exemple de tooltip"&gt;Survolez-moi&lt;/button&gt;</code>
+                        <pre><code>&lt;!-- Tooltip sur un bouton --&gt;
+&lt;button data-tooltip="Ceci est une info-bulle simple."&gt;Survolez-moi&lt;/button&gt;
+
+&lt;!-- Tooltip sur un span --&gt;
+&lt;span data-tooltip="Une autre info-bulle !"&gt;Texte avec tooltip&lt;/span&gt;</code></pre>
                     </div>
                 </div>
 
-                <h3>Tooltip HTML</h3>
+                <h3>Tooltip avec Contenu HTML</h3>
+                <p>Pour utiliser du HTML complexe dans votre tooltip, créez un élément (par exemple une <code>div</code>) quelque part dans votre page (vous pouvez le cacher avec <code>style="display: none;"</code>), donnez-lui un <code>id</code> unique, et référencez cet <code>id</code> avec l'attribut <code>data-tooltip-id</code> sur l'élément déclencheur.</p>
+
                 <div class="example">
                     <div class="example-preview">
-                        <div id="tooltipContent" style="display: none;">
-                            <h4>Titre du Tooltip</h4>
-                            <p>Contenu avec <strong>HTML</strong></p>
+                        <div id="mon-tooltip-html" style="display: none;">
+                            <h4>Titre Important</h4>
+                            <p>Ceci est un paragraphe avec du <strong>gras</strong> et un <a href="#">lien</a>.</p>
+                            <ul><li>Liste</li><li>d'éléments</li></ul>
                         </div>
-                        <button data-tooltip-id="tooltipContent">Tooltip HTML</button>
+                        <button data-tooltip-id="mon-tooltip-html">Tooltip HTML</button>
                     </div>
                     <div class="example-code">
-                        <pre><code>&lt;div id="tooltipContent" style="display: none;"&gt;
-    &lt;h4&gt;Titre du Tooltip&lt;/h4&gt;
-    &lt;p&gt;Contenu avec &lt;strong&gt;HTML&lt;/strong&gt;&lt;/p&gt;
+                        <pre><code>&lt;!-- Contenu HTML du tooltip (peut être caché) --&gt;
+&lt;div id="mon-tooltip-html" style="display: none;"&gt;
+    &lt;h4&gt;Titre Important&lt;/h4&gt;
+    &lt;p&gt;Ceci est un paragraphe avec du &lt;strong&gt;gras&lt;/strong&gt; et un &lt;a href="#"&gt;lien&lt;/a&gt;.&lt;/p&gt;
+    &lt;ul&gt;&lt;li&gt;Liste&lt;/li&gt;&lt;li&gt;d'éléments&lt;/li&gt;&lt;/ul&gt;
 &lt;/div&gt;
 
-&lt;button data-tooltip-id="tooltipContent"&gt;Tooltip HTML&lt;/button&gt;</code></pre>
+&lt;!-- Élément déclenchant le tooltip HTML --&gt;
+&lt;button data-tooltip-id="mon-tooltip-html"&gt;Tooltip HTML&lt;/button&gt;</code></pre>
                     </div>
                 </div>
-
-                <h3>Sans Flèche</h3>
-                <div class="example">
-                    <div class="example-preview">
-                        <button data-tooltip="Tooltip sans flèche" data-tooltip-hide-arrow="true">Sans flèche</button>
-                    </div>
-                    <div class="example-code">
-                        <code>&lt;button data-tooltip="Tooltip sans flèche" data-tooltip-hide-arrow="true"&gt;Sans flèche&lt;/button&gt;</code>
-                    </div>
+                 <div class="warning-block">
+                    <strong>Important :</strong> Vous ne pouvez utiliser qu'un seul des attributs <code>data-tooltip</code> ou <code>data-tooltip-id</code> sur un même élément. Si les deux sont présents, <code>data-tooltip-id</code> aura la priorité.
                 </div>
             </section>
 
-            <section id="options">
-                <h2>Options</h2>
-                
-                <h3>Options Globales</h3>
+            <section id="configuration-avancee">
+                <h2>Configuration Avancée</h2>
+                <p>Vous pouvez affiner le comportement et l'apparence des tooltips globalement via <code>TooltipFlow.init()</code> ou individuellement via des attributs <code>data-</code>.</p>
+
+                <h3 id="attributs-html">Attributs HTML (Configuration par Élément)</h3>
                 <table>
-                    <tr>
-                        <th>Option</th>
-                        <th>Type</th>
-                        <th>Défaut</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>debug</td>
-                        <td>boolean</td>
-                        <td>false</td>
-                        <td>Active les logs de debug</td>
-                    </tr>
-                    <tr>
-                        <td>defaultPosition</td>
-                        <td>string</td>
-                        <td>'top'</td>
-                        <td>Position par défaut (top, bottom, left, right)</td>
-                    </tr>
-                    <tr>
-                        <td>margin</td>
-                        <td>number</td>
-                        <td>8</td>
-                        <td>Marge en pixels</td>
-                    </tr>
-                    <tr>
-                        <td>showDelay</td>
-                        <td>number</td>
-                        <td>200</td>
-                        <td>Délai d'affichage en ms</td>
-                    </tr>
-                    <tr>
-                        <td>hideDelay</td>
-                        <td>number</td>
-                        <td>200</td>
-                        <td>Délai de masquage en ms</td>
-                    </tr>
-                    <tr>
-                        <td>interactive</td>
-                        <td>boolean</td>
-                        <td>false</td>
-                        <td>Permet l'interaction avec le tooltip</td>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th>Attribut</th>
+                            <th>Description</th>
+                            <th>Valeurs Possibles</th>
+                            <th>Exemple</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>data-tooltip</code></td>
+                            <td>Définit le contenu texte simple du tooltip.</td>
+                            <td>Texte</td>
+                            <td><code>data-tooltip="Info ici"</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>data-tooltip-id</code></td>
+                            <td>ID de l'élément HTML contenant le tooltip. Prioritaire sur <code>data-tooltip</code>.</td>
+                            <td>ID d'un élément HTML</td>
+                            <td><code>data-tooltip-id="monContenu"</code></td>
+                        </tr>
+                         <tr>
+                            <td><code>data-tooltip-position</code></td>
+                            <td>Force une position spécifique pour le tooltip.</td>
+                            <td><code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code></td>
+                            <td><code>data-tooltip-position="left"</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>data-tooltip-theme</code></td>
+                            <td>Applique un thème spécifique au tooltip.</td>
+                            <td><code>light</code> (défaut), <code>dark</code></td>
+                            <td><code>data-tooltip-theme="dark"</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>data-tooltip-hide-arrow</code></td>
+                            <td>Masque la flèche du tooltip.</td>
+                            <td><code>true</code>, <code>false</code> (défaut)</td>
+                            <td><code>data-tooltip-hide-arrow="true"</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>data-tooltip-trigger</code></td>
+                            <td>Définit comment le tooltip est déclenché.</td>
+                            <td><code>hover</code> (défaut), <code>click</code>, <code>dblclick</code></td>
+                            <td><code>data-tooltip-trigger="click"</code></td>
+                        </tr>
+                    </tbody>
                 </table>
 
-                <h3>Attributs HTML</h3>
-                <table>
-                    <tr>
-                        <th>Attribut</th>
-                        <th>Description</th>
-                        <th>Exemple</th>
-                    </tr>
-                    <tr>
-                        <td>data-tooltip</td>
-                        <td>Contenu simple du tooltip</td>
-                        <td><code>data-tooltip="Mon message"</code></td>
-                    </tr>
-                    <tr>
-                        <td>data-tooltip-id</td>
-                        <td>ID de l'élément contenant le HTML</td>
-                        <td><code>data-tooltip-id="monTooltip"</code></td>
-                    </tr>
-                    <tr>
-                        <td>data-theme</td>
-                        <td>Thème du tooltip</td>
-                        <td><code>data-theme="dark"</code></td>
-                    </tr>
-                    <tr>
-                        <td>data-tooltip-hide-arrow</td>
-                        <td>Masque la flèche</td>
-                        <td><code>data-tooltip-hide-arrow="true"</code></td>
-                    </tr>
-                </table>
-            </section>
-
-            <section id="themes">
-                <h2>Thèmes</h2>
-                
-                <h3>Thème Clair (Défaut)</h3>
-                <div class="example">
+                <h3 id="positionnement">Positionnement</h3>
+                <p>TooltipFlow choisit automatiquement la meilleure position (<code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>) pour afficher le tooltip en fonction de l'espace disponible dans la fenêtre. Vous pouvez forcer une position spécifique avec l'attribut <code>data-tooltip-position</code>.</p>
+                 <div class="example">
                     <div class="example-preview">
-                        <button data-tooltip="Tooltip clair">Thème clair</button>
+                        <button data-tooltip="Position forcée à gauche" data-tooltip-position="left">Gauche</button>
+                        <button data-tooltip="Position forcée en bas" data-tooltip-position="bottom">Bas</button>
                     </div>
                     <div class="example-code">
-                        <code>&lt;button data-tooltip="Tooltip clair"&gt;Thème clair&lt;/button&gt;</code>
+                        <pre><code>&lt;button data-tooltip="Position forcée à gauche" data-tooltip-position="left"&gt;Gauche&lt;/button&gt;
+&lt;button data-tooltip="Position forcée en bas" data-tooltip-position="bottom"&gt;Bas&lt;/button&gt;</code></pre>
                     </div>
                 </div>
+                <p>La flèche du tooltip s'ajuste automatiquement pour pointer vers le centre de l'élément déclencheur, même si le tooltip est décalé pour rester visible.</p>
 
-                <h3>Thème Sombre</h3>
+                <h3 id="themes">Thèmes</h3>
+                <p>Deux thèmes sont intégrés : <code>light</code> (par défaut) et <code>dark</code>. Appliquez un thème via l'attribut <code>data-tooltip-theme</code>.</p>
                 <div class="example">
                     <div class="example-preview">
-                        <button data-tooltip="Tooltip sombre" data-theme="dark">Thème sombre</button>
+                        <button data-tooltip="Thème Clair (défaut)">Clair</button>
+                        <button data-tooltip="Thème Sombre" data-tooltip-theme="dark">Sombre</button>
                     </div>
                     <div class="example-code">
-                        <code>&lt;button data-tooltip="Tooltip sombre" data-theme="dark"&gt;Thème sombre&lt;/button&gt;</code>
-                    </div>
-                </div>
-            </section>
+                        <pre><code>&lt;!-- Thème Clair (implicite) --&gt;
+&lt;button data-tooltip="Thème Clair (défaut)"&gt;Clair&lt;/button&gt;
 
-            <section id="avance">
-                <h2>Fonctionnalités Avancées</h2>
-
-                <h3>Positionnement Intelligent</h3>
-                <p>Le tooltip se positionne automatiquement en fonction de :</p>
-                <ul>
-                    <li>L'espace disponible à l'écran</li>
-                    <li>La position de défilement</li>
-                    <li>La taille du contenu</li>
-                    <li>La position de l'élément cible</li>
-                </ul>
-
-                <h3>Gestion des Grandes Fenêtres</h3>
-                <ul>
-                    <li>La flèche suit toujours le centre de l'élément cible</li>
-                    <li>Limitation intelligente pour rester dans les bordures</li>
-                    <li>Support du scroll horizontal et vertical</li>
-                </ul>
-
-                <h3>Tooltips Interactifs</h3>
-                <pre><code>TooltipFlow.init({
-    interactive: true,
-    hideDelay: 300
-});</code></pre>
-            </section>
-
-            <section id="modes-de-declenchement">
-                <h2>Modes de déclenchement</h2>
-                <p>TooltipFlow propose trois modes de déclenchement pour l'affichage des tooltips :</p>
-
-                <h3>1. Configuration globale</h3>
-                <p>Vous pouvez définir le mode de déclenchement par défaut lors de l'initialisation :</p>
-                <div class="code-block">
-                    <pre><code>TooltipFlow.init({
-    triggerMode: 'click'  // 'hover' (défaut), 'click', ou 'dblclick'
-});</code></pre>
-                </div>
-
-                <h3>2. Configuration par élément</h3>
-                <p>Vous pouvez aussi personnaliser le mode de déclenchement pour chaque élément via l'attribut <code>data-tooltip-trigger</code> :</p>
-                <div class="code-block">
-                    <pre><code>&lt;!-- Tooltip au survol (comportement par défaut) --&gt;
-&lt;button data-tooltip="Info bulle au survol"&gt;Survol&lt;/button&gt;
-
-&lt;!-- Tooltip au clic simple --&gt;
-&lt;button 
-    data-tooltip="Info bulle au clic" 
-    data-tooltip-trigger="click"&gt;
-    Clic
-&lt;/button&gt;
-
-&lt;!-- Tooltip au double-clic --&gt;
-&lt;button 
-    data-tooltip="Info bulle au double-clic" 
-    data-tooltip-trigger="dblclick"&gt;
-    Double-clic
-&lt;/button&gt;</code></pre>
-                </div>
-
-                <div class="example-section">
-                    <h3>Exemples interactifs</h3>
-                    <div class="example-buttons">
-                        <button data-tooltip="Je m'affiche au survol">Survol</button>
-                        <button 
-                            data-tooltip="Je m'affiche au clic" 
-                            data-tooltip-trigger="click">
-                            Clic
-                        </button>
-                        <button 
-                            data-tooltip="Je m'affiche au double-clic" 
-                            data-tooltip-trigger="dblclick">
-                            Double-clic
-                        </button>
+&lt;!-- Thème Sombre --&gt;
+&lt;button data-tooltip="Thème Sombre" data-tooltip-theme="dark"&gt;Sombre&lt;/button&gt;</code></pre>
                     </div>
                 </div>
 
+                <h3 id="modes-declenchement">Modes de Déclenchement</h3>
+                <p>Choisissez comment l'utilisateur interagit pour afficher le tooltip :</p>
+                <ul>
+                    <li><strong><code>hover</code> (défaut) :</strong> Le tooltip s'affiche au survol de la souris et disparaît lorsque le curseur quitte l'élément (et le tooltip s'il est interactif).</li>
+                    <li><strong><code>click</code> :</strong> Le tooltip apparaît/disparaît à chaque clic sur l'élément déclencheur. Il se ferme aussi si l'utilisateur clique en dehors.</li>
+                    <li><strong><code>dblclick</code> (double-clic) :</strong> Le tooltip apparaît/disparaît à chaque double-clic sur l'élément déclencheur. Il se ferme aussi si l'utilisateur clique en dehors.</li>
+                </ul>
+                <p>Configurez le mode globalement via <code>TooltipFlow.init({ triggerMode: '...' })</code> ou par élément avec <code>data-tooltip-trigger="..."</code>.</p>
+                <div class="example">
+                    <div class="example-preview">
+                        <button data-tooltip="Info bulle au survol" data-tooltip-trigger="hover">Survol</button>
+                        <button data-tooltip="Info bulle au clic" data-tooltip-trigger="click">Clic</button>
+                        <button data-tooltip="Info bulle au double-clic" data-tooltip-trigger="dblclick">Double-clic</button>
+                    </div>
+                     <div class="example-code">
+                        <pre><code>&lt;button data-tooltip="Info bulle au survol" data-tooltip-trigger="hover"&gt;Survol&lt;/button&gt;
+&lt;button data-tooltip="Info bulle au clic" data-tooltip-trigger="click"&gt;Clic&lt;/button&gt;
+&lt;button data-tooltip="Info bulle au double-clic" data-tooltip-trigger="dblclick"&gt;Double-clic&lt;/button&gt;</code></pre>
+                    </div>
+                </div>
                 <div class="info-block">
-                    <h3>Comportement des tooltips</h3>
-                    <ul>
-                        <li><strong>Mode hover :</strong>
-                            <ul>
-                                <li>Apparaît au survol de la souris</li>
-                                <li>Disparaît quand la souris quitte l'élément</li>
-                            </ul>
-                        </li>
-                        <li><strong>Mode click :</strong>
-                            <ul>
-                                <li>Bascule l'affichage au clic sur l'élément</li>
-                                <li>Se ferme au clic en dehors ou au clic sur l'élément</li>
-                            </ul>
-                        </li>
-                        <li><strong>Mode double-click :</strong>
-                            <ul>
-                                <li>Bascule l'affichage au double-clic sur l'élément</li>
-                                <li>Se ferme au clic en dehors ou au double-clic sur l'élément</li>
-                            </ul>
-                        </li>
-                    </ul>
+                    En mode <code>click</code> ou <code>dblclick</code>, un seul tooltip peut être affiché à la fois. Cliquer en dehors du tooltip actif le fermera.
                 </div>
 
-                <div class="warning">
-                    <strong>Notes importantes :</strong>
-                    <ul>
-                        <li>L'attribut <code>data-tooltip-trigger</code> a la priorité sur la configuration globale</li>
-                        <li>Un seul tooltip peut être affiché à la fois en mode click ou double-click</li>
-                        <li>Le clic en dehors d'un tooltip le fermera automatiquement en mode click/double-click</li>
-                    </ul>
+                <h3 id="interactivite">Interactivité</h3>
+                <p>Par défaut, le tooltip disparaît si la souris le quitte. En activant l'option globale <code>interactive: true</code>, l'utilisateur peut déplacer la souris sur le tooltip sans qu'il se ferme (utile pour les tooltips contenant des liens ou des boutons).</p>
+                 <pre><code class="language-javascript">// Activation globale
+TooltipFlow.init({ interactive: true });</code></pre>
+
+                <h3 id="delais">Délais d'Affichage et de Masquage</h3>
+                <p>Contrôlez le temps en millisecondes avant qu'un tooltip n'apparaisse (<code>showDelay</code>) ou ne disparaisse (<code>hideDelay</code>) après le déclenchement de l'événement (survol/sortie de souris).</p>
+                <pre><code class="language-javascript">// Configuration globale des délais
+TooltipFlow.init({
+    showDelay: 500, // Apparaît après 500ms
+    hideDelay: 100  // Disparaît après 100ms
+});</code></pre>
+
+                <h3 id="masquer-fleche">Masquer la Flèche</h3>
+                <p>Pour un look plus minimaliste, vous pouvez masquer la flèche du tooltip avec l'attribut <code>data-tooltip-hide-arrow="true"</code>.</p>
+                <div class="example">
+                    <div class="example-preview">
+                        <button data-tooltip="Ce tooltip n'a pas de flèche." data-tooltip-hide-arrow="true">Sans Flèche</button>
+                    </div>
+                    <div class="example-code">
+                        <code>&lt;button data-tooltip="Ce tooltip n'a pas de flèche." data-tooltip-hide-arrow="true"&gt;Sans Flèche&lt;/button&gt;</code>
+                    </div>
                 </div>
+            </section>
+
+            <section id="css">
+                <h2>Personnalisation CSS</h2>
+                <p>Vous pouvez personnaliser l'apparence des tooltips en surchargeant les styles définis dans <code>tooltipFlow.css</code>. Les classes principales sont :</p>
+                <ul>
+                    <li><code>.tooltip</code>: Le conteneur principal du tooltip.</li>
+                    <li><code>.tooltip-content</code>: Le conteneur interne du contenu.</li>
+                    <li><code>.tooltip::before</code>: La flèche du tooltip.</li>
+                    <li><code>.tooltip[data-position="..."]</code>: Pour cibler une position spécifique.</li>
+                    <li><code>.tooltip[data-theme="..."]</code>: Pour cibler un thème spécifique.</li>
+                    <li><code>.tooltip.visible</code>: Classe ajoutée lorsque le tooltip est visible.</li>
+                </ul>
+                 <pre><code class="language-css">/* Exemple : Changer la couleur de fond du thème sombre */
+.tooltip[data-theme="dark"] {
+    background-color: #111;
+    border: 1px solid #555;
+}
+
+.tooltip[data-theme="dark"]::before {
+    /* Ajuster la couleur de la flèche pour le thème sombre */
+    border-top-color: #111; /* Si position='top' */
+    /* etc. pour les autres positions */
+}</code></pre>
             </section>
 
             <section id="exemples">
-                <h2>Exemples</h2>
-
-                <h3>Timeline avec Tooltip</h3>
-                <div class="example">
-                    <div class="example-code">
-                        <pre><code>&lt;div class="timeline-block"
-    data-tooltip-id="tooltip-content-1"
-    data-tooltip-hide-arrow="true"&gt;
-    Contenu de la timeline
-&lt;/div&gt;
-
-&lt;div id="tooltip-content-1" style="display: none;"&gt;
-    &lt;h4&gt;Détails de l'événement&lt;/h4&gt;
-    &lt;p&gt;Description détaillée...&lt;/p&gt;
-&lt;/div&gt;</code></pre>
-                    </div>
-                </div>
-
-                <h3>Bouton avec Tooltip Simple</h3>
-                <div class="example">
-                    <div class="example-code">
-                        <code>&lt;button class="btn" data-tooltip="Lancer la mise à jour"&gt;
-    &lt;i class="fa fa-bolt"&gt;&lt;/i&gt;
-&lt;/button&gt;</code>
-                    </div>
-                </div>
+                 <h2>Exemples Interactifs</h2>
+                 <p>Testez les différentes configurations :</p>
+                 <div class="example">
+                     <div class="example-preview">
+                         <span data-tooltip="Simple en haut" data-tooltip-position="top">Top</span>
+                         <span data-tooltip="Simple à droite" data-tooltip-position="right">Droite</span>
+                         <span data-tooltip="Simple en bas" data-tooltip-position="bottom">Bas</span>
+                         <span data-tooltip="Simple à gauche" data-tooltip-position="left">Gauche</span>
+                         <button data-tooltip="Mode Click" data-tooltip-trigger="click">Clic Me</button>
+                         <button data-tooltip="Thème Sombre" data-tooltip-theme="dark">Sombre</button>
+                         <button data-tooltip="Sans Flèche" data-tooltip-hide-arrow="true">Pas de Flèche</button>
+                         <div id="html-example" style="display: none;">Contenu <b>HTML</b></div>
+                         <button data-tooltip-id="html-example">Contenu HTML</button>
+                     </div>
+                 </div>
             </section>
+
         </div>
     </div>
 
-    <script src="../src/tooltipFlow.js"></script>
+    <!-- Script pour l'initialisation des exemples -->
     <script>
+        // Pas besoin d'initialisation JS si on utilise que les data-attributes
+        // Mais si on veut changer les options globales :
         document.addEventListener('DOMContentLoaded', () => {
-            TooltipFlow.init({
-                debug: false,
-                defaultPosition: 'top',
-                margin: 8,
-                showDelay: 200,
-                hideDelay: 200,
-                interactive: true
-            });
+             TooltipFlow.init({
+                 interactive: true // Permet de tester l'interactivité
+             });
         });
     </script>
 </body>

@@ -19,15 +19,15 @@ $config = Config::getInstance();
 require_once $config->get('ASSETS_DIR') . "/libs/updateFlow/src/php/Managers/VersionManager.php";
 require_once $config->get('ASSETS_DIR') . "/libs/updateFlow/src/php/Utils/Response.php";
 require_once $config->get('ASSETS_DIR') . "/libs/updateFlow/src/php/Utils/Logger.php";
-require_once $config->get('PAGES') . "/index/fonctions/indexFcts.php";
+require_once $config->get('PAGES_DIR') . "/index/fonctions/indexFcts.php";
 
 // Initialisation des variables
 $vars = [];
 
 // Gestion de la version
 $updateFlowLogger = new UpdateFlowLogger(Commun\Logger\Logger::getInstance()->getLogger());
-$versionManager = new VersionManager(
-    $config->get('ROOT') . "/version", 
+$versionManager   = new VersionManager(
+    $config->get('ROOT') . "/version",
     VersionManager::FORMAT_TEXT,
     $updateFlowLogger
 );
@@ -41,7 +41,7 @@ $vars = array_merge($vars, [
 ]);
 
 // Récupération de la page et initialisation des variables associées
-$page = isset($_GET['page']) ? (int)$_GET['page'] : $config->get('PAGE_INDEX');
+$page = isset($_GET['page']) ? (int) $_GET['page'] : $config->get('PAGE_INDEX');
 $vars = array_merge($vars, initVars($_GET));
 $vars = getPagesVars($page, $vars, $_GET);
 

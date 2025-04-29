@@ -1,1221 +1,960 @@
+
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation ModalFlow</title>
+    <style>
+        :root {
+            --primary-color: #6366f1; /* Indigo */
+            --secondary-color: #ec4899; /* Pink */
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --code-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+            --nav-width: 260px;
+        }
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-        <title>ModalFlow - Documentation</title>
-        <link href="../src/modalFlow.css"
-              rel="stylesheet">
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                line-height: 1.6;
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-                color: #333;
-            }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-            .section {
-                margin-bottom: 40px;
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 2rem;
+        }
 
-            .code-block {
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 4px;
-                overflow-x: auto;
-                border: 1px solid #e9ecef;
-            }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
 
-            pre {
-                margin: 0;
-                white-space: pre-wrap;
-            }
+        h1, h2, h3, h4 {
+            margin: 1.5rem 0 1rem;
+            color: var(--primary-color);
+        }
 
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-            }
+        h1 {
+            font-size: 2.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
 
-            th,
-            td {
-                border: 1px solid #dee2e6;
-                padding: 12px;
-                text-align: left;
-            }
+        h2 {
+            font-size: 2rem;
+            margin-top: 3rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.4rem;
+        }
 
-            th {
-                background: #f8f9fa;
-            }
+        h3 {
+            font-size: 1.5rem;
+            margin-top: 2.5rem;
+            color: var(--secondary-color);
+        }
+         h4 {
+            font-size: 1.2rem;
+            margin-top: 2rem;
+            color: var(--text-color);
+            font-weight: 600;
+        }
 
-            .method-signature {
-                font-family: monospace;
-                background: #f8f9fa;
-                padding: 8px;
-                border-radius: 4px;
-                border: 1px solid #e9ecef;
-                margin: 10px 0;
-            }
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
 
+        ul, ol {
+            padding-left: 2rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .example {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            background-color: #ffffff;
+        }
+
+        .example-preview {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+         .example-preview button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+         }
+         .example-preview .btn-primary { background-color: var(--primary-color); }
+         .example-preview .btn-secondary { background-color: #64748b; }
+         .example-preview button:hover { opacity: 0.85; }
+
+
+        .example-code {
+            padding: 1rem;
+            background: var(--code-bg);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .nav {
+            position: fixed;
+            top: 1rem;
+            bottom: 1rem;
+            left: 1rem;
+            width: var(--nav-width);
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            font-size: 0.9em;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        .nav h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+         .nav > ul > li {
+             margin-bottom: 0.8rem;
+             font-weight: 500;
+         }
+
+         .nav ul ul {
+             padding-left: 1rem;
+             margin-top: 0.3rem;
+             font-weight: normal;
+         }
+         .nav ul ul li {
+             margin-bottom: 0.3rem;
+         }
+
+
+        .nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .nav a:hover, .nav a.active {
+            text-decoration: none;
+            background-color: #eef2ff; /* indigo-50 */
+            color: #3730a3; /* indigo-800 */
+        }
+
+        .content {
+            margin-left: calc(var(--nav-width) + 2rem);
+        }
+
+        .info-block, .warning-block {
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            border-left-width: 5px;
+            border-left-style: solid;
+        }
+
+        .info-block {
+            background-color: #eef2ff;
+            border-color: var(--primary-color);
+            color: #3730a3;
+        }
+
+        .warning-block {
+            background-color: #fffbeb;
+            border-color: #facc15;
+            color: #713f12;
+        }
+
+        .attr {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #db2777; /* Pink */
+        }
+        .type {
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .default {
+             font-family: 'Courier New', Courier, monospace;
+             color: #16a34a; /* Green */
+             font-size: 0.9em;
+        }
+
+        /* Style pour les groupes de formulaire dans les exemples */
+         .form-group {
+            margin-bottom: 1rem;
+         }
+         .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+         }
+         .form-group input[type="text"],
+         .form-group input[type="email"],
+         .form-group input[type="number"] {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+         }
+         .error-message {
+            color: #ef4444; /* red-500 */
+            font-size: 0.85em;
+            margin-top: 0.2rem;
+         }
+         input.invalid {
+             border-color: #ef4444;
+         }
+
+
+        @media (max-width: 1024px) {
             .nav {
-                position: fixed;
-                top: 20px;
-                left: 20px;
-                width: 250px;
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                display: none;
             }
-
-            .nav ul {
-                list-style: none;
-                padding: 0;
-            }
-
-            .nav li {
-                margin-bottom: 10px;
-            }
-
-            .nav a {
-                color: #007bff;
-                text-decoration: none;
-            }
-
-            .nav a:hover {
-                text-decoration: underline;
-            }
-
             .content {
-                margin-left: 300px;
+                margin-left: 0;
             }
-
-            .try-button {
-                background: #007bff;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 4px;
-                cursor: pointer;
-                margin-top: 10px;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
             }
-
-            .try-button:hover {
-                background: #0056b3;
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.6rem; }
+            h3 { font-size: 1.2rem; }
+            .container {
+                 padding: 1rem;
             }
-
-            .example-section {
-                margin-bottom: 30px;
-                padding: 20px;
-                border: 1px solid #e9ecef;
-                border-radius: 4px;
+             .example-preview, .example-code {
+                 padding: 1rem;
             }
-
-            .example-title {
-                margin-top: 0;
-                color: #333;
-            }
-
-            .example-description {
-                color: #666;
-                margin-bottom: 20px;
-            }
-
-            @media (max-width: 1200px) {
-                .nav {
-                    display: none;
-                }
-
-                .content {
-                    margin-left: 0;
-                }
-            }
-        </style>
-    </head>
-
-    <body>
+        }
+    </style>
+    <!-- Assurez-vous d'inclure modalFlow.css -->
+    <link rel="stylesheet" href="../src/modalFlow.css">
+</head>
+<body>
+    <div class="container">
         <nav class="nav">
-            <h3>Navigation</h3>
+            <h3>Table des matières</h3>
             <ul>
                 <li><a href="#introduction">Introduction</a></li>
                 <li><a href="#installation">Installation</a></li>
-                <li><a href="#configuration">Configuration</a></li>
-                <li><a href="#basic-usage">Utilisation de Base</a></li>
-                <li><a href="#drag-resize">Drag & Resize</a></li>
-                <li><a href="#validation">Validation de Formulaires</a></li>
-                <li><a href="#events">Événements</a></li>
-                <li><a href="#examples">Exemples Interactifs</a></li>
-                <li><a href="#methods">Méthodes</a></li>
-                <li><a href="#server-responses">Gestion des réponses serveur</a></li>
+                <li><a href="#initialisation">Initialisation</a></li>
+                <li><a href="#creation-modales">Création de Modales</a>
+                     <ul>
+                         <li><a href="#methode-create"><code>create()</code></a></li>
+                         <li><a href="#methode-createandopen"><code>createAndOpen()</code></a></li>
+                         <li><a href="#options-creation">Options de Création</a></li>
+                    </ul>
+                </li>
+                 <li><a href="#gestion-modales">Gestion des Modales</a>
+                    <ul>
+                         <li><a href="#methode-open"><code>open()</code></a></li>
+                         <li><a href="#methode-close"><code>close()</code> / <code>closeModal()</code></a></li>
+                         <li><a href="#methode-update"><code>update()</code></a></li>
+                         <li><a href="#methode-destroy"><code>destroy()</code></a></li>
+                    </ul>
+                </li>
+                <li><a href="#personnalisation-affichage">Personnalisation Affichage</a>
+                     <ul>
+                        <li><a href="#personnalisation-header">En-tête (Header)</a></li>
+                        <li><a href="#personnalisation-footer">Pied de page (Footer) / Boutons</a></li>
+                        <li><a href="#themes">Thèmes</a></li>
+                        <li><a href="#css">CSS</a></li>
+                    </ul>
+                </li>
+                <li><a href="#fonctionnalites-integrees">Fonctionnalités Intégrées</a>
+                    <ul>
+                        <li><a href="#drag-drop">Drag & Drop</a></li>
+                        <li><a href="#redimensionnement">Redimensionnement</a></li>
+                        <li><a href="#validation-formulaires">Validation de Formulaires</a></li>
+                        <li><a href="#chargement-ajax">Chargement AJAX</a></li>
+                    </ul>
+                </li>
+                <li><a href="#evenements">Événements</a></li>
+                <li><a href="#reponses-serveur">Gestion Réponses Serveur</a></li>
+                <li><a href="#exemples-interactifs">Exemples Interactifs</a></li>
             </ul>
         </nav>
 
         <div class="content">
-            <h1>ModalFlow - Documentation</h1>
+            <h1>Documentation ModalFlow</h1>
 
-            <div id="introduction"
-                 class="section">
+            <section id="introduction">
                 <h2>Introduction</h2>
-                <p>
-                    ModalFlow est une bibliothèque JavaScript légère et puissante pour la création et la gestion de fenêtres modales.
-                    Elle intègre nativement les fonctionnalités de déplacement, redimensionnement, validation de formulaires et chargement AJAX.
-                </p>
-                <p>Caractéristiques principales :</p>
+                <p>ModalFlow est une bibliothèque JavaScript conçue pour simplifier la création et la gestion de fenêtres modales (popups) interactives et modernes dans vos applications web.</p>
+                <p>Elle intègre des fonctionnalités avancées directement dans son cœur, éliminant le besoin de multiples plugins externes pour des besoins courants :</p>
                 <ul>
-                    <li>Déplacement des modales par drag & drop</li>
-                    <li>Redimensionnement avec gestion des proportions</li>
-                    <li>Validation de formulaires en temps réel</li>
-                    <li>Chargement de contenu via AJAX</li>
-                    <li>Gestion des callbacks de confirmation</li>
-                    <li>Animations fluides et personnalisables</li>
-                    <li>API simple et intuitive</li>
-                    <li>Support tactile pour mobile</li>
+                    <li>Création facile de modales avec contenu HTML ou chargé via AJAX.</li>
+                    <li>Déplacement des modales par glisser-déposer (Drag & Drop).</li>
+                    <li>Redimensionnement interactif des modales.</li>
+                    <li>Validation intégrée des formulaires inclus dans les modales.</li>
+                    <li>Gestion des confirmations utilisateur et des callbacks.</li>
+                    <li>Configuration flexible de l'apparence (thèmes, dimensions) et du comportement (fermeture, animations).</li>
+                    <li>Système d'événements pour réagir aux actions sur les modales.</li>
                 </ul>
-            </div>
+            </section>
 
-            <div id="installation"
-                 class="section">
+            <section id="installation">
                 <h2>Installation</h2>
-                <p>Incluez les fichiers CSS et JavaScript dans votre page :</p>
-                <div class="code-block">
-                    <pre>
-&lt;link href="path/to/modalFlow.css" rel="stylesheet"&gt;
-&lt;script src="path/to/modalFlow.js"&gt;&lt;/script&gt;</pre>
+                <p>Pour utiliser ModalFlow, incluez son fichier CSS pour le style et son fichier JavaScript pour la logique.</p>
+                 <pre><code>&lt;!-- Feuille de style de ModalFlow --&gt;
+&lt;link rel="stylesheet" href="path/to/modalFlow.css"&gt;
+
+&lt;!-- Script de ModalFlow --&gt;
+&lt;script src="path/to/modalFlow.js"&gt;&lt;/script&gt;</code></pre>
+                 <div class="info-block">
+                    Le script <code>modalFlow.js</code> expose la classe <code>ModalFlow</code> globalement (<code>window.ModalFlow</code>) ou peut être utilisé avec des systèmes de modules (CommonJS, AMD).
                 </div>
-            </div>
+            </section>
 
-            <div id="configuration"
-                 class="section">
-                <h2>Configuration</h2>
-                <p>ModalFlow peut être configuré lors de l'initialisation :</p>
-                <div class="code-block">
-                    <pre>
-const modal = new ModalFlow({
-    // Apparence
-    theme: 'light',
-    animation: true,
-    maxWidth: '800px',
-    width: '90%',
-    height: 'auto',
+             <section id="initialisation">
+                <h2>Initialisation</h2>
+                <p>Créez une instance de <code>ModalFlow</code> pour commencer. Vous pouvez passer un objet de configuration au constructeur pour définir des options globales qui s'appliqueront à toutes les modales créées par cette instance (sauf si surchargées lors de la création d'une modale spécifique).</p>
+                 <pre><code class="language-javascript">// Initialisation simple (options par défaut)
+const modal = new ModalFlow();
 
-    // Comportement
-    closeOnEscape: true,
-    closeOnOverlayClick: true,
-    showCloseButton: true,
-
-    // Drag & Drop
-    draggable: true,
-    dragHandle: '.modal-flow-header',
-
-    // Redimensionnement
-    resizable: true,
-    minWidth: 200,
-    minHeight: 150,
-    handles: ['se', 'sw', 'ne', 'nw'],
-    keepAspectRatio: false,
-
-    // Validation
-    validateLive: true,
-    validateErrorClass: 'invalid',
-    validateErrorPlacement: 'after'
-});</pre>
-                </div>
-
-                <h3>Options disponibles</h3>
-                <table>
-                    <tr>
-                        <th>Option</th>
-                        <th>Type</th>
-                        <th>Défaut</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>theme</td>
-                        <td>string</td>
-                        <td>'light'</td>
-                        <td>Thème de la modal ('light' ou 'dark')</td>
-                    </tr>
-                    <tr>
-                        <td>closeOnOverlayClick</td>
-                        <td>boolean</td>
-                        <td>true</td>
-                        <td>Si true, la modal se ferme en cliquant sur l'overlay</td>
-                    </tr>
-                    <tr>
-                        <td>closeOnEscape</td>
-                        <td>boolean</td>
-                        <td>true</td>
-                        <td>Si true, la modal se ferme avec la touche Escape</td>
-                    </tr>
-                    <tr>
-                        <td>draggable</td>
-                        <td>boolean</td>
-                        <td>false</td>
-                        <td>Active le déplacement de la modal</td>
-                    </tr>
-                    <tr>
-                        <td>resizable</td>
-                        <td>boolean</td>
-                        <td>false</td>
-                        <td>Active le redimensionnement</td>
-                    </tr>
-                    <tr>
-                        <td>validateLive</td>
-                        <td>boolean</td>
-                        <td>true</td>
-                        <td>Validation en temps réel des formulaires</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div id="basic-usage"
-                 class="section">
-                <h2>Utilisation de Base</h2>
-
-                <h3>Créer une Modal</h3>
-                <div class="code-block">
-                    <pre>
-// Création et ouverture séparées
-const modalId = modal.create({
-    title: 'Ma Modale',
-    content: 'Contenu de la modale'
-});
-modal.open(modalId);
-
-// Création et ouverture en une seule étape
-modal.createAndOpen({
-    title: 'Ma Modale',
-    content: 'Contenu de la modale'
-});
-
-// Modale avec chargement AJAX et paramètres POST
-modal.createAndOpen({
-    title: 'Modale AJAX',
-    url: '/chemin/vers/contenu.php',
-    params: {
-        id: 123,
-        action: 'edit'
-    },
-    onConfirm: () => {
-        console.log('Confirmation clicked');
-    }
-});
-
-// Modale avec contenu personnalisé et callback
-modal.create({
-    title: 'Modale avec Callback',
-    content: 'Voulez-vous continuer ?',
-    onConfirm: () => {
-        saveChanges();
-    }
-});</pre>
-                </div>
-
-                <h3>Ouvrir/Fermer une Modal</h3>
-                <div class="code-block">
-                    <pre>
-modal.open(modalId);  // Ouvrir
-modal.closeModal(modalId); // Fermer</pre>
-                </div>
-
-                <h3>Mettre à jour une Modal</h3>
-                <div class="code-block">
-                    <pre>
-modal.update(modalId, {
-    title: 'Nouveau titre',
-    content: 'Nouveau contenu',
-    footer: 'Nouveau pied de page'
-});</pre>
-                </div>
-            </div>
-
-            <div id="drag-resize"
-                 class="section">
-                <h2>Drag & Resize</h2>
-
-                <h3>Modal Déplaçable</h3>
-                <div class="code-block">
-                    <pre>
-const modalId = modal.create({
-    title: 'Modal Déplaçable',
-    content: 'Cliquez sur le header pour déplacer',
-    draggable: true
-});</pre>
-                </div>
-
-                <h3>Modal Redimensionnable</h3>
-                <div class="code-block">
-                    <pre>
-const modalId = modal.create({
-    title: 'Modal Redimensionnable',
-    content: 'Utilisez les poignées pour redimensionner',
-    resizable: true,
-    minWidth: 300,
-    minHeight: 200,
-    keepAspectRatio: true
-});</pre>
-                </div>
-            </div>
-
-            <div id="validation"
-                 class="section">
-                <h2>Validation de Formulaires</h2>
-
-                <h3>Règles de Validation</h3>
-                <div class="code-block">
-                    <pre>
-const modalId = modal.create({
-    title: 'Formulaire',
-    content: `
-        &lt;form&gt;
-            &lt;input type="email"
-                   data-validate="required|email"
-                   data-error="Email invalide"&gt;
-            &lt;input type="number"
-                   data-validate="required|min:18"
-                   data-error="Minimum 18 ans"&gt;
-            &lt;button type="submit"&gt;Envoyer&lt;/button&gt;
-        &lt;/form&gt;
-    `,
-    validate: true
-});</pre>
-                </div>
-
-                <h3>Types de Validation</h3>
-                <table>
-                    <tr>
-                        <th>Règle</th>
-                        <th>Description</th>
-                        <th>Exemple</th>
-                    </tr>
-                    <tr>
-                        <td>required</td>
-                        <td>Champ obligatoire</td>
-                        <td>data-validate="required"</td>
-                    </tr>
-                    <tr>
-                        <td>email</td>
-                        <td>Format email</td>
-                        <td>data-validate="email"</td>
-                    </tr>
-                    <tr>
-                        <td>min:n</td>
-                        <td>Valeur minimale</td>
-                        <td>data-validate="min:18"</td>
-                    </tr>
-                    <tr>
-                        <td>max:n</td>
-                        <td>Valeur maximale</td>
-                        <td>data-validate="max:100"</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div id="events"
-                 class="section">
-                <h2>Événements</h2>
-
-                <h3>Écouter les Événements</h3>
-                <div class="code-block">
-                    <pre>
-// Événements de base
-modal.on('open', ({ modalId, element }) => {
-    console.log(`Modal ${modalId} ouverte`);
-});
-
-// Événements de drag
-modal.on('dragStart', ({ modalId, x, y }) => {
-    console.log(`Début du déplacement`);
-});
-
-// Événements de resize
-modal.on('resizeStart', ({ modalId, width, height }) => {
-    console.log(`Début du redimensionnement`);
-});
-
-// Événements de validation
-modal.on('formValid', ({ modalId, form, data }) => {
-    console.log(`Formulaire valide`, data);
-});
-
-// Événements de chargement AJAX
-modal.on('contentLoaded', ({ modalId, element }) => {
-    console.log(`Contenu chargé pour la modale ${modalId}`);
-});
-
-modal.on('contentError', ({ modalId, element, error }) => {
-    console.log(`Erreur lors du chargement du contenu pour la modale ${modalId}`);
-});</pre>
-                </div>
-
-                <h3>Liste des Événements</h3>
-                <table>
-                    <tr>
-                        <th>Événement</th>
-                        <th>Description</th>
-                        <th>Données</th>
-                    </tr>
-                    <tr>
-                        <td>open</td>
-                        <td>Modal ouverte</td>
-                        <td>{ modalId, element }</td>
-                    </tr>
-                    <tr>
-                        <td>close</td>
-                        <td>Modal fermée</td>
-                        <td>{ modalId, element }</td>
-                    </tr>
-                    <tr>
-                        <td>dragStart</td>
-                        <td>Début du drag</td>
-                        <td>{ modalId, x, y }</td>
-                    </tr>
-                    <tr>
-                        <td>resizeStart</td>
-                        <td>Début du resize</td>
-                        <td>{ modalId, width, height }</td>
-                    </tr>
-                    <tr>
-                        <td>formValid</td>
-                        <td>Formulaire validé</td>
-                        <td>{ modalId, form, data }</td>
-                    </tr>
-                    <tr>
-                        <td>contentLoaded</td>
-                        <td>Contenu AJAX chargé</td>
-                        <td>{ modalId, element }</td>
-                    </tr>
-                    <tr>
-                        <td>contentError</td>
-                        <td>Erreur lors du chargement AJAX</td>
-                        <td>{ modalId, element, error }</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div id="server-responses"
-                 class="section">
-                <h2>Gestion des réponses serveur</h2>
-                <p>ModalFlow gère deux types de réponses du serveur :</p>
-
-                <table>
-                    <tr>
-                        <th>Type</th>
-                        <th>Content-Type</th>
-                        <th>Format</th>
-                        <th>Usage</th>
-                    </tr>
-                    <tr>
-                        <td>HTML</td>
-                        <td>text/html</td>
-                        <td>HTML direct</td>
-                        <td>Contenu normal de la modale</td>
-                    </tr>
-                    <tr>
-                        <td>JSON</td>
-                        <td>application/json</td>
-                        <td>{ erreur: 1, msgError: "..." }</td>
-                        <td>Gestion des erreurs</td>
-                    </tr>
-                </table>
-
-                <div class="warning">
-                    <strong>Important :</strong>
-                    <ul>
-                        <li>Le serveur doit définir le bon Content-Type dans ses réponses</li>
-                        <li>Pour le HTML, évitez les retours à la ligne inutiles qui peuvent causer des problèmes d'échappement</li>
-                        <li>Pour les erreurs, utilisez toujours le format JSON avec les champs erreur et msgError</li>
-                    </ul>
-                </div>
-
-                <h3>Exemple côté serveur (PHP)</h3>
-                <pre><code>try {
-    // En cas de succès, renvoyer du HTML
-    header('Content-Type: text/html; charset=utf-8');
-    echo $twig->render('template.twig', $vars);
-} catch (Exception $e) {
-    // En cas d'erreur, renvoyer du JSON
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        "erreur" => 1,
-        "msgError" => $e->getMessage()
-    ]);
-}</code></pre>
-
-                <h3>Gestion côté client</h3>
-                <pre><code>modalFlow.createAndOpen({
-    title: 'Ma modale',
-    url: '/api/data',
-    onError: (error) => {
-        if (error.msgError) {
-            // Afficher l'erreur à l'utilisateur
-            showError(error.msgError);
-        }
-    }
+// Initialisation avec configuration personnalisée
+const customModal = new ModalFlow({
+    theme: 'dark',             // Thème sombre par défaut
+    closeOnOverlayClick: false, // Empêche la fermeture via clic sur l'overlay
+    draggable: true,           // Rend toutes les modales déplaçables par défaut
+    resizable: true,           // Rend toutes les modales redimensionnables par défaut
+    animation: true,           // Active les animations
+    validateLive: true,        // Active la validation en temps réel des formulaires
+    // ... autres options globales ...
 });</code></pre>
-            </div>
 
-            <div id="methods"
-                 class="section">
-                <h2>Méthodes</h2>
+                <h3>Options de Configuration (Constructeur)</h3>
+                <table>
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">theme</code></td><td class="type">string</td><td><code class="default">'light'</code></td><td>Thème visuel global ('light' ou 'dark').</td></tr>
+                        <tr><td><code class="attr">animation</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Activer/désactiver les animations d'ouverture/fermeture.</td></tr>
+                        <tr><td><code class="attr">closeOnEscape</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Permettre la fermeture avec la touche Échap.</td></tr>
+                        <tr><td><code class="attr">closeOnOverlayClick</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Permettre la fermeture en cliquant sur l'overlay (fond semi-transparent).</td></tr>
+                        <tr><td><code class="attr">showCloseButton</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher le bouton (X) de fermeture dans l'en-tête par défaut.</td></tr>
+                        <tr><td><code class="attr">maxWidth</code></td><td class="type">string</td><td><code class="default">'800px'</code></td><td>Largeur maximale pour les modales.</td></tr>
+                        <tr><td><code class="attr">width</code></td><td class="type">string</td><td><code class="default">'90%'</code></td><td>Largeur par défaut des modales (peut être surchargée par modale).</td></tr>
+                        <tr><td><code class="attr">height</code></td><td class="type">string</td><td><code class="default">'auto'</code></td><td>Hauteur par défaut des modales (peut être surchargée par modale).</td></tr>
+                        <tr><td><code class="attr">position</code></td><td class="type">string</td><td><code class="default">'center'</code></td><td>Position verticale par défaut ('center', 'top', 'bottom').</td></tr>
+                        <tr><td><code class="attr">overlayOpacity</code></td><td class="type">number</td><td><code class="default">0.5</code></td><td>Opacité de l'overlay (0 à 1).</td></tr>
+                        <tr><td><code class="attr">zIndex</code></td><td class="type">number</td><td><code class="default">1000</code></td><td>Index z de base pour l'overlay et les modales.</td></tr>
+                        <tr><td><code class="attr">draggable</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Rendre les modales déplaçables par défaut.</td></tr>
+                        <tr><td><code class="attr">dragHandle</code></td><td class="type">string</td><td><code class="default">'.modal-flow-header'</code></td><td>Sélecteur CSS pour la zone de préhension du drag & drop.</td></tr>
+                        <tr><td><code class="attr">resizable</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Rendre les modales redimensionnables par défaut.</td></tr>
+                        <tr><td><code class="attr">minWidth</code></td><td class="type">number</td><td><code class="default">200</code></td><td>Largeur minimale lors du redimensionnement.</td></tr>
+                        <tr><td><code class="attr">minHeight</code></td><td class="type">number</td><td><code class="default">150</code></td><td>Hauteur minimale lors du redimensionnement.</td></tr>
+                        <tr><td><code class="attr">handles</code></td><td class="type">Array&lt;string&gt;</td><td><code class="default">['se', 'sw', 'ne', 'nw']</code></td><td>Poignées de redimensionnement actives (sud-est, sud-ouest, nord-est, nord-ouest).</td></tr>
+                        <tr><td><code class="attr">keepAspectRatio</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Conserver les proportions lors du redimensionnement.</td></tr>
+                        <tr><td><code class="attr">validateLive</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Activer la validation des formulaires en temps réel (pendant la saisie).</td></tr>
+                        <tr><td><code class="attr">validateErrorClass</code></td><td class="type">string</td><td><code class="default">'invalid'</code></td><td>Classe CSS ajoutée aux champs invalides.</td></tr>
+                        <tr><td><code class="attr">validateErrorPlacement</code></td><td class="type">string</td><td><code class="default">'after'</code></td><td>Où afficher le message d'erreur ('after' l'élément ou 'tooltip').</td></tr>
+                    </tbody>
+                </table>
+            </section>
 
-                <div class="method-block">
-                    <h3>create(options)</h3>
-                    <p>Crée une nouvelle modale sans l'ouvrir. Retourne l'ID de la modale.</p>
-                    <div class="code-block">
-                        <pre>
-const modalId = modal.create({
-    title: 'Titre',
-    content: 'Contenu',
-    footer: 'Pied de page'  // optionnel
-});</pre>
-                    </div>
-                    <table>
-                        <tr>
-                            <th>Option</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                        </tr>
-                        <tr>
-                            <td>title</td>
-                            <td>string</td>
-                            <td>Titre de la modale</td>
-                        </tr>
-                        <tr>
-                            <td>content</td>
-                            <td>string</td>
-                            <td>Contenu HTML de la modale</td>
-                        </tr>
-                        <tr>
-                            <td>footer</td>
-                            <td>string</td>
-                            <td>Contenu HTML du pied de page (optionnel)</td>
-                        </tr>
-                        <tr>
-                            <td>url</td>
-                            <td>string</td>
-                            <td>URL pour charger le contenu via AJAX</td>
-                        </tr>
-                        <tr>
-                            <td>params</td>
-                            <td>object</td>
-                            <td>Paramètres à envoyer en POST lors de la requête AJAX</td>
-                        </tr>
-                        <tr>
-                            <td>onConfirm</td>
-                            <td>function</td>
-                            <td>Fonction à exécuter lors de la confirmation</td>
-                        </tr>
-                    </table>
-                </div>
+             <section id="creation-modales">
+                 <h2>Création de Modales</h2>
 
-                <div class="method-block">
-                    <h3>createAndOpen(options)</h3>
-                    <p>Crée une nouvelle modale et l'ouvre immédiatement. Retourne l'ID de la modale. Cette méthode combine create() et open() en une seule étape.</p>
-                    <div class="code-block">
-                        <pre>
+                 <h3 id="methode-create">Méthode <code>create(options)</code></h3>
+                 <p>Cette méthode prépare une nouvelle modale mais ne l'affiche pas. Elle retourne l'ID unique de la modale créée, que vous utiliserez ensuite avec <code>open()</code>.</p>
+                 <pre><code class="language-javascript">const modal = new ModalFlow();
+
+// Créer une modale simple
+const simpleModalId = modal.create({
+    title: 'Titre de la Modale',
+    content: '&lt;p&gt;Contenu HTML simple ici.&lt;/p&gt;'
+    // ... autres options ...
+});
+
+// Plus tard...
+modal.open(simpleModalId);</code></pre>
+
+                 <h3 id="methode-createandopen">Méthode <code>createAndOpen(options)</code></h3>
+                 <p>C'est la méthode la plus courante. Elle crée et ouvre la modale en une seule étape. Elle retourne également l'ID de la modale.</p>
+                  <pre><code class="language-javascript">const modal = new ModalFlow();
+
+// Créer et ouvrir directement
 const modalId = modal.createAndOpen({
-    title: 'Titre',
-    content: 'Contenu',
-    footer: 'Pied de page'  // optionnel
-});</pre>
-                    </div>
-                    <table>
-                        <tr>
-                            <th>Option</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                        </tr>
-                        <tr>
-                            <td>title</td>
-                            <td>string</td>
-                            <td>Titre de la modale</td>
-                        </tr>
-                        <tr>
-                            <td>content</td>
-                            <td>string</td>
-                            <td>Contenu HTML de la modale</td>
-                        </tr>
-                        <tr>
-                            <td>footer</td>
-                            <td>string</td>
-                            <td>Contenu HTML du pied de page (optionnel)</td>
-                        </tr>
-                        <tr>
-                            <td>url</td>
-                            <td>string</td>
-                            <td>URL pour charger le contenu via AJAX</td>
-                        </tr>
-                        <tr>
-                            <td>params</td>
-                            <td>object</td>
-                            <td>Paramètres à envoyer en POST lors de la requête AJAX</td>
-                        </tr>
-                        <tr>
-                            <td>onConfirm</td>
-                            <td>function</td>
-                            <td>Fonction à exécuter lors de la confirmation</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="method-block">
-                    <h3>open(modalId)</h3>
-                    <p>Ouvre une modale existante.</p>
-                    <div class="code-block">
-                        <pre>
-modal.open('modal-1');</pre>
-                    </div>
-                </div>
-
-                <div class="method-block">
-                    <h3>closeModal(modalId, force)</h3>
-                    <p>Ferme une modale existante. Le paramètre <code>force</code> permet de forcer la fermeture même si la modale est configurée pour ne pas être fermée.</p>
-                    <div class="code-block">
-                        <pre>
-// Fermeture normale
-modal.closeModal('modal-1');
-
-// Fermeture forcée
-modal.closeModal('modal-1', true);</pre>
-                    </div>
-                    <table>
-                        <tr>
-                            <th>Paramètre</th>
-                            <th>Type</th>
-                            <th>Description</th>
-                        </tr>
-                        <tr>
-                            <td>modalId</td>
-                            <td>string</td>
-                            <td>Identifiant de la modale à fermer</td>
-                        </tr>
-                        <tr>
-                            <td>force</td>
-                            <td>boolean</td>
-                            <td>Si true, force la fermeture même si preventClose est activé</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="method-block">
-                    <h3>update(modalId, options)</h3>
-                    <p>Met à jour le contenu d'une modale existante.</p>
-                    <div class="code-block">
-                        <pre>
-modal.update('modal-1', {
-    title: 'Nouveau titre',
-    content: 'Nouveau contenu'
-});</pre>
-                    </div>
-                </div>
-
-                <div class="method-block">
-                    <h2>Personnalisation de l'en-tête</h2>
-                    <p>Il existe deux façons de personnaliser l'en-tête de la modale :</p>
-
-                    <h3>1. Via les options (Header par défaut)</h3>
-                    <div class="code-block">
-                        <pre><code>modalFlow.createAndOpen({
-    title: 'Mon Titre',  // Titre affiché dans le header
-    showCloseButton: true,  // Afficher/masquer le bouton de fermeture (true par défaut)
-    content: '...'
+    title: 'Modale Instantanée',
+    content: 'Affichée immédiatement !',
+    width: '400px',
+    resizable: true
 });</code></pre>
-                    </div>
 
-                    <h3>2. Via le HTML (Header personnalisé)</h3>
-                    <p>Vous pouvez définir votre propre header en incluant une div avec la classe <code>modal-flow-header</code> dans votre contenu :</p>
-                    <div class="code-block">
-                        <pre><code>&lt;div class="modal-flow-header"&gt;
-    Mon Header Personnalisé
-&lt;/div&gt;
-&lt;div class="modal__content"&gt;
-    Contenu de la modale...
-&lt;/div&gt;</code></pre>
-                    </div>
+                 <h3 id="options-creation">Options de Création (pour <code>create</code> et <code>createAndOpen</code>)</h3>
+                 <p>Ces options permettent de définir le contenu et le comportement spécifique d'une modale. Elles surchargent les options globales définies dans le constructeur.</p>
+                 <table>
+                     <thead>
+                         <tr><th>Option</th><th>Type</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">title</code></td><td class="type">string</td><td>Titre affiché dans l'en-tête par défaut. Ignoré si un header HTML est fourni dans `content`.</td></tr>
+                         <tr><td><code class="attr">content</code></td><td class="type">string</td><td>Contenu HTML principal de la modale. Peut inclure un header (<code>.modal-flow-header</code>) et/ou un footer (<code>.modal__buttons</code>) personnalisés.</td></tr>
+                         <tr><td><code class="attr">footer</code></td><td class="type">string</td><td>(Obsolète) Contenu HTML pour le pied de page. Préférez l'option <code>buttons</code> ou inclure une div <code>.modal__buttons</code> dans `content`.</td></tr>
+                         <tr><td><code class="attr">url</code></td><td class="type">string</td><td>URL pour charger le contenu de la modale via une requête AJAX (POST).</td></tr>
+                         <tr><td><code class="attr">params</code></td><td class="type">object</td><td>Objet de données à envoyer en tant que corps de la requête POST lors du chargement AJAX via `url`.</td></tr>
+                         <tr><td><code class="attr">buttons</code></td><td class="type">Array&lt;object&gt;</td><td>Tableau pour définir les boutons du pied de page programmatiquement (voir section Footer/Boutons).</td></tr>
+                         <tr><td><code class="attr">onConfirm</code></td><td class="type">function</td><td>Callback exécuté lorsque l'utilisateur clique sur le bouton "Confirmer" (si défini via l'option `buttons` ou par défaut).</td></tr>
+                         <tr><td><code class="attr">onContentLoaded</code></td><td class="type">function</td><td>Callback exécuté après le chargement réussi du contenu via AJAX (`url`).</td></tr>
+                         <tr><td><code class="attr">onError</code></td><td class="type">function</td><td>Callback exécuté en cas d'erreur lors du chargement AJAX. Reçoit l'objet erreur.</td></tr>
+                         <tr><td><code class="attr">validate</code></td><td class="type">boolean</td><td>Active la validation pour un formulaire présent dans `content`.</td></tr>
+                         <tr><td><code class="attr">draggable</code></td><td class="type">boolean</td><td>Active/désactive le déplacement pour cette modale.</td></tr>
+                         <tr><td><code class="attr">resizable</code></td><td class="type">boolean</td><td>Active/désactive le redimensionnement pour cette modale.</td></tr>
+                         <tr><td><code class="attr">width</code> / <code class="attr">height</code></td><td class="type">string</td><td>Dimensions spécifiques pour cette modale (ex: '600px', '70%').</td></tr>
+                         <tr><td><code class="attr">showCloseButton</code></td><td class="type">boolean</td><td>Afficher/masquer le bouton (X) pour cette modale.</td></tr>
+                         <tr><td><code class="attr">closeOnOverlayClick</code></td><td class="type">boolean</td><td>Permettre/empêcher la fermeture via clic sur l'overlay pour cette modale.</td></tr>
+                         <tr><td><code class="attr">closeOnEscape</code></td><td class="type">boolean</td><td>Permettre/empêcher la fermeture via Échap pour cette modale.</td></tr>
+                         <tr><td><code class="attr">preventClose</code></td><td class="type">boolean</td><td>(Interne/Avancé) Si true, empêche la fermeture via `closeModal()` sauf si `force` est utilisé.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
 
-                    <div class="warning">
-                        <strong>Notes importantes :</strong>
-                        <ul>
-                            <li>Si un header personnalisé est présent dans le HTML, il sera utilisé à la place du header par défaut</li>
-                            <li>L'option <code>title</code> est ignorée si un header personnalisé est présent</li>
-                            <li>Si <code>showCloseButton: true</code>, le bouton de fermeture sera ajouté au header personnalisé</li>
-                            <li>Pour masquer complètement le header, utilisez <code>title: ''</code> et <code>showCloseButton: false</code></li>
-                        </ul>
-                    </div>
+             <section id="gestion-modales">
+                <h2>Gestion des Modales</h2>
 
-                    <h3>Exemple complet</h3>
-                    <div class="code-block">
-                        <pre><code>// Dans votre JavaScript
-modalFlow.createAndOpen({
-    url: '/api/data',
-    showCloseButton: false,  // Masquer le bouton de fermeture
-    params: { id: 123 }
-});
+                <h3 id="methode-open"><code>open(modalId)</code></h3>
+                <p>Affiche une modale préalablement créée avec <code>create()</code>.</p>
+                <pre><code>modal.open(simpleModalId); // 'simpleModalId' obtenu de modal.create()</code></pre>
 
-// Dans votre template HTML
-&lt;form id="modal-form"&gt;
-    &lt;div class="modal-flow-header"&gt;
-        Modification de l'article #123
-    &lt;/div&gt;
-    &lt;div class="modal__content"&gt;
-        &lt;input type="text" name="title"&gt;
-    &lt;/div&gt;
-    &lt;div class="modal__buttons"&gt;
-        &lt;button type="button" onclick="modalFlow.close()"&gt;Annuler&lt;/button&gt;
-        &lt;button type="button" onclick="save()"&gt;Enregistrer&lt;/button&gt;
-    &lt;/div&gt;
-&lt;/form&gt;</code></pre>
-                    </div>
-                </div>
+                <h3 id="methode-close"><code>close(modalId)</code> / <code>closeModal(modalId, force)</code></h3>
+                <p>Ferme la modale spécifiée. <code>closeModal()</code> offre une option <code>force</code> pour ignorer certaines configurations (comme <code>preventClose</code>).</p>
+                 <pre><code>// Fermeture simple
+modal.close('maModale-123');
 
-                <div class="method-block">
-                    <h2>Configuration des boutons</h2>
-                    <p>Il existe deux façons de configurer les boutons :</p>
+// Fermeture forcée (utile dans certains callbacks)
+modal.closeModal('maModale-123', true);</code></pre>
 
-                    <h3>1. Via l'option buttons (Recommandé)</h3>
-                    <p>Cette méthode est recommandée car elle offre une meilleure séparation des responsabilités :</p>
-                    <pre><code>modalFlow.createAndOpen({
-    title: 'Titre',
-    url: '/url',
+                <h3 id="methode-update"><code>update(modalId, options)</code></h3>
+                <p>Met à jour le titre, le contenu ou le pied de page d'une modale déjà ouverte.</p>
+                <pre><code>modal.update('maModale-123', {
+    title: 'Titre Mis à Jour',
+    content: 'Nouveau contenu chargé !',
+    // Note: 'footer' ici remplacera tout le contenu du footer existant.
+    // Il est souvent préférable de gérer les boutons via l'option 'buttons'.
+    footer: '&lt;button onclick="modal.close('maModale-123')"&gt;OK&lt;/button&gt;'
+});</code></pre>
+
+                 <h3 id="methode-destroy"><code>destroy(modalId)</code></h3>
+                 <p>Ferme et supprime complètement une modale du DOM et de la gestion interne de ModalFlow.</p>
+                 <pre><code>modal.destroy('maModale-123');</code></pre>
+            </section>
+
+            <section id="personnalisation-affichage">
+                <h2>Personnalisation de l'Affichage</h2>
+
+                <h3 id="personnalisation-header">En-tête (Header)</h3>
+                <p>Vous avez deux options pour l'en-tête :</p>
+                <ol>
+                    <li><strong>Header par défaut :</strong> Utilisez l'option <code>title: 'Mon Titre'</code> lors de la création. ModalFlow génère un header standard. Vous pouvez masquer le bouton de fermeture avec <code>showCloseButton: false</code>.</li>
+                    <li><strong>Header HTML personnalisé :</strong> Incluez une <code>&lt;div class="modal-flow-header"&gt;...&lt;/div&gt;</code> directement dans votre option <code>content</code>. Dans ce cas, l'option <code>title</code> est ignorée. Le bouton de fermeture sera ajouté à votre header personnalisé si <code>showCloseButton: true</code> (valeur par défaut).</li>
+                </ol>
+                 <pre><code>// 1. Header par défaut
+modal.createAndOpen({ title: 'Mon Titre Standard' });
+
+// 2. Header HTML personnalisé dans le contenu
+modal.createAndOpen({
+    content: `
+        &lt;div class="modal-flow-header" style="background: #eee;"&gt;
+            &lt;i&gt;Mon Header HTML&lt;/i&gt;
+            &lt;!-- Le bouton X sera ajouté ici si showCloseButton: true --&gt;
+        &lt;/div&gt;
+        &lt;div class="modal-flow-content"&gt;Contenu...&lt;/div&gt;
+    `
+    // title: 'Ce titre sera ignoré'
+});</code></pre>
+
+                <h3 id="personnalisation-footer">Pied de page (Footer) / Boutons</h3>
+                <p>Comme pour l'en-tête, vous avez deux approches principales :</p>
+                <ol>
+                    <li><strong>Option <code>buttons</code> (Recommandé) :</strong> Fournissez un tableau d'objets lors de la création. C'est la méthode la plus propre et flexible.</li>
+                    <li><strong>Footer HTML personnalisé :</strong> Incluez une <code>&lt;div class="modal__buttons"&gt;...&lt;/div&gt;</code> dans votre option <code>content</code>. ModalFlow déplacera ce contenu dans la zone de pied de page.</li>
+                </ol>
+
+                <h4>Option <code>buttons</code></h4>
+                <p>Structure d'un objet bouton :</p>
+                 <table>
+                     <thead>
+                         <tr><th>Propriété</th><th>Type</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">text</code></td><td class="type">string</td><td>Texte du bouton.</td></tr>
+                         <tr><td><code class="attr">class</code></td><td class="type">string</td><td>Classe(s) CSS pour le bouton (ex: 'btn btn-primary').</td></tr>
+                         <tr><td><code class="attr">onClick</code></td><td class="type">function</td><td>Fonction exécutée au clic. Doit retourner <code>true</code> pour fermer la modale après exécution, ou <code>false</code> pour la laisser ouverte.</td></tr>
+                     </tbody>
+                 </table>
+                  <pre><code class="language-javascript">modal.createAndOpen({
+    title: 'Confirmation',
+    content: 'Êtes-vous sûr ?',
     buttons: [
         {
             text: 'Annuler',
-            class: 'btn-secondary',
-            onClick: () => true  // true = fermer la modale
+            class: 'btn-secondary', // Classe CSS exemple
+            onClick: () => {
+                console.log('Annulé');
+                return true; // Ferme la modale
+            }
         },
         {
-            text: 'Enregistrer',
+            text: 'Confirmer',
             class: 'btn-primary',
             onClick: () => {
-                saveData();
-                return false;  // false = garder la modale ouverte
+                console.log('Confirmé, traitement...');
+                // Simule une action
+                setTimeout(() => {
+                    console.log('Traitement terminé.');
+                    modal.close('id_de_cette_modale'); // Fermeture manuelle possible
+                }, 1000);
+                return false; // Laisse la modale ouverte pendant le traitement
             }
         }
     ]
 });</code></pre>
 
-                    <div class="warning">
-                        <strong>Avantages de cette approche :</strong>
-                        <ul>
-                            <li>Meilleure séparation des responsabilités (le template contient uniquement le contenu)</li>
-                            <li>Possibilité de modifier les boutons dynamiquement</li>
-                            <li>Utilisation plus native de l'API modalFlow</li>
-                            <li>Gestion plus fine des actions (via le retour true/false)</li>
-                        </ul>
-                    </div>
+                <h4>Footer HTML</h4>
+                 <pre><code>modal.createAndOpen({
+    title: 'Avec Footer HTML',
+    content: `
+        &lt;div class="modal-flow-content"&gt;Contenu principal ici.&lt;/div&gt;
+        &lt;!-- Cette div sera déplacée vers le pied de page --&gt;
+        &lt;div class="modal__buttons"&gt;
+            &lt;button type="button" class="btn-secondary" onclick="modal.close()"&gt;Fermer&lt;/button&gt;
+            &lt;button type="button" class="btn-primary" onclick="alert('Action !')"&gt;Action&lt;/button&gt;
+        &lt;/div&gt;
+    `
+});</code></pre>
+                <div class="warning-block">L'approche avec l'option <code>buttons</code> est généralement préférée car elle sépare mieux la logique (JavaScript) de la présentation (HTML/contenu) et permet un contrôle plus fin du comportement de fermeture.</div>
 
-                    <h3>2. Via le HTML</h3>
-                    <p>Alternative possible en ajoutant une div avec la classe modal__buttons dans votre template :</p>
-                    <pre><code>&lt;div class="modal__buttons"&gt;
-    &lt;button type="button" class="btn btn-secondary" onclick="modalFlow.close()"&gt;Annuler&lt;/button&gt;
-    &lt;button type="button" class="btn btn-primary" onclick="saveData()"&gt;Enregistrer&lt;/button&gt;
-&lt;/div&gt;</code></pre>
+                <h3 id="themes">Thèmes</h3>
+                <p>Configurez le thème globalement (<code>theme: 'dark'</code> dans le constructeur) ou par modale (<code>modal.create({ theme: 'dark', ... })</code>). Le CSS de ModalFlow contient les styles pour les thèmes <code>light</code> et <code>dark</code>.</p>
 
-                    <div class="warning">
-                        <strong>Note :</strong> Cette méthode est moins flexible car :
-                        <ul>
-                            <li>Les boutons sont figés dans le template</li>
-                            <li>La gestion des actions est moins fine</li>
-                            <li>Le mélange HTML/JavaScript est moins maintenable</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+                <h3 id="css">Personnalisation CSS</h3>
+                <p>Surchargez les classes CSS suivantes pour adapter l'apparence :</p>
+                <ul>
+                    <li><code>.modal-flow-overlay</code>: Le fond semi-transparent.</li>
+                    <li><code>.modal-flow</code>: Le conteneur principal de la modale.</li>
+                    <li><code>.modal-flow.light-theme</code> / <code>.dark-theme</code>: Classes de thème.</li>
+                    <li><code>.modal-flow-header</code>: L'en-tête.</li>
+                    <li><code>.modal-flow-title</code>: Le titre dans l'en-tête.</li>
+                    <li><code>.modal-flow-close</code>: Le bouton de fermeture (X).</li>
+                    <li><code>.modal-flow-content</code>: La zone de contenu principal.</li>
+                    <li><code>.modal-flow-footer</code>: Le pied de page contenant les boutons.</li>
+                    <li><code>.modal-flow-loading</code>, <code>.modal-flow-spinner</code>: Indicateur de chargement AJAX.</li>
+                    <li><code>.modal-flow-error</code>: Message d'erreur AJAX.</li>
+                    <li><code>.resize-handle.se</code>, <code>.sw</code>, etc. : Poignées de redimensionnement.</li>
+                    <li>Validation : <code>.invalid</code>, <code>.error-message</code> (classes par défaut).</li>
+                </ul>
+            </section>
 
-            <div id="examples"
-                 class="section">
-                <h2>Exemples Interactifs</h2>
+            <section id="fonctionnalites-integrees">
+                 <h2>Fonctionnalités Intégrées</h2>
 
-                <!-- Modal Simple -->
-                <div class="example-section">
-                    <h3 class="example-title">Modal Simple</h3>
-                    <div class="example-description">
-                        Une modal basique avec titre et contenu.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modal = new ModalFlow();
-modal.create({
-    title: 'Modal Simple',
-    content: 'Contenu de la modal'
-});</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showSimpleModal()">Essayer</button>
-                </div>
+                 <h3 id="drag-drop">Drag & Drop</h3>
+                 <p>Activez le déplacement en passant <code>draggable: true</code> dans la configuration globale ou les options de création. Par défaut, l'en-tête (<code>.modal-flow-header</code>) sert de zone de préhension, mais cela peut être changé avec l'option <code>dragHandle</code>.</p>
+                  <pre><code>const draggableModal = new ModalFlow({ draggable: true });
+draggableModal.createAndOpen({ title: 'Déplacez-moi !' });</code></pre>
 
-                <!-- Modal Déplaçable -->
-                <div class="example-section">
-                    <h3 class="example-title">Modal Déplaçable</h3>
-                    <div class="example-description">
-                        Une modal que l'on peut déplacer en cliquant sur son header.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modal = new ModalFlow({
-    draggable: true
-});
+                 <h3 id="redimensionnement">Redimensionnement</h3>
+                 <p>Activez le redimensionnement avec <code>resizable: true</code>. Vous pouvez contrôler les dimensions minimales (<code>minWidth</code>, <code>minHeight</code>), les poignées actives (<code>handles</code>), et si les proportions doivent être conservées (<code>keepAspectRatio</code>).</p>
+                  <pre><code>const resizableModal = new ModalFlow({ resizable: true, minWidth: 400 });
+resizableModal.createAndOpen({ title: 'Redimensionnez-moi', width: '500px', height: '300px'});</code></pre>
 
-modal.create({
-    title: 'Modal Déplaçable',
-    content: 'Cliquez sur le header pour déplacer la modal'
-});</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showDraggableModal()">Essayer</button>
-                </div>
-
-                <!-- Modal Redimensionnable -->
-                <div class="example-section">
-                    <h3 class="example-title">Modal Redimensionnable</h3>
-                    <div class="example-description">
-                        Une modal que l'on peut redimensionner avec les poignées sur les bords.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modal = new ModalFlow({
-    resizable: true,
-    minWidth: 300,
-    minHeight: 200
-});
-
-modal.create({
-    title: 'Modal Redimensionnable',
-    content: 'Utilisez les poignées pour redimensionner la modal',
-    width: '400px',
-    height: '300px'
-});</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showResizableModal()">Essayer</button>
-                </div>
-
-                <!-- Formulaire avec Validation -->
-                <div class="example-section">
-                    <h3 class="example-title">Formulaire avec Validation</h3>
-                    <div class="example-description">
-                        Un formulaire dans une modal avec validation en temps réel.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modal = new ModalFlow({
-    validateLive: true
-});
-
-modal.create({
-    title: 'Inscription',
+                 <h3 id="validation-formulaires">Validation de Formulaires</h3>
+                 <p>Activez la validation pour une modale contenant un formulaire avec l'option <code>validate: true</code> (ou globalement avec <code>validateLive: true</code> dans le constructeur).</p>
+                 <p>Ajoutez l'attribut <code>data-validate</code> aux champs <code>&lt;input&gt;</code>, <code>&lt;select&gt;</code>, <code>&lt;textarea&gt;</code>. Séparez plusieurs règles par un pipe (<code>|</code>).</p>
+                 <pre><code>modal.createAndOpen({
+    title: 'Formulaire Validé',
     content: `
         &lt;form&gt;
             &lt;div class="form-group"&gt;
-                &lt;label&gt;Nom&lt;/label&gt;
-                &lt;input type="text"
-                       data-validate="required|minLength:3"
-                       placeholder="Votre nom"&gt;
+                &lt;label&gt;Email:&lt;/label&gt;
+                &lt;input type="email" name="email" data-validate="required|email"&gt;
+                &lt;!-- Le message d'erreur s'affichera ici --&gt;
             &lt;/div&gt;
             &lt;div class="form-group"&gt;
-                &lt;label&gt;Email&lt;/label&gt;
-                &lt;input type="email"
-                       data-validate="required|email"
-                       placeholder="votre@email.com"&gt;
+                &lt;label&gt;Âge:&lt;/label&gt;
+                &lt;input type="number" name="age" data-validate="required|min:18|max:99"&gt;
             &lt;/div&gt;
-            &lt;button type="submit"&gt;Envoyer&lt;/button&gt;
+             &lt;div class="form-group"&gt;
+                &lt;label&gt;Mot de passe:&lt;/label&gt;
+                &lt;input type="password" name="password" data-validate="required|minLength:8"&gt;
+            &lt;/div&gt;
+             &lt;div class="form-group"&gt;
+                &lt;label&gt;Confirmer Mdp:&lt;/label&gt;
+                &lt;input type="password" name="confirm_password" data-validate="required|match:password"&gt;
+                 &lt;!-- 'match:password' vérifie que la valeur est identique au champ ayant name="password" --&gt;
+            &lt;/div&gt;
+            &lt;button type="submit" class="btn-primary"&gt;Envoyer&lt;/button&gt;
         &lt;/form&gt;
     `,
-    validate: true
-});</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showValidationForm()">Essayer</button>
-                </div>
+    validate: true, // Active la validation pour cette modale
+    buttons: [] // Pas besoin de boutons par défaut si le form a un submit
+});</code></pre>
+                <h4>Règles de Validation Disponibles (`data-validate`)</h4>
+                 <table>
+                    <thead><tr><th>Règle</th><th>Exemple</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>required</code></td><td><code>required</code></td><td>Le champ ne doit pas être vide.</td></tr>
+                        <tr><td><code>email</code></td><td><code>email</code></td><td>Doit être une adresse email valide.</td></tr>
+                        <tr><td><code>min:N</code></td><td><code>min:18</code></td><td>La valeur numérique doit être >= N.</td></tr>
+                        <tr><td><code>max:N</code></td><td><code>max:100</code></td><td>La valeur numérique doit être <= N.</td></tr>
+                        <tr><td><code>minLength:N</code></td><td><code>minLength:8</code></td><td>La longueur du texte doit être >= N.</td></tr>
+                        <tr><td><code>maxLength:N</code></td><td><code>maxLength:255</code></td><td>La longueur du texte doit être <= N.</td></tr>
+                        <tr><td><code>pattern:REGEX</code></td><td><code>pattern:^[A-Za-z]+$</code></td><td>La valeur doit correspondre à l'expression régulière.</td></tr>
+                        <tr><td><code>match:fieldName</code></td><td><code>match:password</code></td><td>La valeur doit être identique à celle du champ ayant le `name` spécifié.</td></tr>
+                    </tbody>
+                 </table>
+                <p>La validation se déclenche à la soumission du formulaire et/ou en temps réel si <code>validateLive: true</code>. Les erreurs sont affichées après le champ (par défaut) et la classe configurée (<code>invalid</code> par défaut) est ajoutée au champ invalide.</p>
 
-                <!-- Modal AJAX -->
-                <div class="example-section">
-                    <h3 class="example-title">Modal AJAX</h3>
-                    <p class="example-description">
-                        Exemple d'une modale chargeant son contenu via AJAX.
-                    </p>
-                    <div class="code-block">
-                        <pre>
-function showAjaxModal() {
-    modal.create({
-        title: 'Édition via AJAX',
-        url: '/chemin/vers/contenu.php',
-        params: {
-            id: 123,
-            action: 'edit'
-        },
-        onConfirm: () => {
-            // Sauvegarder les modifications
-            saveChanges();
-        }
-    });
-}</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showAjaxModal()">Essayer</button>
-                </div>
+                 <h3 id="chargement-ajax">Chargement AJAX</h3>
+                 <p>Chargez le contenu d'une modale depuis une URL en utilisant les options <code>url</code> et <code>params</code>.</p>
+                 <pre><code class="language-javascript">modal.createAndOpen({
+    title: 'Détails Utilisateur',
+    url: '/api/user/details', // URL à appeler en POST
+    params: { userId: 42 }, // Données envoyées dans le corps de la requête
+    onContentLoaded: () => {
+        console.log('Contenu chargé et inséré dans la modale.');
+        // Initialiser des scripts ou ajouter des écouteurs sur le nouveau contenu ici
+    },
+    onError: (error) => {
+        console.error('Erreur AJAX:', error);
+        // Afficher un message d'erreur personnalisé si besoin
+    }
+});</code></pre>
+                 <p>Voir la section <a href="#reponses-serveur">Gestion Réponses Serveur</a> pour le format attendu des réponses.</p>
+            </section>
 
-                <!-- Modal Non Fermable -->
-                <div class="example-section">
-                    <h3 class="example-title">Modal Non Fermable par l'Overlay</h3>
-                    <div class="example-description">
-                        Une modal qui ne peut pas être fermée en cliquant sur l'overlay.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modal = new ModalFlow();
-modal.create({
-    title: 'Modal Non Fermable',
-    content: 'Cette modal ne peut être fermée qu\'avec le bouton X ou la touche Escape',
-    closeOnOverlayClick: false
-});</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showNonClosableModal()">Essayer</button>
-                </div>
+             <section id="evenements">
+                <h2>Événements</h2>
+                <p>ModalFlow émet plusieurs événements auxquels vous pouvez vous abonner en utilisant la méthode <code>on(eventName, callback)</code>.</p>
+                <pre><code class="language-javascript">const myModal = new ModalFlow();
 
-                <!-- Modal avec fermeture programmatique -->
-                <div class="example-section">
-                    <h3 class="example-title">Fermeture Programmatique</h3>
-                    <div class="example-description">
-                        Une modal avec un bouton qui la ferme via un appel de fonction.
-                    </div>
-                    <div class="code-block">
-                        <pre>
-const modalId = modal.create({
-    title: 'Fermeture Programmatique',
-    content: `
-        &lt;p&gt;Cette modal peut être fermée via un bouton personnalisé.&lt;/p&gt;
-        &lt;button onclick="closeMyModal()"
-                style="padding: 10px 20px;
-                       background: #007bff;
-                       color: white;
-                       border: none;
-                       border-radius: 4px;
-                       cursor: pointer;">
-            Fermer la Modal
-        &lt;/button&gt;
-    `
+myModal.on('open', (details) => {
+    console.log(`Modale ouverte : ${details.modalId}`);
+    // details contient { modalId, element }
 });
 
-function closeMyModal() {
-    modal.closeModal(modalId);
-}</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showProgrammaticCloseModal()">Essayer</button>
-                </div>
+myModal.on('close', (details) => {
+    console.log(`Modale fermée : ${details.modalId}`);
+    // details contient { modalId } (element n'est plus garanti d'exister)
+});
 
-                <!-- Modal AJAX avec Confirmation -->
-                <div class="example-section">
-                    <h3 class="example-title">Modale AJAX avec Confirmation</h3>
-                    <p class="example-description">
-                        Exemple d'une modale chargeant son contenu via AJAX avec un callback de confirmation.
-                    </p>
-                    <div class="code-block">
-                        <pre>
-function showAjaxModal() {
-    modal.create({
-        title: 'Édition via AJAX',
-        url: '/api/data',
-        onConfirm: () => {
-            // Sauvegarder les modifications
-            saveChanges();
-        }
-    });
-}</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showAjaxModal()">Essayer</button>
-                </div>
+myModal.on('formValid', (details) => {
+    console.log('Formulaire valide soumis:', details.data);
+    // details contient { modalId, form, data }
+    // Vous pouvez envoyer les données `details.data` ici
+    myModal.close(details.modalId); // Fermer la modale après soumission réussie
+});
 
-                <!-- Modal AJAX avec Paramètres POST -->
-                <div class="example-section">
-                    <h3 class="example-title">Modale AJAX avec Paramètres POST</h3>
-                    <p class="example-description">
-                        Exemple d'une modale chargeant son contenu via AJAX avec des paramètres POST.
-                    </p>
-                    <div class="code-block">
-                        <pre>
-function showAjaxModalWithParams() {
-    modal.create({
-        title: 'Édition via AJAX',
-        url: '/api/data',
-        params: {
-            id: 123,
-            action: 'edit',
-            type: 'user'
-        },
-        onConfirm: () => {
-            saveChanges();
-        }
-    });
-}</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showAjaxModalWithParams()">Essayer</button>
-                </div>
+myModal.on('formInvalid', (details) => {
+    console.warn('Tentative de soumission d'un formulaire invalide.');
+    // details contient { modalId, form }
+});
 
-                <!-- Exemple avec createAndOpen -->
-                <div class="example-section">
-                    <h3 class="example-title">Création et Ouverture en Une Étape</h3>
-                    <p class="example-description">
-                        Exemple d'utilisation de createAndOpen pour créer et ouvrir une modale en une seule étape.
-                    </p>
-                    <div class="code-block">
-                        <pre>
-function showQuickModal() {
-    modal.createAndOpen({
-        title: 'Action Rapide',
-        content: 'Voulez-vous continuer ?',
-        params: {
-            action: 'quick-edit'
-        },
-        onConfirm: () => {
-            quickSave();
-        }
-    });
-}</pre>
-                    </div>
-                    <button class="try-button"
-                            onclick="showQuickModal()">Essayer</button>
+// Pour se désabonner : myModal.off('open', votreCallback);</code></pre>
+
+                <h3>Liste des Événements Émis</h3>
+                 <table>
+                     <thead><tr><th>Événement</th><th>Données du Callback</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>create</code></td><td><code>{ modalId, element }</code></td><td>Déclenché après la création de l'élément DOM de la modale.</td></tr>
+                        <tr><td><code>open</code></td><td><code>{ modalId, element }</code></td><td>Déclenché lorsque la modale devient visible.</td></tr>
+                        <tr><td><code>close</code></td><td><code>{ modalId }</code></td><td>Déclenché après le début de l'animation de fermeture.</td></tr>
+                        <tr><td><code>closeAll</code></td><td>-</td><td>Déclenché lors de la fermeture de toutes les modales.</td></tr>
+                         <tr><td><code>update</code></td><td><code>{ modalId, element, options }</code></td><td>Déclenché après la mise à jour du contenu via <code>update()</code>.</td></tr>
+                        <tr><td><code>destroy</code></td><td><code>{ modalId }</code></td><td>Déclenché après la suppression de la modale du DOM.</td></tr>
+                        <tr><td><code>dragStart</code></td><td><code>{ modalId, x, y }</code></td><td>Début du déplacement.</td></tr>
+                        <tr><td><code>drag</code></td><td><code>{ modalId, x, y }</code></td><td>Pendant le déplacement.</td></tr>
+                        <tr><td><code>dragEnd</code></td><td><code>{ modalId, x, y }</code></td><td>Fin du déplacement.</td></tr>
+                        <tr><td><code>resizeStart</code></td><td><code>{ modalId, width, height }</code></td><td>Début du redimensionnement.</td></tr>
+                        <tr><td><code>resize</code></td><td><code>{ modalId, width, height }</code></td><td>Pendant le redimensionnement.</td></tr>
+                         <tr><td><code>resizeEnd</code></td><td><code>{ modalId, width, height }</code></td><td>Fin du redimensionnement.</td></tr>
+                        <tr><td><code>formValid</code></td><td><code>{ modalId, form, data }</code></td><td>Formulaire validé avec succès lors de la soumission. <code>data</code> est un objet des valeurs.</td></tr>
+                         <tr><td><code>formInvalid</code></td><td><code>{ modalId, form }</code></td><td>Tentative de soumission d'un formulaire invalide.</td></tr>
+                        <tr><td><code>contentLoaded</code></td><td><code>{ modalId, element }</code></td><td>Contenu AJAX chargé et inséré avec succès.</td></tr>
+                         <tr><td><code>contentError</code></td><td><code>{ modalId, element, error }</code></td><td>Erreur lors du chargement du contenu AJAX.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="reponses-serveur">
+                <h2>Gestion Réponses Serveur (pour AJAX via <code>url</code>)</h2>
+                <p>Lorsque vous utilisez l'option <code>url</code> pour charger le contenu, ModalFlow s'attend à recevoir soit du HTML direct, soit une réponse JSON en cas d'erreur côté serveur.</p>
+                <table>
+                     <thead><tr><th>Type de Réponse</th><th><code>Content-Type</code> HTTP</th><th>Format Attendu</th><th>Utilisation</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>Succès</td>
+                            <td><code>text/html</code></td>
+                            <td>Chaîne de caractères contenant le code HTML à insérer dans <code>.modal-flow-content</code>.</td>
+                            <td>Affichage normal du contenu de la modale.</td>
+                        </tr>
+                        <tr>
+                             <td>Erreur</td>
+                             <td><code>application/json</code></td>
+                             <td>Objet JSON : <code>{ "erreur": 1, "msgError": "Votre message d'erreur ici" }</code></td>
+                             <td>Permet à ModalFlow d'afficher une erreur claire à l'utilisateur au lieu d'essayer d'afficher une réponse d'erreur HTML/texte brute.</td>
+                         </tr>
+                     </tbody>
+                 </table>
+                  <div class="warning-block">
+                    <strong>Important :</strong> Assurez-vous que votre backend renvoie le bon en-tête <code>Content-Type</code>. En cas d'erreur applicative (ex: élément non trouvé), renvoyez une réponse JSON structurée comme indiqué ci-dessus pour une meilleure expérience utilisateur.
                 </div>
-            </div>
+                 <h4>Exemple (PHP)</h4>
+                 <pre><code>&lt;?php
+// Récupérer les paramètres POST envoyés par ModalFlow
+$userId = $_POST['userId'] ?? null;
+
+try {
+    if ($userId) {
+        $userData = // Logique pour récupérer les données utilisateur...
+        if ($userData) {
+            // Succès : Renvoyer le HTML
+            header('Content-Type: text/html; charset=utf-8');
+            echo "&lt;h3&gt;Détails pour {$userData['name']}&lt;/h3&gt;&lt;p&gt;Email: {$userData['email']}&lt;/p&gt;";
+        } else {
+            throw new Exception("Utilisateur non trouvé.");
+        }
+    } else {
+         throw new Exception("ID utilisateur manquant.");
+    }
+
+} catch (Exception $e) {
+    // Erreur : Renvoyer JSON
+    header('Content-Type: application/json; charset=utf-8');
+    // Important : Ne pas envoyer de code d'erreur HTTP ici (ex: 404)
+    // car fetch() lèverait une exception avant de lire le JSON.
+    // La logique d'erreur est dans le JSON lui-même.
+    // http_response_code(400); // NE PAS FAIRE CECI pour les erreurs applicatives
+    echo json_encode([
+        "erreur" => 1, // Indicateur d'erreur
+        "msgError" => $e->getMessage() // Message d'erreur pour l'utilisateur
+    ]);
+    exit;
+}
+?&gt;</code></pre>
+             </section>
+
+             <section id="exemples-interactifs">
+                 <h2>Exemples Interactifs</h2>
+                 <div class="example">
+                     <div class="example-preview">
+                         <button class="btn-primary" onclick="interactiveShowSimple()">Simple</button>
+                         <button class="btn-secondary" onclick="interactiveShowDraggable()">Déplaçable</button>
+                         <button class="btn-secondary" onclick="interactiveShowResizable()">Redimensionnable</button>
+                         <button class="btn-primary" onclick="interactiveShowValidation()">Validation</button>
+                         <button class="btn-primary" onclick="interactiveShowAjax()">Contenu AJAX</button>
+                         <button class="btn-secondary" onclick="interactiveShowWithButtons()">Avec Boutons JS</button>
+                     </div>
+                 </div>
+             </section>
+
         </div>
+    </div>
 
-        <!-- Scripts -->
-        <script src="../src/modalFlow.js"></script>
-        <script>
-            // Initialiser ModalFlow
-            const modalFlow = new ModalFlow();
+    <!-- Charger le script ModalFlow -->
+    <script src="../src/modalFlow.js"></script>
+    <script>
+        // Initialisation pour les exemples interactifs
+        const modalInstance = new ModalFlow({
+            // Activer les fonctionnalités pour certains exemples
+            draggable: true,
+            resizable: true,
+            validateLive: true,
+            debug: false // Mettre à true pour voir les logs
+        });
 
-            // Modal Simple
-            function showSimpleModal() {
-                const modalId = modalFlow.create({
-                    title: 'Modal Simple',
-                    content: 'Voici une modal simple avec un titre et du contenu.'
-                });
-                modalFlow.open(modalId);
-            }
+        // Exemple Simple
+        function interactiveShowSimple() {
+            modalInstance.createAndOpen({
+                title: 'Modale Simple Interactive',
+                content: '&lt;p&gt;Ceci est le contenu.&lt;/p&gt;&lt;p&gt;Vous pouvez la fermer avec la croix, Echap, ou en cliquant dehors.&lt;/p&gt;'
+            });
+        }
 
-            // Modal Déplaçable
-            function showDraggableModal() {
-                const modalId = modalFlow.create({
-                    title: 'Modal Déplaçable',
-                    content: 'Cliquez sur le header pour déplacer cette modal',
-                    draggable: true
-                });
-                modalFlow.open(modalId);
-            }
+        // Exemple Déplaçable
+        function interactiveShowDraggable() {
+             modalInstance.createAndOpen({
+                title: 'Modale Déplaçable',
+                content: '&lt;p&gt;Cliquez sur l'en-tête et maintenez pour déplacer.&lt;/p&gt;',
+                draggable: true, // Activation spécifique
+                resizable: false // Désactivation spécifique
+            });
+        }
 
-            // Modal Redimensionnable
-            function showResizableModal() {
-                const modalId = modalFlow.create({
-                    title: 'Modal Redimensionnable',
-                    content: 'Utilisez les poignées pour redimensionner cette modal',
-                    resizable: true,
-                    width: '400px',
-                    height: '300px'
-                });
-                modalFlow.open(modalId);
-            }
+        // Exemple Redimensionnable
+        function interactiveShowResizable() {
+            modalInstance.createAndOpen({
+                title: 'Modale Redimensionnable',
+                content: '&lt;p&gt;Utilisez les poignées sur les bords pour redimensionner.&lt;/p&gt;',
+                width: '500px',
+                height: '300px',
+                resizable: true, // Activation spécifique
+                draggable: false // Désactivation spécifique
+            });
+        }
 
-            // Formulaire avec Validation
-            function showValidationForm() {
-                const modalId = modalFlow.create({
-                    title: 'Inscription',
-                    content: `
-                    <form>
-                        <div class="form-group">
-                            <label>Nom</label>
-                            <input type="text"
-                                   data-validate="required|minLength:3"
-                                   placeholder="Votre nom">
-                        </div>
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email"
-                                   data-validate="required|email"
-                                   placeholder="votre@email.com">
-                        </div>
-                        <button type="submit">Envoyer</button>
-                    </form>
+        // Exemple Validation
+        function interactiveShowValidation() {
+             modalInstance.createAndOpen({
+                title: 'Formulaire avec Validation',
+                content: `
+                    &lt;form style="padding: 1rem;"&gt;
+                        &lt;div class="form-group"&gt;
+                            &lt;label for="val-name"&gt;Nom (requis, min 3):&lt;/label&gt;
+                            &lt;input type="text" id="val-name" name="name" data-validate="required|minLength:3"&gt;
+                        &lt;/div&gt;
+                        &lt;div class="form-group"&gt;
+                            &lt;label for="val-email"&gt;Email (requis, format email):&lt;/label&gt;
+                            &lt;input type="email" id="val-email" name="email" data-validate="required|email"&gt;
+                        &lt;/div&gt;
+                        &lt;div class="form-group"&gt;
+                            &lt;label for="val-age"&gt;Âge (optionnel, 18-65):&lt;/label&gt;
+                            &lt;input type="number" id="val-age" name="age" data-validate="min:18|max:65"&gt;
+                        &lt;/div&gt;
+                        &lt;button type="submit" class="btn-primary" style="margin-top: 1rem;"&gt;Valider&lt;/button&gt;
+                    &lt;/form&gt;
                 `,
-                    validate: true
-                });
-                modalFlow.open(modalId);
-            }
+                validate: true,
+                width: '450px',
+                 buttons: [] // Vide car on utilise le submit du formulaire
+            });
+        }
 
-            // Modal AJAX
-            function showAjaxModal() {
-                const modalId = modalFlow.create({
-                    title: 'Édition via AJAX',
-                    content: `
-                    <div>
-                        <h3>Données Simulées</h3>
-                        <p>Dans un cas réel, ces données seraient chargées depuis une API.</p>
-                        <ul>
-                            <li>Donnée 1</li>
-                            <li>Donnée 2</li>
-                            <li>Donnée 3</li>
-                        </ul>
-                    </div>
-                `
-                });
-                modalFlow.open(modalId);
-            }
+        // Exemple AJAX
+        function interactiveShowAjax() {
+             modalInstance.createAndOpen({
+                title: 'Chargement AJAX...',
+                url: 'https://jsonplaceholder.typicode.com/posts/1', // API d'exemple
+                params: { _comment: 'Paramètre envoyé' }, // Paramètre POST exemple
+                onContentLoaded: () => {
+                    console.log('Contenu de l'API jsonplaceholder chargé !');
+                },
+                onError: (err) => {
+                    console.error("Erreur de chargement AJAX:", err);
+                    // La modale affichera un message d'erreur par défaut
+                },
+                 // Nous devons redéfinir le contenu après le fetch, car l'API renvoie du JSON
+                 // Normalement, votre API renverrait directement du HTML
+                 content: '' // Sera remplacé
+            });
 
-            // Modal Non Fermable
-            function showNonClosableModal() {
-                const modalId = modalFlow.create({
-                    title: 'Modal Non Fermable',
-                    content: 'Cette modal ne peut être fermée qu\'avec le bouton X ou la touche Escape',
-                    closeOnOverlayClick: false
-                });
-                modalFlow.open(modalId);
-            }
+            // Retravailler la réponse JSON en HTML (car l'API d'exemple renvoie JSON)
+             modalInstance.on('contentLoaded', (details) => {
+                const modalElement = document.getElementById(details.modalId);
+                const contentDiv = modalElement.querySelector('.modal-flow-content');
+                try {
+                    // Le contenu brut est dans contentDiv.textContent
+                    const data = JSON.parse(contentDiv.textContent);
+                     modalInstance.update(details.modalId, {
+                         title: data.title, // Met à jour le titre de la modale
+                         content: `&lt;h4&gt;ID: ${data.id}&lt;/h4&gt;&lt;p&gt;${data.body}&lt;/p&gt;&lt;p&gt;&lt;i&gt;(Contenu de jsonplaceholder.typicode.com)&lt;/i&gt;&lt;/p&gt;`
+                     });
+                } catch (e) {
+                    console.error("Erreur parsing JSON pour AJAX", e);
+                     modalInstance.update(details.modalId, { content: 'Erreur: Impossible d'afficher les données.' });
+                }
+            });
+        }
 
-            // Modal avec fermeture programmatique
-            function showProgrammaticCloseModal() {
-                window.currentModalId = modalFlow.create({
-                    title: 'Fermeture Programmatique',
-                    content: `
-                    <div style="text-align: center;">
-                        <p>Cette modal peut être fermée de plusieurs façons :</p>
-                        <ul style="text-align: left; margin: 20px 0;">
-                            <li>Via le bouton personnalisé ci-dessous</li>
-                            <li>Via la croix en haut à droite</li>
-                            <li>En cliquant sur l'overlay</li>
-                            <li>En appuyant sur Escape</li>
-                        </ul>
-                        <button onclick="closeProgrammaticModal()"
-                                style="padding: 10px 20px;
-                                       background: #007bff;
-                                       color: white;
-                                       border: none;
-                                       border-radius: 4px;
-                                       cursor: pointer;">
-                            Fermer la Modal
-                        </button>
-                    </div>
-                `
-                });
-                modalFlow.open(window.currentModalId);
-            }
+        // Exemple avec Boutons JS
+        function interactiveShowWithButtons() {
+            let counter = 0;
+            const modalId = modalInstance.createAndOpen({
+                title: 'Modale avec Boutons JS',
+                content: '&lt;p&gt;Le compteur est à: &lt;span id="counter-span"&gt;0&lt;/span&gt;&lt;/p&gt;',
+                buttons: [
+                    {
+                        text: 'Annuler',
+                        class: 'btn-secondary',
+                        onClick: () => {
+                            console.log('Clic Annuler');
+                            return true; // Ferme la modale
+                        }
+                    },
+                    {
+                        text: 'Incrémenter',
+                        class: 'btn-primary',
+                        onClick: () => {
+                            counter++;
+                            const span = document.getElementById('counter-span');
+                            if(span) span.textContent = counter;
+                            console.log('Compteur:', counter);
+                            return false; // Laisse la modale ouverte
+                        }
+                    }
+                ]
+            });
+        }
 
-            function closeProgrammaticModal() {
-                modalFlow.closeModal(window.currentModalId);
-            }
-        </script>
-    </body>
+        // Écouteur d'événement exemple
+        modalInstance.on('open', (details) => console.log('Événement OPEN déclenché pour', details.modalId));
+        modalInstance.on('close', (details) => console.log('Événement CLOSE déclenché pour', details.modalId));
 
+    </script>
+</body>
 </html>

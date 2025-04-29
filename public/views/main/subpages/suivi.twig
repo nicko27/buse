@@ -19,13 +19,13 @@
             <div class="content__line-left">
                 <div class="dropzone__blk">
                     <div class="dropzone__title glass">
-                        Cliquez sur la fenêtre ci-dessous pour charger les fichiers pulsar et de permanences, sélection multiple autorisée
+                        Cliquez sur la fenêtre ci-dessous pour charger les fichiers (pulsar,permanences,infocentre)<br> sélection multiple autorisée
                     </div>
                     <div class="dropzone__elt" id="myDropzone">
                         <div class="dz-message">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <div>Déposez vos fichiers ici ou cliquez pour sélectionner</div>
-                            <div class="dz-allowed-files">Formats acceptés : .html, .ods</div>
+                            <div class="dz-allowed-files">Formats acceptés : .html, .ods, .xlsx</div>
                         </div>
                     </div>
                 </div>
@@ -60,7 +60,7 @@
         paramName: "file",
         maxFiles: 10,
         maxFilesize: 10,
-        acceptedFiles: ".html,.ods",
+        acceptedFiles: ".html,.ods,.xlsx",
         timeout: 180000, // 3 minutes
         createImageThumbnails: false,
         addRemoveLinks: true,
@@ -110,9 +110,9 @@
 
                 // Vérification de l'extension
                 var ext = file.name.split('.').pop().toLowerCase();
-                if (!['html', 'ods'].includes(ext)) {
+                if (!['html', 'ods','xlsx'].includes(ext)) {
                     this.removeFile(file);
-                    errorNotice("Type de fichier non autorisé (uniquement .html et .ods)");
+                    errorNotice("Type de fichier non autorisé (uniquement .html,.ods et .xlsx)");
                     return;
                 }
             });

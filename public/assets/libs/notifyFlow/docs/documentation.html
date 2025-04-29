@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation NotifyFlow</title>
+    <style>
+        :root {
+            --primary-color: #0ea5e9; /* sky-500 */
+            --secondary-color: #6366f1; /* indigo-500 */
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --code-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+            --nav-width: 250px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            margin: 2rem 0 1rem;
+            color: var(--primary-color);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-top: 3rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-top: 2rem;
+        }
+
+        p, ul, ol {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            padding-left: 2rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .example {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            background-color: #f9fafb;
+        }
+
+        .example-preview {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+         .example-preview button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+         }
+         .example-preview .btn-success { background-color: #10b981; } /* Emerald-500 */
+         .example-preview .btn-info { background-color: #0ea5e9; }    /* Sky-500 */
+         .example-preview .btn-warning { background-color: #f59e0b; } /* Amber-500 */
+         .example-preview .btn-error { background-color: #ef4444; }   /* Red-500 */
+         .example-preview .btn-secondary { background-color: #64748b; } /* Slate-500 */
+         .example-preview button:hover { opacity: 0.85; }
+
+
+        .example-code {
+            padding: 1rem;
+            background: var(--code-bg);
+            border-radius: 0 0 8px 8px;
+        }
+
+        .nav {
+            position: fixed;
+            top: 1rem;
+            bottom: 1rem;
+            left: 1rem;
+            width: var(--nav-width);
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            font-size: 0.9em;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        .nav h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+        }
+
+        .nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .nav a:hover, .nav a.active {
+            text-decoration: none;
+            background-color: #f0f9ff; /* sky-50 */
+            color: #0c4a6e; /* sky-800 */
+        }
+
+        .content {
+            margin-left: calc(var(--nav-width) + 2rem);
+        }
+
+        .info-block, .warning-block {
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            border-left-width: 5px;
+            border-left-style: solid;
+        }
+
+        .info-block {
+            background-color: #f0f9ff; /* sky-50 */
+            border-color: var(--primary-color); /* sky-500 */
+            color: #0369a1; /* sky-700 */
+        }
+
+        .warning-block {
+            background-color: #fffbeb;
+            border-color: #facc15;
+            color: #713f12;
+        }
+
+        .attr {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #db2777; /* Pink */
+        }
+        .type {
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        .default {
+             font-family: 'Courier New', Courier, monospace;
+             color: #16a34a; /* Green */
+             font-size: 0.9em;
+        }
+
+        @media (max-width: 1024px) {
+            .nav {
+                display: none;
+            }
+            .content {
+                margin-left: 0;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.6rem; }
+            h3 { font-size: 1.2rem; }
+            .container {
+                 padding: 1rem;
+            }
+             .example-preview {
+                 padding: 1rem;
+            }
+            .example-code {
+                 padding: 1rem;
+            }
+        }
+    </style>
+    <!-- Assurez-vous d'inclure notifyFlow.css -->
+    <link rel="stylesheet" href="../src/notifyFlow.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <h3>Table des matières</h3>
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#initialisation">Initialisation</a></li>
+                <li><a href="#afficher-notification">Afficher une Notification</a>
+                    <ul>
+                        <li><a href="#methode-notify">Méthode <code>notify()</code></a></li>
+                        <li><a href="#options-notify">Options pour <code>notify()</code></a></li>
+                        <li><a href="#methodes-raccourcis">Méthodes Raccourcis</a></li>
+                    </ul>
+                </li>
+                <li><a href="#actions">Actions Personnalisées</a></li>
+                <li><a href="#themes">Thèmes</a></li>
+                <li><a href="#animations">Animations</a></li>
+                <li><a href="#api-autres">API (Autres Méthodes)</a></li>
+                <li><a href="#personnalisation-css">Personnalisation CSS</a></li>
+                <li><a href="#exemples-interactifs">Exemples Interactifs</a></li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <h1>Documentation NotifyFlow</h1>
+
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p>NotifyFlow est une bibliothèque JavaScript moderne et flexible pour afficher des notifications non bloquantes (toasts) dans vos applications web. Elle offre une personnalisation facile de l'apparence, de la position, de la durée, des animations et permet l'ajout d'actions interactives.</p>
+                <p>Caractéristiques principales :</p>
+                <ul>
+                    <li>Types de notifications prédéfinis (info, succès, avertissement, erreur).</li>
+                    <li>Positionnement configurable (coins, centre haut/bas).</li>
+                    <li>Durée d'affichage personnalisable ou infinie.</li>
+                    <li>Animations d'entrée/sortie (fade, slide).</li>
+                    <li>Possibilité d'ajouter des boutons d'action avec callbacks.</li>
+                    <li>Exécution automatique d'une action après un délai.</li>
+                    <li>Barre de progression visuelle pour la durée.</li>
+                    <li>Thèmes clair/sombre ou adaptation automatique aux préférences système.</li>
+                    <li>Gestion de l'empilement et nombre maximum de notifications.</li>
+                    <li>Style visuel "glassmorphism" moderne.</li>
+                </ul>
+            </section>
+
+            <section id="installation">
+                <h2>Installation</h2>
+                <p>Pour utiliser NotifyFlow, incluez son fichier CSS et son fichier JavaScript dans votre page HTML.</p>
+                <pre><code>&lt;!-- Feuille de style de NotifyFlow --&gt;
+&lt;link rel="stylesheet" href="path/to/notifyFlow.css"&gt;
+
+&lt;!-- Script de NotifyFlow --&gt;
+&lt;script src="path/to/notifyFlow.js"&gt;&lt;/script&gt;</code></pre>
+                 <div class="info-block">
+                    Le script <code>notifyFlow.js</code> expose la classe <code>NotifyFlow</code> globalement (<code>window.NotifyFlow</code>) ou peut être utilisé avec des systèmes de modules (CommonJS, AMD).
+                </div>
+            </section>
+
+             <section id="initialisation">
+                <h2>Initialisation</h2>
+                <p>Créez une instance de <code>NotifyFlow</code> pour commencer à afficher des notifications. Vous pouvez passer un objet de configuration au constructeur pour définir des options globales par défaut.</p>
+                 <pre><code class="language-javascript">// Initialisation simple (utilise les options par défaut)
+const notify = new NotifyFlow();
+
+// Initialisation avec configuration personnalisée
+const customNotify = new NotifyFlow({
+    position: 'bottom-left', // Position par défaut
+    theme: 'dark',          // Thème sombre par défaut
+    defaultDuration: 5000,  // Durée par défaut de 5s
+    maxNotifications: 3,    // Afficher 3 notifications max simultanément
+    animations: {
+        in: 'slide-in',     // Animation d'entrée
+        out: 'fade-out'     // Animation de sortie
+    },
+    debug: false            // Désactiver les logs de debug
+});</code></pre>
+
+                <h3>Options de Configuration (Constructeur)</h3>
+                <table>
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">position</code></td><td class="type">string</td><td><code class="default">'top-right'</code></td><td>Position des notifications. Valeurs possibles : <code>'top-right'</code>, <code>'top-left'</code>, <code>'bottom-right'</code>, <code>'bottom-left'</code>, <code>'top-center'</code>, <code>'bottom-center'</code>.</td></tr>
+                        <tr><td><code class="attr">theme</code></td><td class="type">string</td><td><code class="default">'light'</code></td><td>Thème visuel. Valeurs possibles : <code>'light'</code>, <code>'dark'</code>, <code>'auto'</code> (s'adapte aux préférences système).</td></tr>
+                        <tr><td><code class="attr">maxNotifications</code></td><td class="type">number</td><td><code class="default">5</code></td><td>Nombre maximum de notifications affichées simultanément. Les plus anciennes sont retirées si la limite est dépassée.</td></tr>
+                        <tr><td><code class="attr">defaultDuration</code></td><td class="type">number</td><td><code class="default">5000</code></td><td>Durée d'affichage par défaut en millisecondes. Utilisez <code>0</code> pour une durée infinie (jusqu'à fermeture manuelle).</td></tr>
+                        <tr><td><code class="attr">containerClass</code></td><td class="type">string</td><td><code class="default">'notify-flow'</code></td><td>Classe CSS du conteneur principal des notifications.</td></tr>
+                        <tr><td><code class="attr">animations</code></td><td class="type">object</td><td><code>{ in: 'slide-in', out: 'fade-out' }</code></td><td>Objet définissant les animations d'entrée (<code>in</code>) et de sortie (<code>out</code>). Valeurs possibles : <code>'slide-in'</code>, <code>'fade-in'</code>, <code>'slide-out'</code>, <code>'fade-out'</code>.</td></tr>
+                         <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de debug dans la console (hérité de la config TableFlow si utilisé comme plugin).</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="afficher-notification">
+                 <h2>Afficher une Notification</h2>
+
+                 <h3 id="methode-notify">Méthode Principale : <code>notify(options)</code></h3>
+                 <p>La méthode <code>notify()</code> est la plus flexible pour créer et afficher une notification. Elle prend un objet d'options en argument.</p>
+                 <pre><code class="language-javascript">notify.notify({
+    title: 'Mise à jour disponible', // Titre optionnel
+    message: 'Une nouvelle version est prête à être installée.', // Message principal (requis)
+    type: 'info', // Type de notification (info, success, warning, error)
+    icon: '&lt;i class="fas fa-cloud-download-alt"&gt;&lt;/i&gt;', // Icône HTML/SVG optionnelle
+    duration: 10000, // Durée spécifique (10s)
+    progress: true, // Afficher la barre de progression
+    dismissible: true, // Afficher le bouton de fermeture
+    actions: [ // Boutons d'action optionnels
+        {
+            id: 'install',
+            text: 'Installer',
+            class: 'primary', // Classe CSS pour le bouton
+            callback: () => { console.log('Installation lancée...'); return true; }, // Retourne true pour fermer
+            dismiss: false // Optionnel : false pour ne pas fermer au clic
+        },
+        { id: 'later', text: 'Plus tard', callback: () => console.log('Reporté.') }
+    ],
+    autoAction: 'later', // ID de l'action à exécuter après le délai
+    autoActionDelay: 8000, // Délai pour l'autoAction (8s)
+    customClass: 'update-notification' // Classe CSS personnalisée
+});</code></pre>
+
+                <h3 id="options-notify">Options pour <code>notify()</code></h3>
+                 <table>
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">title</code></td><td class="type">string</td><td><code>null</code></td><td>Titre affiché au-dessus du message.</td></tr>
+                        <tr><td><code class="attr">message</code></td><td class="type">string</td><td><i>Requis</i></td><td>Contenu principal de la notification.</td></tr>
+                        <tr><td><code class="attr">type</code></td><td class="type">string</td><td><code class="default">'info'</code></td><td>Type de notification : <code>'info'</code>, <code>'success'</code>, <code>'warning'</code>, <code>'error'</code>, <code>'warningNotice'</code>. Affecte le style.</td></tr>
+                        <tr><td><code class="attr">icon</code></td><td class="type">string</td><td><code>null</code></td><td>Code HTML/SVG pour une icône personnalisée.</td></tr>
+                        <tr><td><code class="attr">duration</code></td><td class="type">number</td><td>Valeur de <code>defaultDuration</code></td><td>Durée d'affichage en ms. <code>0</code> pour infini.</td></tr>
+                        <tr><td><code class="attr">actions</code></td><td class="type">Array&lt;object&gt;</td><td><code>[]</code></td><td>Tableau d'objets pour les boutons d'action (voir section Actions).</td></tr>
+                        <tr><td><code class="attr">progress</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher la barre de progression indiquant le temps restant.</td></tr>
+                        <tr><td><code class="attr">dismissible</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Afficher un bouton (X) pour fermer manuellement la notification.</td></tr>
+                        <tr><td><code class="attr">autoAction</code></td><td class="type">string</td><td><code>null</code></td><td>ID de l'action (dans le tableau `actions`) à exécuter automatiquement après <code>autoActionDelay</code>.</td></tr>
+                        <tr><td><code class="attr">autoActionDelay</code></td><td class="type">number</td><td>Valeur de <code>duration</code></td><td>Délai en ms avant l'exécution de l'<code>autoAction</code>.</td></tr>
+                        <tr><td><code class="attr">customClass</code></td><td class="type">string</td><td><code>''</code></td><td>Classe(s) CSS additionnelle(s) à ajouter à l'élément de la notification.</td></tr>
+                     </tbody>
+                 </table>
+
+                <h3 id="methodes-raccourcis">Méthodes Raccourcis</h3>
+                <p>Pour plus de commodité, des méthodes raccourcis existent pour chaque type de notification standard. Elles prennent le message, un titre optionnel, et un objet d'options (qui surcharge les options par défaut et celles du constructeur).</p>
+                 <pre><code class="language-javascript">// Notification de succès
+notify.success('Opération réussie !', 'Succès');
+
+// Notification d'information avec durée personnalisée
+notify.info('Ceci est une information importante.', 'Info', { duration: 10000 });
+
+// Notification d'avertissement sans fermeture automatique
+notify.warning('Attention, action irréversible.', 'Avertissement', { duration: 0 });
+
+// Notification d'erreur avec une classe CSS perso
+notify.error('Impossible de contacter le serveur.', 'Erreur Réseau', { customClass: 'network-error' });
+
+// Notification spéciale 'warningNotice' (style et icône prédéfinis)
+notify.warningNotice('Votre session expirera bientôt.', 'Session');
+</code></pre>
+            </section>
+
+            <section id="actions">
+                 <h2>Actions Personnalisées</h2>
+                 <p>Vous pouvez ajouter des boutons interactifs à vos notifications via l'option <code>actions</code>. C'est un tableau d'objets, où chaque objet représente un bouton.</p>
+                 <h4>Structure d'un objet Action</h4>
+                 <table>
+                     <thead>
+                         <tr><th>Propriété</th><th>Type</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">id</code></td><td class="type">string</td><td><strong>Requis.</strong> Identifiant unique de l'action (utilisé pour `autoAction`).</td></tr>
+                         <tr><td><code class="attr">text</code></td><td class="type">string</td><td><strong>Requis.</strong> Texte affiché sur le bouton.</td></tr>
+                         <tr><td><code class="attr">callback</code></td><td class="type">function</td><td><strong>Requis.</strong> Fonction exécutée lors du clic. Si elle retourne explicitement <code>false</code>, la notification ne se fermera pas automatiquement.</td></tr>
+                         <tr><td><code class="attr">class</code></td><td class="type">string</td><td>(Optionnel) Classe(s) CSS additionnelle(s) pour le bouton.</td></tr>
+                         <tr><td><code class="attr">dismiss</code></td><td class="type">boolean</td><td>(Optionnel) Si <code>false</code>, empêche la fermeture automatique de la notification après l'exécution du callback. Défaut : <code>true</code>.</td></tr>
+                     </tbody>
+                 </table>
+                 <h4>Action Automatique</h4>
+                 <p>Utilisez <code>autoAction</code> (avec l'ID de l'action) et <code>autoActionDelay</code> (en ms) pour déclencher une action automatiquement après un certain temps. Un compte à rebours s'affiche sur le bouton concerné.</p>
+                 <pre><code class="language-javascript">notify.notify({
+    message: 'Redirection dans 5 secondes...',
+    type: 'info',
+    duration: 0, // Reste affichée
+    actions: [
+        {
+            id: 'redirectNow',
+            text: 'Aller maintenant',
+            callback: () => window.location.href = '/nouvelle-page'
+        },
+        {
+            id: 'cancelRedirect',
+            text: 'Annuler',
+            callback: () => { /* Annuler la redirection (logique applicative) */ }
+        }
+    ],
+    autoAction: 'redirectNow', // ID de l'action à lancer
+    autoActionDelay: 5000      // Après 5 secondes
+});</code></pre>
+            </section>
+
+             <section id="themes">
+                <h2>Thèmes</h2>
+                <p>NotifyFlow supporte trois modes de thème, configurables globalement via l'option <code>theme</code> du constructeur :</p>
+                <ul>
+                    <li><strong><code>light</code> (défaut) :</strong> Thème clair.</li>
+                    <li><strong><code>dark</code> :</strong> Thème sombre.</li>
+                    <li><strong><code>auto</code> :</strong> S'adapte automatiquement aux préférences de l'utilisateur (via la media query CSS <code>prefers-color-scheme</code>).</li>
+                </ul>
+                 <p>Le style général utilise un effet "glassmorphism" avec des arrière-plans semi-transparents et floutés.</p>
+            </section>
+
+             <section id="animations">
+                <h2>Animations</h2>
+                 <p>Les animations d'entrée et de sortie sont configurables globalement via l'option <code>animations</code> du constructeur.</p>
+                 <pre><code class="language-javascript">new NotifyFlow({
+    animations: {
+        in: 'slide-in', // 'slide-in' ou 'fade-in'
+        out: 'fade-out' // 'fade-out' ou 'slide-out'
+    }
+});</code></pre>
+                 <p>Vous pouvez créer des animations personnalisées en CSS en ciblant les classes correspondantes (ex: <code>.notify-flow-item.custom-in-animation</code>) et en utilisant les noms d'animation dans la configuration.</p>
+            </section>
+
+            <section id="api-autres">
+                <h2>API (Autres Méthodes)</h2>
+                 <table>
+                    <thead>
+                        <tr><th>Méthode</th><th>Arguments</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>remove(notificationElement)</code></td><td><code class="attr">notificationElement</code> <span class="type">(HTMLElement)</span></td><td>Supprime une notification spécifique du DOM (l'élément lui-même).</td></tr>
+                        <tr><td><code>clearAll()</code></td><td>-</td><td>Supprime toutes les notifications actuellement affichées.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="personnalisation-css">
+                 <h2>Personnalisation CSS</h2>
+                 <p>Personnalisez l'apparence en ciblant ces classes CSS principales :</p>
+                 <ul>
+                     <li><code>.notify-flow</code>: Le conteneur principal (positionné en fixed).</li>
+                    <li><code>.notify-flow.top-right</code>, <code>.top-left</code>, etc. : Classes de positionnement.</li>
+                    <li><code>.notify-flow.light</code>, <code>.dark</code>: Classes de thème.</li>
+                    <li><code>.notify-flow-item</code>: Chaque notification individuelle.</li>
+                     <li><code>.notify-flow-item.info</code>, <code>.success</code>, <code>.warning</code>, <code>.error</code>, <code>.warningNotice</code>: Classes de type.</li>
+                    <li><code>.notify-flow-icon</code>: Conteneur de l'icône.</li>
+                    <li><code>.notify-flow-content</code>: Conteneur du titre et du message.</li>
+                     <li><code>.notify-flow-title</code>: Le titre.</li>
+                    <li><code>.notify-flow-message</code>: Le message.</li>
+                    <li><code>.notify-flow-close</code>: Le bouton de fermeture (X).</li>
+                    <li><code>.notify-flow-progress</code>: La barre de progression.</li>
+                    <li><code>.notify-flow-actions</code>: Conteneur des boutons d'action.</li>
+                     <li><code>.notify-flow-btn</code>: Chaque bouton d'action.</li>
+                     <li><code>.notify-flow-btn.primary</code>, <code>.secondary</code>, etc. : Classes personnalisées pour les boutons.</li>
+                     <li><code>.auto-action-timer</code>: Le compteur sur un bouton autoAction.</li>
+                     <li>Animations : <code>.slide-in</code>, <code>.fade-out</code>, etc.</li>
+                 </ul>
+            </section>
+
+            <section id="exemples-interactifs">
+                <h2>Exemples Interactifs</h2>
+                 <div class="example">
+                     <div class="example-preview">
+                         <button class="btn-success" onclick="notifyInstance.success('Opération terminée avec succès !', 'Réussi')">Succès</button>
+                         <button class="btn-info" onclick="notifyInstance.info('Ceci est une information utile.', 'Information')">Info</button>
+                         <button class="btn-warning" onclick="notifyInstance.warning('Attention, cette action prendra du temps.', 'Avertissement', {duration: 8000})">Warning (8s)</button>
+                         <button class="btn-error" onclick="notifyInstance.error('Échec de la connexion au serveur.', 'Erreur Critique')">Erreur</button>
+                         <button class="btn-secondary" onclick="showNotificationWithActions()">Avec Actions</button>
+                         <button class="btn-secondary" onclick="showNotificationAutoAction()">Avec Auto Action</button>
+                     </div>
+                 </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Charger le script NotifyFlow -->
+    <script src="../src/notifyFlow.js"></script>
+    <script>
+        // Initialisation pour les exemples
+        const notifyInstance = new NotifyFlow({
+            debug: false,
+            position: 'top-right'
+        });
+
+        function showNotificationWithActions() {
+            notifyInstance.notify({
+                title: 'Confirmation Requise',
+                message: 'Voulez-vous vraiment effectuer cette action ?',
+                type: 'warning',
+                duration: 0, // Ne se ferme pas automatiquement
+                actions: [
+                    {
+                        id: 'confirmAction',
+                        text: 'Confirmer',
+                        class: 'primary', // Style pour bouton primaire
+                        callback: () => {
+                            notifyInstance.success('Action confirmée !');
+                            return true; // Ferme la notification
+                        }
+                    },
+                    {
+                        id: 'cancelAction',
+                        text: 'Annuler',
+                        class: 'secondary',
+                        callback: () => {
+                             notifyInstance.info('Action annulée.');
+                             return true; // Ferme la notification
+                        }
+                    }
+                ]
+            });
+        }
+
+        function showNotificationAutoAction() {
+             notifyInstance.notify({
+                message: 'Fermeture automatique dans 5 secondes...',
+                type: 'info',
+                duration: 8000, // Laisse le temps de voir
+                actions: [
+                    {
+                        id: 'closeNow',
+                        text: 'Fermer',
+                        callback: () => { /* Sera fermée par dismiss: true */ }
+                    }
+                ],
+                autoAction: 'closeNow',
+                autoActionDelay: 5000
+            });
+        }
+
+    </script>
+</body>
+</html>

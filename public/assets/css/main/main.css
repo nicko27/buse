@@ -478,8 +478,22 @@ body {
 
 #unites-ldap .block__title,
 #unites-manual .block__title {
-    background: #154742
+    background: #154742;
 }
+
+#cities .block__title {
+    background: #356835;
+}
+
+#categories .block__title {
+    background: #683566;
+}
+
+#synthese .block__title {
+    background: #685435;
+}
+
+
 
 a.menu__elt:hover {
     backdrop-filter: blur(6px);
@@ -515,6 +529,19 @@ a#services:hover {
 a#unites:hover {
     background: linear-gradient(to right, #153742 80%, #EEE);
 }
+
+a#cities:hover {
+    background: linear-gradient(to right, #356835, 80%, #EEE);
+}
+
+a#categories:hover {
+    background: linear-gradient(to right, #683566, 80%, #EEE);
+}
+
+a#synthese:hover {
+    background: linear-gradient(to right, #685435, 80%, #EEE);
+}
+
 
 .content__line {
     display: flex;
