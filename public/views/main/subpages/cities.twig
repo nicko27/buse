@@ -13,11 +13,11 @@
             <table id="citiesTbl">
                 <thead>
                     <tr>
-                        <th id="name" th-filterAndPaginate th-sort th-class="small-caps-under">Nom</th>
+                        <th id="id" th-hide>Id</th>
+                        <th id="insee" th-edit>Insee</th>
+                        <th id="name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Nom</th>
+                        <th id="old_name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Ancien Nom</th>
                         <th id="code_postal" th-edit>Code Postal</th>
-                        <th id="brigade" th-choice>Brigade Territorialement Compétente</th>
-                        <th id="maire" th-edit>Nom du maire</th>
-                        <th id="mail" th-edit>Adresse mail</th>
                         <th th-actions="save">Actions</th>
 
                     </tr>
@@ -25,11 +25,11 @@
                 <tbody>
                     {% for c in cities_tbl %}
                         <tr id="{{c.id}}" name="{{ c.id }}">
+                            <td id="id_{{ c.id }}" name="id_{{ c.id}}">{{ c.id }}</td>
+                            <td id="insee_{{ c.id }}" name="insee_{{ c.id}}">{{ c.insee }}</td>
                             <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
+                            <td id="old_name_{{ c.id }}" name="old_name_{{ c.id}}">{{ c.old_name }}</td>
                             <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
-                            <td id="brigade_{{ c.id }}" name="brigade_{{ c.id }}">{{ c.unit_id }}</td>
-                            <td id="maire_{{ c.id }}" name="maire_{{ c.id }}">{{ c.maire }}</td>
-                            <td id="mail_{{ c.id }}" name="mail_{{ c.id }}">{{ c.mail }}</td>
                             <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
 
                         </tr>
@@ -54,7 +54,7 @@
         tableId: 'citiesTbl',
         debug: true,
         plugins: {
-            names: ['FilterAndPaginate', 'Edit', 'Sort', 'Actions', 'Choice'],
+            names: ['FilterAndPaginate', 'Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
             filterandpaginate: {
                 enableFilter: true,
                 globalFilter: '#search',
@@ -113,7 +113,7 @@
                 actions: {
                     save: {
                         handler: function(context) {
-                            const url = "/main/subpages/cities/update.php";
+                            const url = "/main/actions.php";
                             const data = {
                                 ...context.data,
                                 table: 'unites_ldap',

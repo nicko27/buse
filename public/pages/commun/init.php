@@ -9,6 +9,7 @@ require_once __DIR__ . "/Logger/Logger.php";
 require_once __DIR__ . "/Utils/FileUtils.php";
 require_once __DIR__ . "/Utils/DateUtils.php";
 require_once __DIR__ . "/Utils/StringUtils.php";
+require_once __DIR__ . "/Utils/ExcelProcessor.php";
 require_once __DIR__ . "/Utils/TphUtils.php";
 require_once __DIR__ . "/Utils/UploadManager.php";
 require_once __DIR__ . "/Utils/FileListUtils.php";
@@ -58,7 +59,7 @@ $directories = [
 ];
 
 foreach ($directories as $dir) {
-    if (!is_dir($dir)) {
+    if (! is_dir($dir)) {
         mkdir($dir, 0777, true);
     }
 }

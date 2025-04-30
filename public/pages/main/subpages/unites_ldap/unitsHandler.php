@@ -28,7 +28,6 @@ $sqlManager->delete("unites_ldap", "dateOperation!=:dateOperation", ["dateOperat
 
 echo json_encode(["error" => 0]);
 
-
 function getChildrenUnits($dateOperation, $schema, $parentCu, $cuCie = 0, $cuCob = 0, $cobCity = "")
 {
     global $sqlManager, $ldapManager, $config;
@@ -89,9 +88,9 @@ function getChildrenUnits($dateOperation, $schema, $parentCu, $cuCie = 0, $cuCob
                 case "cn":
                     $data["label"] = $value;
                 case "postalcode":
-                	$data['code_postal'] =$value;
+                    $data['code_postal'] = $value;
                 case "mail":
-                	$data['mail'] = $value;
+                    $data['mail'] = $value;
             }
         }
         $data["isCie"] = 0;
@@ -103,12 +102,11 @@ function getChildrenUnits($dateOperation, $schema, $parentCu, $cuCie = 0, $cuCob
             $cuCob   = $cu;
             $cobCity = $city;
         }
-        $data['cuCie']         = $cuCie;
-        $data["isCob"]         = ($cuCob > 0) ? 1 : 0;
-        $data["cuCob"]         = $cuCob;
-        $data["id"]            = null;
-        $data["parentCu"]      = $parentCu;
-        $data["mergedWithCu"]  = 0;
+        $data['cuCie']    = $cuCie;
+        $data["isCob"]    = ($cuCob > 0) ? 1 : 0;
+        $data["cuCob"]    = $cuCob;
+        $data["id"]       = null;
+        $data["parentCu"] = $parentCu;
         if (($cu != $cuCob) && ($cuCob > 0)) {
             if ($city == $cobCity) {
                 $data["mergedWithCu"] = 0;
@@ -117,15 +115,15 @@ function getChildrenUnits($dateOperation, $schema, $parentCu, $cuCie = 0, $cuCob
         }
         $data["invisible"] = 0;
         error_log(json_encode($data));
-        $result            = $sqlManager->insertIfAbsent("unites_ldap", $data, ["cu" => $cu]);
-        if($result['id']){
+        $result = $sqlManager->insertIfAbsent("unites_ldap", $data, ["cu" => $cu]);
+        if ($result['id']) {
             unset($data['id']);
             unset($data['invisible']);
             unset($data['cuCob']);
-            $sqlManager->update("unites_ldap", $data,"cu = :cu", ["cu" => $cu]);
+            $sqlManager->update("unites_ldap", $data, "cu = :cu", ["cu" => $cu]);
         }
 
-        if (!in_array($parentDepartmentUID, $alreadyDone)) {
+        if (! in_array($parentDepartmentUID, $alreadyDone)) {
             $alreadyDone[] = $parentDepartmentUID;
             $size          = getChildrenUnits($dateOperation, $parentDepartmentUID, $cu, $cuCie, $cuCob, $cobCity);
         }
