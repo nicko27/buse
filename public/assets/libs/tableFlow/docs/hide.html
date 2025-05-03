@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin Hide - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+         /* Style pour montrer qu'une colonne est masquée (optionnel) */
+         /* th[th-hide], td[style*="display: none"] { ... } */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin Hide</h1>
+
+            <section id="plugin-hide-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>Hide</strong> est un plugin très simple dont l'unique but est de masquer une ou plusieurs colonnes du tableau dès l'initialisation de TableFlow.
+                </p>
+                <p>
+                    Il est utile pour cacher des données techniques (comme des IDs) ou des colonnes non pertinentes pour l'affichage initial, tout en les gardant potentiellement accessibles pour d'autres plugins ou pour être affichées ultérieurement via du code personnalisé.
+                </p>
+            </section>
+
+            <section id="plugin-hide-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Pour masquer une colonne, ajoutez simplement l'attribut <code class="attr">th-hide</code> à l'élément <code>&lt;th&gt;</code> de cette colonne dans l'en-tête du tableau. Aucune valeur n'est nécessaire pour cet attribut.
+                </p>
+                <pre><code class="language-html">&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colVisible1"&gt;Visible 1&lt;/th&gt;
+      &lt;th id="colCachee" th-hide&gt;Colonne Cachée&lt;/th&gt;
+      &lt;th id="colVisible2"&gt;Visible 2&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+    &lt;tr id="row1"&gt;
+        &lt;td id="colVisible1_row1"&gt;A&lt;/td&gt;
+        &lt;td id="colCachee_row1"&gt;Donnée cachée 1&lt;/td&gt; &lt;!-- Sera masquée --&gt;
+        &lt;td id="colVisible2_row1"&gt;B&lt;/td&gt;
+    &lt;/tr&gt;
+     &lt;tr id="row2"&gt;
+        &lt;td id="colVisible1_row2"&gt;C&lt;/td&gt;
+        &lt;td id="colCachee_row2"&gt;Donnée cachée 2&lt;/td&gt; &lt;!-- Sera masquée --&gt;
+        &lt;td id="colVisible2_row2"&gt;D&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    Lorsque TableFlow sera initialisé avec le plugin Hide activé, la colonne "Colonne Cachée" (le `<th>` et tous les `<td>` correspondants) ne sera pas visible.
+                </p>
+            </section>
+
+            <section id="plugin-hide-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    Ce plugin n'a <strong>aucune option de configuration</strong> spécifique en JavaScript. Il suffit de l'activer dans la liste `plugins.names`.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        names: ['Hide', /* ... autres plugins ... */], // Activer le plugin
+        // Aucune configuration nécessaire sous plugins.hide
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+            </section>
+
+            <section id="plugin-hide-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `hideColumns`):</strong> Le plugin recherche tous les éléments `<th>` dans l'en-tête qui possèdent l'attribut `th-hide`. Pour chaque `<th>` trouvé, il détermine son index de colonne (`cellIndex`).</li>
+                    <li><strong>Masquage (`hideColumn`):</strong> Pour l'index de colonne trouvé, le plugin sélectionne le `<th>` correspondant et tous les `<td>` de cette colonne dans le `<tbody>` (en utilisant `nth-child`). Il applique ensuite le style CSS `display: none;` à tous ces éléments.</li>
+                    <li><strong>Rafraîchissement (`refresh`):</strong> Ré-applique simplement la logique de masquage `hideColumns()`. Utile si la structure de la table a changé dynamiquement.</li>
+                </ul>
+            </section>
+
+             <section id="plugin-hide-api">
+                <h2>API Publique</h2>
+                <p>
+                    Si vous récupérez l'instance du plugin via `tableInstance.getPlugin('Hide')`, vous pouvez accéder aux méthodes suivantes :
+                </p>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Méthode</th><th>Arguments</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code>hideColumn(columnIndex)</code></td><td><code class="attr">columnIndex</code> <span class="type">(number)</span></td><td>Masque la colonne à l'index spécifié (base 0).</td></tr>
+                         <tr><td><code>showColumn(columnIndex)</code></td><td><code class="attr">columnIndex</code> <span class="type">(number)</span></td><td>Affiche une colonne précédemment masquée à l'index spécifié (en retirant le `display: none;`).</td></tr>
+                         <tr><td><code>refresh()</code></td><td>-</td><td>Ré-applique le masquage basé sur les attributs `th-hide` présents.</td></tr>
+                     </tbody>
+                 </table>
+                 <pre><code class="language-javascript">// Exemple d'utilisation de l'API
+ const hidePlugin = tableInstance.getPlugin('Hide');
+ if (hidePlugin) {
+     // Masquer la première colonne (index 0)
+     // hidePlugin.hideColumn(0);
+
+     // Afficher la deuxième colonne (index 1) qui était peut-être masquée par th-hide
+     // hidePlugin.showColumn(1);
+ }</code></pre>
+            </section>
+
+            <section id="plugin-hide-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong> Aucun événement spécifique écouté par ce plugin.</li>
+                    <li><strong>Déclenchés :</strong> Aucun événement spécifique déclenché par ce plugin.</li>
+                </ul>
+            </section>
+
+            <section id="plugin-hide-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table où la colonne "ID" est masquée au chargement.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Hide Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
+        body { padding: 2rem; }
+        /* Optionnel: griser l'en-tête masqué pour le debug */
+        /* th[th-hide] { background-color: #eee !important; color: #aaa; } */
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Hide&lt;/h1&gt;
+
+    &lt;table id="userTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="userId" th-hide&gt;ID Utilisateur&lt;/th&gt; &lt;!-- Masqué --&gt;
+                &lt;th id="userName"&gt;Nom&lt;/th&gt;
+                &lt;th id="userRole"&gt;Rôle&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="u1"&gt;
+                &lt;td id="userId_u1"&gt;USR001&lt;/td&gt;
+                &lt;td id="userName_u1"&gt;Alice Admin&lt;/td&gt;
+                &lt;td id="userRole_u1"&gt;Admin&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="u2"&gt;
+                &lt;td id="userId_u2"&gt;USR002&lt;/td&gt;
+                &lt;td id="userName_u2"&gt;Bob User&lt;/td&gt;
+                &lt;td id="userRole_u2"&gt;Utilisateur&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;button onclick="toggleIdColumn()"&gt;Afficher/Masquer Colonne ID&lt;/button&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const userTable = new TableFlow({
+            tableId: 'userTable',
+            pluginsPath: '../plugins', // Ajustez
+            plugins: {
+                names: ['Hide'] // Activer le plugin Hide
+            }
+        });
+
+        // Fonction pour le bouton de test (nécessite l'instance TableFlow)
+        let idColumnVisible = false;
+        window.toggleIdColumn = () => {
+            const hidePlugin = userTable.getPlugin('Hide');
+            if (hidePlugin) {
+                const idColumnIndex = 0; // L'ID est la première colonne (index 0)
+                if (idColumnVisible) {
+                    hidePlugin.hideColumn(idColumnIndex);
+                    console.log('Colonne ID masquée');
+                } else {
+                    hidePlugin.showColumn(idColumnIndex);
+                    console.log('Colonne ID affichée');
+                }
+                idColumnVisible = !idColumnVisible;
+            } else {
+                console.error("Plugin Hide non trouvé");
+            }
+        }
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La table s'affiche initialement sans la colonne "ID Utilisateur", car elle a l'attribut `th-hide`.</li>
+                    <li>Le bouton "Afficher/Masquer Colonne ID" permet d'appeler les méthodes `showColumn(0)` et `hideColumn(0)` du plugin pour contrôler dynamiquement la visibilité de la première colonne.</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

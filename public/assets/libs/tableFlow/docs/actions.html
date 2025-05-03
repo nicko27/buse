@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin Actions - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin Actions</h1>
+
+            <section id="plugin-actions-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>Actions</strong> permet d'ajouter une ou plusieurs colonnes contenant des icônes cliquables (boutons d'action) à chaque ligne d'un tableau géré par TableFlow. Ces actions déclenchent des fonctions JavaScript personnalisées (handlers) que vous définissez, vous permettant d'implémenter des logiques spécifiques comme la sauvegarde, la suppression, la duplication ou toute autre opération liée à une ligne de données.
+                </p>
+                <p>
+                    Il gère automatiquement l'affichage conditionnel de certains boutons (par exemple, afficher "Sauvegarder" uniquement lorsque la ligne a été modifiée) et peut interagir avec le système de notification et d'autres plugins.
+                </p>
+            </section>
+
+            <section id="plugin-actions-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Pour activer une colonne d'actions, ajoutez l'attribut <code class="attr">th-actions</code> à l'élément <code>&lt;th&gt;</code> correspondant dans l'en-tête de votre tableau. La valeur de cet attribut est une liste de noms d'actions (séparés par des virgules) que vous souhaitez inclure dans cette colonne. Ces noms doivent correspondre aux clés définies dans la configuration JavaScript.
+                </p>
+                <pre><code class="language-html">&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colData1"&gt;Donnée 1&lt;/th&gt;
+      &lt;th id="colData2" th-sql-exclude&gt;Donnée 2 (Non envoyée)&lt;/th&gt;
+      &lt;!-- Colonne d'actions --&gt;
+      &lt;th id="colActions" th-actions="save,edit,delete"&gt;Actions&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    Vous pouvez également utiliser l'attribut <code class="attr">th-sql-exclude</code> sur n'importe quel <code>&lt;th&gt;</code> pour indiquer que la valeur de cette colonne ne doit pas être incluse dans l'objet `data` passé aux handlers d'action (utile pour les colonnes purement visuelles ou les colonnes d'actions elles-mêmes).
+                </p>
+            </section>
+
+            <section id="plugin-actions-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration détaillée du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.actions</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez le chemin
+    plugins: {
+        names: ['Actions', /* ... autres plugins ... */], // Activer le plugin
+        actions: { // Configuration spécifique pour 'Actions'
+            // --- Options Générales du Plugin ---
+            actionAttribute: 'th-actions', // Attribut HTML pour définir les actions (défaut)
+            sqlExcludeAttribute: 'th-sql-exclude', // Attribut pour exclure des colonnes (défaut)
+            cellClass: 'td-actions', // Classe CSS pour les cellules d'action (défaut)
+            modifiedClass: 'modified', // Classe CSS pour les lignes modifiées (défaut)
+            useIcons: true, // Utiliser les icônes définies (défaut)
+            debug: false, // Activer les logs spécifiques à ce plugin
+
+            // Comportement par défaut pour l'affichage des boutons si la ligne est modifiée.
+            // Peut être un booléen (true = toutes les actions sont showOnChange par défaut)
+            // ou un tableau de noms d'actions ['save', 'cancel'] qui sont showOnChange par défaut.
+            // Peut être surchargé par l'option 'showOnChange' de chaque action individuelle.
+            showOnChange: [], // Défaut: aucune action n'est masquée/affichée par défaut lors des modifications
+
+            // Déclencher l'action 'save' automatiquement après modification ?
+            // Peut être surchargé par l'option 'autoSave' de l'action 'save'.
+            autoSave: false, // Défaut: pas d'auto-sauvegarde
+
+            // --- Définition des Actions ---
+            actions: {
+                // Clé = nom de l'action (utilisé dans th-actions)
+                'save': {
+                    // Requis: Fonction exécutée au clic
+                    handler: (context) => {
+                        console.log('Sauvegarde demandée pour la ligne:', context.row.id);
+                        console.log('Données:', context.data);
+                        // ... logique de sauvegarde ...
+                        setTimeout(() => context.tableHandler.markRowAsSaved(context.row), 1000);
+                    },
+                    // Optionnel: Surcharge le paramètre global 'showOnChange' pour cette action.
+                    showOnChange: true, // Afficher ce bouton seulement si la ligne a la classe 'modified'
+                    // Optionnel: Surcharge le paramètre global 'autoSave' pour cette action 'save'.
+                    // autoSave: true, // Activer l'autoSave spécifiquement pour cette action save
+                    // Optionnel: HTML de l'icône (prioritaire sur 'icons')
+                    // icon: '<i class="fas fa-save text-blue-500"></i>'
+                },
+                'delete': {
+                    handler: (context) => {
+                        console.log('Suppression demandée pour la ligne:', context.row.id);
+                        // ... logique de suppression ...
+                         setTimeout(() => context.tableHandler.removeRow(context.row), 1000);
+                    },
+                    // Optionnel: Demander confirmation avant d'exécuter
+                    // confirm: true // Utilise le message par défaut ou celui de confirmMessages
+                    confirm: "Êtes-vous sûr de vouloir supprimer cette ligne ?" // Message personnalisé
+                },
+                'edit': { // Exemple d'action ouvrant un modal d'édition externe
+                    handler: (context) => {
+                        console.log('Édition demandée pour:', context.data);
+                        // openEditModal(context.data);
+                    }
+                    // showOnChange: false (hérité du défaut global ou false si non spécifié)
+                }
+                // ... autres actions personnalisées ...
+            },
+
+            // --- Icônes par Défaut (utilisées si non définies dans l'action elle-même) ---
+            icons: {
+                'save': '<i class="fas fa-save text-green-600 hover:text-green-800 cursor-pointer"></i>',
+                'delete': '<i class="fas fa-trash-alt text-red-600 hover:text-red-800 cursor-pointer"></i>',
+                'edit': '<i class="fas fa-pencil-alt text-blue-600 hover:text-blue-800 cursor-pointer"></i>',
+                // ... icônes pour d'autres actions ...
+            },
+
+            // --- Messages de Confirmation (utilisés si action.confirm === true) ---
+            confirmMessages: {
+                'delete': 'Voulez-vous vraiment supprimer cette ligne ? Cette action est irréversible.',
+                // ... messages pour d'autres actions ...
+            }
+        }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin Actions via l'objet `plugins.actions` dans la configuration de TableFlow.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option (dans `plugins.actions`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">actionAttribute</code></td><td class="type">string</td><td><code class="default">'th-actions'</code></td><td>Nom de l'attribut HTML sur `<th>` pour définir les actions.</td></tr>
+                        <tr><td><code class="attr">sqlExcludeAttribute</code></td><td class="type">string</td><td><code class="default">'th-sql-exclude'</code></td><td>Nom de l'attribut HTML sur `<th>` pour exclure une colonne de `getRowData()`.</td></tr>
+                        <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-actions'</code></td><td>Classe CSS ajoutée aux `<td>` contenant les actions.</td></tr>
+                        <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour identifier les lignes modifiées (pertinent pour `showOnChange`).</td></tr>
+                        <tr><td><code class="attr">useIcons</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Indique si le plugin doit insérer le HTML des icônes. Si `false`, vous devez gérer l'affichage vous-même.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Actions. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                        <tr><td><code class="attr">showOnChange</code></td><td class="type">boolean | Array&lt;string&gt;</td><td><code class="default">[]</code></td><td>Définit le comportement par défaut pour l'affichage conditionnel des boutons basé sur l'état modifié de la ligne. Si `true`, toutes les actions sont `showOnChange` par défaut. Si c'est un tableau de noms d'actions (ex: `['save']`), seules ces actions sont `showOnChange` par défaut. Ce comportement peut être surchargé par l'option `showOnChange` de chaque action individuelle.</td></tr>
+                        <tr><td><code class="attr">autoSave</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Si `true`, l'action nommée 'save' (si elle existe et a un handler) sera automatiquement appelée après un `cell:change` si la ligne est modifiée. Ce comportement peut être surchargé par l'option `autoSave` spécifique à l'action 'save'.</td></tr>
+                        <tr><td><code class="attr">actions</code></td><td class="type">object</td><td><code class="default">{}</code></td><td><strong>(Essentiel)</strong> Objet contenant la définition de chaque action possible. La clé est le nom de l'action (utilisé dans `th-actions`), la valeur est un objet décrivant l'action (voir tableau suivant).</td></tr>
+                        <tr><td><code class="attr">icons</code></td><td class="type">object</td><td><code class="default">{}</code></td><td>Objet associant un nom d'action à son code HTML d'icône par défaut. Utilisé si l'action n'a pas de propriété `icon` spécifique.</td></tr>
+                        <tr><td><code class="attr">confirmMessages</code></td><td class="type">object</td><td><code class="default">{}</code></td><td>Objet associant un nom d'action à son message de confirmation par défaut. Utilisé si `action.confirm === true` et `action.confirm` n'est pas une chaîne.</td></tr>
+                    </tbody>
+                </table>
+
+                 <h3>Structure Complète de Définition d'une Action (dans `plugins.actions.actions`)</h3>
+                 <div class="info-block">
+                    Ce tableau détaille toutes les propriétés possibles pour définir une action spécifique à l'intérieur de l'objet `plugins.actions.actions`.
+                 </div>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Propriété (dans `actions[nomAction]`)</th><th>Type</th><th>Requis?</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">handler</code></td><td class="type">function</td><td>Oui</td><td>La fonction JavaScript à exécuter lorsque l'icône de l'action est cliquée. Reçoit un objet `context` en argument (voir section "Contexte du Handler").</td></tr>
+                         <tr><td><code class="attr">showOnChange</code></td><td class="type">boolean</td><td>Non</td><td>Si défini, surcharge le comportement global `showOnChange`. Si `true`, l'icône n'est visible que si la ligne a la classe `modifiedClass`. Si `false`, l'icône est toujours visible (sauf si masquée par `updateActionButtons` avec `hideSpecificAction`). Si non défini, utilise le comportement global `showOnChange`.</td></tr>
+                         <tr><td><code class="attr">icon</code></td><td class="type">string</td><td>Non</td><td>Code HTML de l'icône pour cette action spécifique. Surcharge l'icône définie dans `plugins.actions.icons[nomAction]`. Si ni `icon` ni `icons[nomAction]` ne sont définis, aucune icône ne sera affichée pour cette action.</td></tr>
+                         <tr><td><code class="attr">confirm</code></td><td class="type">boolean | string</td><td>Non</td><td>Si `true`, une confirmation (`window.confirm`) s'affiche avant d'exécuter le `handler`, utilisant le message de `confirmMessages[nomAction]` ou un message générique. Si c'est une chaîne non vide, cette chaîne est utilisée comme message de confirmation. Si `false` ou non défini, aucune confirmation n'est demandée.</td></tr>
+                         <tr><td><code class="attr">autoSave</code></td><td class="type">boolean</td><td>Non</td><td>(Pertinent uniquement pour l'action nommée 'save') Si défini, surcharge le comportement global `autoSave`. Si `true`, cette action 'save' sera déclenchée automatiquement après un `cell:change` si la ligne est modifiée. Si `false`, elle ne le sera pas, même si `plugins.actions.autoSave` global est `true`.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-actions-handler-context">
+                <h2>Contexte du Handler d'Action</h2>
+                <p>
+                    La fonction `handler` que vous définissez pour chaque action reçoit un objet `context` contenant les informations suivantes :
+                </p>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Propriété (dans `context`)</th><th>Type</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">row</code></td><td class="type">HTMLTableRowElement</td><td>L'élément `<tr>` de la ligne sur laquelle l'action a été cliquée.</td></tr>
+                         <tr><td><code class="attr">cell</code></td><td class="type">HTMLTableCellElement</td><td>L'élément `<td>` de la cellule contenant l'icône d'action cliquée.</td></tr>
+                         <tr><td><code class="attr">tableHandler</code></td><td class="type">TableFlow</td><td>L'instance de `TableFlow` gérant le tableau. Vous pouvez l'utiliser pour appeler les méthodes de l'API Core (ex: `context.tableHandler.markRowAsSaved(context.row)`, `context.tableHandler.removeRow(context.row)`, `context.tableHandler.notify(...)`).</td></tr>
+                         <tr><td><code class="attr">data</code></td><td class="type">object</td><td>Un objet contenant les données de la ligne, collectées par la méthode `getRowData()`. Les clés sont les IDs des `<th>` et les valeurs sont les `data-value` (ou le texte) des cellules correspondantes. Les colonnes marquées `th-sql-exclude` et les colonnes d'actions sont omises. L'ID de la ligne (`row.id`) est inclus sous la clé `id` si présent.</td></tr>
+                         <tr><td><code class="attr">source</code></td><td class="type">string</td><td>Indique comment l'action a été déclenchée. Généralement `'manual'` pour un clic utilisateur, ou `'autoSave'` si déclenchée par l'option `autoSave`.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-actions-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `setupActionColumns`, `setupActionCell`):</strong> Le plugin parcourt les `<th>` avec l'attribut `th-actions`. Pour chaque ligne existante, il trouve la cellule `<td>` correspondante, la vide, et insère les éléments HTML (icônes) définis pour chaque action listée. Des écouteurs de clic sont ajoutés à chaque icône. L'état initial de visibilité (`showOnChange`) est appliqué.</li>
+                    <li><strong>Clic sur une Action (`executeAction`):</strong> Empêche le comportement par défaut. Vérifie si une confirmation est nécessaire. Appelle `getRowData()` pour collecter les données de la ligne. Exécute la fonction `handler` correspondante en lui passant l'objet `context`.</li>
+                    <li><strong>Gestion des Modifications (`handleCellChange`):</strong> Écoute l'événement `cell:change`. Vérifie si la ligne est modifiée en comparant `data-value` et `data-initial-value`. Ajoute ou retire la classe `modified` à la `<tr>`. Appelle `updateActionButtons()` pour ajuster la visibilité des boutons configurés avec `showOnChange`. Si `autoSave` est activé, déclenche l'action 'save'.</li>
+                    <li><strong>Gestion de la Sauvegarde (`handleRowSaved`, appelé après `markRowAsSaved`) :</strong> Écoute l'événement `row:saved`. Retire la classe `modified` de la ligne. Appelle `updateActionButtons()` pour masquer les boutons `showOnChange`. Peut masquer une action spécifique si l'option `hideAction` est passée à `markRowAsSaved`.</li>
+                    <li><strong>Gestion des Nouvelles Lignes (`handleRowAdded`):</strong> Écoute l'événement `row:added`. Appelle `setupActionColumns()` pour s'assurer que la nouvelle ligne a ses boutons d'action, puis `updateActionButtons()` pour définir leur état initial.</li>
+                    <li><strong>Mise à Jour des Boutons (`updateActionButtons`):</strong> Parcourt les boutons d'action d'une ligne donnée et ajuste leur `display` (`'none'` ou leur `data-original-display`) en fonction de l'état `modified` de la ligne et de l'option `showOnChange` de chaque action.</li>
+                    <li><strong>Collecte des Données (`getRowData`):</strong> Parcourt les cellules d'une ligne, récupère les `data-value` (ou le texte), ignore les colonnes exclues (`th-sql-exclude` ou colonne d'actions), ajoute l'ID de la ligne, et tente des conversions de type.</li>
+                </ul>
+            </section>
+
+            <section id="plugin-actions-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong>
+                        <ul>
+                            <li><code>cell:change</code>: Pour détecter les modifications et mettre à jour l'état `modified` et la visibilité des boutons.</li>
+                            <li><code>row:saved</code>: Pour réinitialiser l'état `modified` et la visibilité des boutons après une sauvegarde réussie.</li>
+                            <li><code>row:added</code>: Pour initialiser les boutons sur les nouvelles lignes.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déclenchés :</strong> Aucun événement spécifique déclenché par ce plugin lui-même (il déclenche des actions via les handlers).</li>
+                </ul>
+            </section>
+
+            <section id="plugin-actions-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table avec une colonne éditable et une colonne d'actions pour sauvegarder ou supprimer.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Actions Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style&gt;
+        /* Style pour la classe 'modified' (optionnel mais recommandé) */
+        tr.modified td { background-color: #fffbeb; }
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Actions&lt;/h1&gt;
+
+    &lt;table id="userTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="userId" th-hide&gt;ID&lt;/th&gt; &lt;!-- Colonne ID masquée --&gt;
+                &lt;th id="userName" th-edit&gt;Nom&lt;/th&gt;
+                &lt;th id="userEmail" th-edit th-validate='{"email": true}'&gt;Email&lt;/th&gt;
+                &lt;th id="userActions" th-actions="save,delete"&gt;Actions&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="1"&gt;
+                &lt;td id="userId_1"&gt;1&lt;/td&gt;
+                &lt;td id="userName_1"&gt;Alice&lt;/td&gt;
+                &lt;td id="userEmail_1"&gt;alice@example.com&lt;/td&gt;
+                &lt;td id="userActions_1"&gt;&lt;/td&gt; &lt;!-- Sera rempli par le plugin --&gt;
+            &lt;/tr&gt;
+            &lt;tr id="2"&gt;
+                &lt;td id="userId_2"&gt;2&lt;/td&gt;
+                &lt;td id="userName_2"&gt;Bob&lt;/td&gt;
+                &lt;td id="userEmail_2"&gt;bob@sample.net&lt;/td&gt;
+                &lt;td id="userActions_2"&gt;&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const userTable = new TableFlow({
+            tableId: 'userTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true, // Activer les logs pour le débogage
+            plugins: {
+                names: ['Edit', 'Actions', 'Hide'], // Activer les plugins nécessaires
+                actions: {
+                    // Définir les handlers pour les actions 'save' et 'delete'
+                    actions: {
+                        'save': {
+                            handler: (context) => {
+                                console.log('Tentative de sauvegarde:', context.data);
+                                // Simuler un appel API
+                                alert(`Sauvegarde simulée pour ID ${context.data.id}:\nNom: ${context.data.userName}\nEmail: ${context.data.userEmail}`);
+                                // Marquer la ligne comme sauvegardée dans TableFlow
+                                context.tableHandler.markRowAsSaved(context.row);
+                            },
+                            showOnChange: true // Afficher seulement si modifié
+                        },
+                        'delete': {
+                            handler: (context) => {
+                                console.log('Tentative de suppression:', context.row.id);
+                                // Demander confirmation
+                                if (confirm(`Voulez-vous vraiment supprimer l'utilisateur ${context.data.userName} ?`)) {
+                                    // Simuler un appel API réussi
+                                    alert(`Suppression simulée pour ID ${context.row.id}`);
+                                    // Supprimer la ligne du tableau
+                                    context.tableHandler.removeRow(context.row);
+                                } else {
+                                    console.log('Suppression annulée');
+                                }
+                            }
+                            // Pas de showOnChange, toujours visible
+                            // Pas de confirm: true car on utilise confirm() dans le handler
+                        }
+                    },
+                    // Définir les icônes (FontAwesome)
+                    icons: {
+                        'save': '<i class="fas fa-save" style="color: green; cursor: pointer;"></i>',
+                        'delete': '<i class="fas fa-trash-alt" style="color: red; cursor: pointer;"></i>'
+                    }
+                },
+                edit: {
+                    // Config par défaut suffit pour th-edit et th-validate
+                },
+                hide: {
+                    // Pas de config nécessaire pour th-hide
+                }
+            }
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La table s'affiche avec les colonnes "Nom" et "Email" éditables (double-clic). L'ID est masqué.</li>
+                    <li>La colonne "Actions" contient initialement seulement l'icône de suppression (corbeille rouge).</li>
+                    <li>Si vous modifiez une cellule (ex: le nom d'Alice), la ligne devient jaune pâle (classe `modified`) et l'icône de sauvegarde (disquette verte) apparaît à côté de la corbeille.</li>
+                    <li>Si vous cliquez sur la disquette, une alerte simule la sauvegarde, la ligne redevient blanche, et l'icône de sauvegarde disparaît.</li>
+                    <li>Si vous cliquez sur la corbeille, une confirmation apparaît. Si vous confirmez, une alerte simule la suppression et la ligne est retirée du tableau.</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

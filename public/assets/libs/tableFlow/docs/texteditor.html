@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin TextEditor - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+         /* Styles du menu contextuel (si utilisé) */
+         .tf-context-menu{position:absolute;z-index:1000;display:none;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.2);padding:5px 0;min-width:180px}
+         .tf-menu-item{padding:8px 15px;cursor:pointer;display:flex;align-items:center}
+         .tf-menu-item:hover{background:#f5f5f5}
+         .tf-menu-separator{height:1px;background:#ddd;margin:5px 0}
+         .tf-menu-header{padding:5px 10px;font-weight:700;color:#666;font-size:.9em}
+         .menu-icon{margin-right:8px;font-size:1.1em;width:20px;text-align:center}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin TextEditor</h1>
+
+            <section id="plugin-texteditor-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>TextEditor</strong> est une extension conçue pour enrichir l'expérience d'édition de texte offerte par le plugin <a href="#plugin-edit">Edit</a>. Il ajoute des actions spécifiques pour manipuler le contenu textuel des cellules éditables.
+                </p>
+                <p>
+                    Ces actions peuvent inclure, par exemple, la suppression de phrases, la mise en majuscules, ou la suppression de motifs basés sur des expressions régulières. Les actions peuvent être déclenchées via des raccourcis clavier configurables ou via le menu contextuel (si le plugin <a href="#plugin-contextmenu">ContextMenu</a> est également activé).
+                </p>
+                <div class="warning-block">
+                    <strong>Dépendances :</strong> Ce plugin <strong>nécessite</strong> que le plugin <strong>Edit</strong> soit activé. Son intégration au menu contextuel nécessite le plugin <strong>ContextMenu</strong>.
+                </div>
+            </section>
+
+            <section id="plugin-texteditor-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Ce plugin ne nécessite <strong>aucun attribut HTML spécifique</strong> sur les éléments <code>&lt;th&gt;</code> ou <code>&lt;td&gt;</code> pour son activation. Il s'applique automatiquement aux cellules rendues éditables par le plugin Edit.
+                </p>
+                <p>
+                    Son activation se fait uniquement via la configuration JavaScript.
+                </p>
+                <pre><code class="language-html">&lt;!-- Exemple de table où TextEditor pourrait s'appliquer --&gt;
+&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colTitre" th-edit&gt;Titre&lt;/th&gt;
+      &lt;th id="colDescription" th-edit&gt;Description (Long texte)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+            </section>
+
+            <section id="plugin-texteditor-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.texteditor</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        // IMPORTANT: 'Edit' doit être activé. 'ContextMenu' est optionnel mais recommandé.
+        names: ['Edit', 'ContextMenu', 'TextEditor', /* ... autres plugins ... */],
+        texteditor: { // Configuration spécifique pour 'TextEditor'
+            // --- Options Générales ---
+            debug: false, // Activer les logs spécifiques
+
+            // --- Actions de Texte ---
+            actions: {
+                // Actions intégrées (peuvent être désactivées ou surchargées)
+                deleteSentence: { // ID de l'action
+                    label: 'Supprimer cette phrase', // Texte affiché dans le menu
+                    icon: '✂️', // Icône pour le menu
+                    handler: /* fonction interne */
+                },
+                deleteRegexMatch: {
+                    label: 'Supprimer texte contenant...',
+                    icon: '🔍',
+                    handler: /* fonction interne (demande une regex via prompt) */
+                },
+                capitalizeSentence: {
+                    label: 'Mettre en majuscules',
+                    icon: 'Aa',
+                    handler: /* fonction interne (met la 1ère phrase en majuscules) */
+                },
+
+                // Ajouter des actions personnalisées
+                'toLowerCase': {
+                    label: 'Mettre en minuscules',
+                    icon: 'aa',
+                    handler: function(cell, text) { // this est l'instance du plugin
+                        if (text) this.updateCellValue(cell, text.toLowerCase());
+                    }
+                }
+            },
+
+            // --- Raccourcis Clavier ---
+            shortcutsEnabled: true, // Activer les raccourcis (défaut: true)
+            shortcuts: {
+                // Format: 'Modifier+Key': 'actionId'
+                'Ctrl+Delete': 'deleteSentence', // Raccourci par défaut
+                'Ctrl+Shift+L': 'toLowerCase' // Raccourci pour notre action perso
+                // ... autres raccourcis
+            },
+
+            // --- Intégration Menu Contextuel ---
+            // Nom de la section dans le menu (si ContextMenuPlugin est actif)
+            menuSection: 'Édition Texte' // Défaut: 'Texte'
+        },
+        edit: { /* ... config Edit ... */ },
+        contextmenu: { /* ... config ContextMenu ... */ }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.texteditor`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin TextEditor via l'objet `plugins.texteditor`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option (dans `plugins.texteditor`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin TextEditor. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                        <tr><td><code class="attr">actions</code></td><td class="type">object</td><td><code class="default">{...}</code> (voir code)</td><td>Objet définissant les actions de manipulation de texte disponibles. La clé est un ID unique pour l'action, la valeur est un objet avec `label`, `icon`, et `handler` (voir tableau suivant). Vous pouvez surcharger ou supprimer les actions par défaut, ou en ajouter de nouvelles.</td></tr>
+                        <tr><td><code class="attr">shortcutsEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, le plugin écoutera les événements clavier (via le hook `onKeydown` du plugin Edit) pour déclencher les actions définies dans `shortcuts`.</td></tr>
+                        <tr><td><code class="attr">shortcuts</code></td><td class="type">object</td><td><code class="default">{'Ctrl+Delete': 'deleteSentence'}</code></td><td>Objet associant une combinaison de touches (ex: `'Ctrl+S'`, `'Alt+Shift+P'`) à l'ID d'une action définie dans `actions`.</td></tr>
+                        <tr><td><code class="attr">menuSection</code></td><td class="type">string</td><td><code class="default">'Texte'</code></td><td>Nom de la section sous laquelle les actions de ce plugin apparaîtront dans le menu contextuel (si le plugin ContextMenu est actif). Mettre à `null` ou `false` pour ne pas avoir d'en-tête de section.</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Structure de Définition d'une Action (dans `plugins.texteditor.actions`)</h3>
+                 <div class="info-block">
+                    Ce tableau détaille les propriétés nécessaires pour définir une action de texte personnalisée.
+                 </div>
+                <table class="documentation-table">
+                     <thead>
+                         <tr><th>Propriété (dans `actions[actionId]`)</th><th>Type</th><th>Requis?</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">label</code></td><td class="type">string</td><td>Oui</td><td>Le texte qui sera affiché dans le menu contextuel pour cette action.</td></tr>
+                         <tr><td><code class="attr">icon</code></td><td class="type">string</td><td>Non</td><td>HTML (ou caractère) de l'icône à afficher à côté du label dans le menu contextuel.</td></tr>
+                         <tr><td><code class="attr">handler</code></td><td class="type">function</td><td>Oui</td><td>La fonction JavaScript à exécuter lorsque l'action est déclenchée (via menu ou raccourci). Reçoit deux arguments : `(cell, currentValue)`, où `cell` est l'élément `<td>` ciblé et `currentValue` est sa valeur textuelle actuelle. La fonction `this` à l'intérieur du handler référence l'instance du plugin TextEditor, vous permettant d'appeler `this.updateCellValue(cell, newValue)`.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-texteditor-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`):</strong>
+                        <ul>
+                            <li>Récupère les instances des plugins `Edit` (requis) et `ContextMenu` (optionnel).</li>
+                            <li>Si `ContextMenu` est trouvé, s'enregistre comme fournisseur de menu (`contextMenuPlugin.registerProvider(this)`).</li>
+                            <li>Si les raccourcis sont activés (`shortcutsEnabled`), s'enregistre au hook `onKeydown` du plugin `Edit` (`registerWithEditPlugin`).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Intégration Menu Contextuel (`getMenuItems`):</strong>
+                        <ul>
+                            <li>Méthode appelée par le plugin `ContextMenu` lorsqu'un clic droit est détecté sur une cellule.</li>
+                            <li>Vérifie si la cellule est éditable (a la classe du plugin Edit).</li>
+                            <li>Si oui, retourne un tableau d'objets décrivant les actions définies dans `config.actions`, précédées éventuellement d'un en-tête de section (`menuSection`).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Exécution d'Action (`executeAction`):</strong>
+                        <ul>
+                            <li>Méthode appelée par le plugin `ContextMenu` lorsqu'un utilisateur clique sur une action de ce plugin dans le menu.</li>
+                            <li>Trouve le `handler` correspondant à l'`actionId` dans `config.actions`.</li>
+                            <li>Récupère la valeur actuelle de la `cell`.</li>
+                            <li>Appelle le `handler(cell, currentValue)`.</li>
+                        </ul>
+                    </li>
+                     <li><strong>Gestion des Raccourcis (`handleKeydown`):</strong>
+                        <ul>
+                            <li>Méthode appelée par le hook `onKeydown` du plugin `Edit`.</li>
+                            <li>Construit une chaîne représentant la combinaison de touches appuyée (ex: 'Ctrl+Delete').</li>
+                            <li>Cherche si cette combinaison existe dans `config.shortcuts`.</li>
+                            <li>Si oui, trouve l'`actionId` correspondant et appelle `executeAction(actionId, cell)`.</li>
+                            <li>Empêche le traitement ultérieur de l'événement (`event.preventDefault()`) et retourne `false` pour indiquer au plugin Edit de ne pas traiter cette touche.</li>
+                            <li>Si aucune combinaison ne correspond, retourne `true` pour laisser Edit gérer l'événement.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Actions Intégrées (`deleteSentence`, `deleteRegexMatch`, `capitalizeSentence`):</strong>
+                        <ul>
+                            <li>Implémentent la logique spécifique à chaque action.</li>
+                            <li>Utilisent des méthodes utilitaires comme `splitIntoSentences`.</li>
+                            <li>Appellent `updateCellValue` pour appliquer les modifications.</li>
+                            <li>`deleteRegexMatch` utilise `prompt()` pour demander le motif à l'utilisateur.</li>
+                            <li>Les actions sur les phrases agissent sur la première phrase par simplicité (pas de détection de curseur).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Mise à Jour Cellule (`updateCellValue`):</strong>
+                        <ul>
+                            <li>Met à jour l'attribut `data-value`.</li>
+                            <li>Met à jour le contenu visible (via le wrapper).</li>
+                            <li>Ajoute la classe `modifiedClass` à la ligne parente.</li>
+                            <li>Déclenche l'événement `cell:change` avec `source: 'textEditor'`.</li>
+                        </ul>
+                    </li>
+                </ul>
+                 <div class="info-block">
+                    <strong>Note sur les Hooks :</strong> Comme pour le plugin `Validation`, ce plugin repose sur l'existence de hooks (`addHook`, `onKeydown`) dans le plugin `Edit`. Assurez-vous que votre version du plugin `Edit` supporte ce mécanisme d'extension.
+                </div>
+                 <div class="warning-block">
+                    <strong>Limites des Actions sur Phrases :</strong> Les actions `deleteSentence` et `capitalizeSentence` fournies agissent sur la *première* phrase du texte par défaut, car il n'y a pas de moyen simple de déterminer la position du curseur ou du clic dans le texte via le menu contextuel ou un raccourci clavier standard. Une implémentation plus avancée nécessiterait une intégration plus profonde avec l'état d'édition.
+                </div>
+            </section>
+
+             <section id="plugin-texteditor-api">
+                <h2>API Publique</h2>
+                <p>
+                    Ce plugin ne propose pas d'API publique spécifique destinée à être appelée depuis l'extérieur, en dehors des méthodes utilisées pour l'intégration avec ContextMenu (`getMenuItems`, `executeAction`). Ses fonctionnalités sont principalement déclenchées par les interactions utilisateur (menu, raccourcis).
+                </p>
+            </section>
+
+            <section id="plugin-texteditor-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong> Aucun événement DOM direct. S'appuie sur les hooks de `Edit` (`onKeydown`) et l'interface de `ContextMenu`.</li>
+                    <li><strong>Déclenchés :</strong>
+                        <ul>
+                             <li><code>cell:change</code> : Déclenché via `updateCellValue` après qu'une action de texte a modifié la valeur d'une cellule. Contient `{ detail: { ..., source: 'textEditor', ... } }`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-texteditor-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table avec une colonne de description éditable, où l'on peut utiliser le menu contextuel ou des raccourcis pour manipuler le texte.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple TextEditor Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
+        tr.modified td { background-color: #fffbeb; }
+        /* Styles menu contextuel */
+        .tf-context-menu{position:absolute;z-index:1000;display:none;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.2);padding:5px 0;min-width:180px}
+        .tf-menu-item{padding:8px 15px;cursor:pointer;display:flex;align-items:center}
+        .tf-menu-item:hover{background:#f5f5f5}
+        .tf-menu-separator{height:1px;background:#ddd;margin:5px 0}
+        .tf-menu-header{padding:5px 10px;font-weight:700;color:#666;font-size:.9em}
+        .menu-icon{margin-right:8px;font-size:1.1em;width:20px;text-align:center}
+        /* Cellule éditable */
+        td.td-edit { cursor: pointer; }
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin TextEditor&lt;/h1&gt;
+    &lt;p&gt;Double-cliquez sur la description pour éditer. Faites un clic droit pour le menu contextuel. Essayez Ctrl+Delete.&lt;/p&gt;
+
+    &lt;table id="notesTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="noteTitle"&gt;Titre&lt;/th&gt;
+                &lt;th id="noteContent" th-edit&gt;Contenu de la Note&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="n1"&gt;
+                &lt;td id="noteTitle_n1"&gt;Réunion&lt;/td&gt;
+                &lt;td id="noteContent_n1"&gt;Préparer la présentation. Revoir les chiffres. Confirmer la salle.&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="n2"&gt;
+                &lt;td id="noteTitle_n2"&gt;Idées&lt;/td&gt;
+                &lt;td id="noteContent_n2"&gt;Nouveau concept pour le projet Alpha. Explorer l'API externe X. Vérifier la faisabilité technique.&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const notesTable = new TableFlow({
+            tableId: 'notesTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                // Activer Edit, ContextMenu et TextEditor
+                names: ['Edit', 'ContextMenu', 'TextEditor'],
+                texteditor: {
+                    // Utiliser les actions et raccourcis par défaut
+                    // Ajouter une action personnalisée
+                    actions: {
+                        // Garder les actions par défaut
+                        deleteSentence: { label: 'Supprimer 1ère phrase', icon: '✂️', handler: function(cell, text){ if(text){ const s = this.splitIntoSentences(text); s.shift(); this.updateCellValue(cell, s.join(' ')); } } },
+                        deleteRegexMatch: { label: 'Supprimer motif...', icon: '🔍', handler: function(cell, text){ if(!text) return; const p = prompt('Motif?'); if(p){ try{ this.updateCellValue(cell, text.replace(new RegExp(p,'gi'),'')); } catch(e){ alert('Regex invalide');}} } },
+                        capitalizeSentence: { label: 'Majuscules 1ère phrase', icon: 'Aa', handler: function(cell, text){ if(text){ const s = this.splitIntoSentences(text); if(s.length > 0) s[0] = s[0].toUpperCase(); this.updateCellValue(cell, s.join(' ')); } } },
+                        // Nouvelle action
+                        'addTimestamp': {
+                            label: 'Ajouter horodatage',
+                            icon: '🕒',
+                            handler: function(cell, text) {
+                                const timestamp = new Date().toLocaleString('fr-FR');
+                                const newText = text ? `${text}\n[Modifié le ${timestamp}]` : `[Créé le ${timestamp}]`;
+                                this.updateCellValue(cell, newText);
+                            }
+                        }
+                    },
+                    shortcuts: {
+                         'Ctrl+Delete': 'deleteSentence',
+                         'Ctrl+T': 'addTimestamp' // Ajouter un raccourci
+                    },
+                    menuSection: 'Outils Texte' // Personnaliser le titre de section
+                },
+                edit: { /* Config par défaut */ },
+                contextmenu: { /* Config par défaut */ }
+            }
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La colonne "Contenu de la Note" est éditable (double-clic).</li>
+                    <li>Faites un clic droit sur une cellule de cette colonne : un menu contextuel apparaît avec la section "Outils Texte".</li>
+                    <li>Le menu contient les options : "Supprimer 1ère phrase", "Supprimer motif...", "Majuscules 1ère phrase", et "Ajouter horodatage".</li>
+                    <li>Choisir une option exécute l'action correspondante sur le contenu de la cellule.</li>
+                    <li>Pendant l'édition (double-clic), vous pouvez utiliser les raccourcis :
+                        <ul>
+                            <li>`Ctrl+Delete` : Supprime la première phrase.</li>
+                            <li>`Ctrl+T` : Ajoute un horodatage à la fin du texte.</li>
+                        </ul>
+                    </li>
+                    <li>Toute modification via les actions ou les raccourcis marque la ligne comme modifiée.</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

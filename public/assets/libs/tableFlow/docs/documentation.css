@@ -1,0 +1,557 @@
+:root {
+    --primary-color: #4f46e5; /* Indigo */
+    --secondary-color: #10b981; /* Emerald */
+    --text-color: #1f2937;
+    --bg-color: #ffffff;
+    --code-bg: #f3f4f6;
+    --border-color: #e5e7eb;
+    --nav-width: 280px; /* Largeur ajustée pour plus de contenu */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background: var(--bg-color);
+    padding: 2rem;
+}
+
+.container {
+    max-width: 1400px; /* Augmenté pour plus d'espace */
+    margin: 0 auto;
+}
+
+h1, h2, h3, h4 {
+    margin: 1.5rem 0 1rem;
+    color: var(--primary-color);
+}
+
+h1 {
+    font-size: 2.8rem;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 2rem;
+    margin-top: 3rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.4rem;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-top: 2.5rem;
+    color: var(--secondary-color);
+}
+ h4 {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+
+p, ul, ol {
+    margin-bottom: 1rem;
+}
+
+ul, ol {
+    padding-left: 2rem;
+}
+
+code {
+    background: var(--code-bg);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+}
+
+pre {
+    background: var(--code-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.9em;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+}
+
+table.documentation-table { /* Classe spécifique pour les tables de doc */
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+table.documentation-table th,
+table.documentation-table td {
+    padding: 0.8rem 1rem; /* Padding augmenté */
+    text-align: left;
+    border: 1px solid var(--border-color);
+    vertical-align: top; /* Meilleur alignement vertical */
+}
+
+table.documentation-table th {
+    background: #f9fafb; /* Fond légèrement différent pour th */
+    font-weight: 600;
+}
+
+.example {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    background-color: #ffffff; /* Fond blanc pour exemples */
+}
+
+.example-preview {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.example-code {
+    padding: 1rem;
+    background: var(--code-bg);
+    border-radius: 0 0 8px 8px;
+}
+
+.nav {
+    position: fixed;
+    top: 1rem; /* Réduit l'espace en haut */
+    bottom: 1rem;
+    left: 1rem;
+    width: var(--nav-width);
+    overflow-y: auto;
+    padding: 1.5rem; /* Padding augmenté */
+    background: var(--bg-color);
+    border-right: 1px solid var(--border-color);
+    font-size: 0.9em;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    border-radius: 8px; /* Bords arrondis */
+}
+
+.nav h3 {
+    margin-top: 0;
+    font-size: 1.2em; /* Taille augmentée */
+    margin-bottom: 1rem;
+}
+
+.nav ul {
+    list-style: none;
+    padding: 0;
+}
+ .nav > ul > li { /* Seulement le premier niveau */
+     margin-bottom: 0.8rem;
+     font-weight: 500;
+ }
+
+ .nav ul ul { /* Sous-menu pour les plugins */
+     padding-left: 1rem;
+     margin-top: 0.3rem;
+     font-weight: normal;
+ }
+ .nav ul ul li {
+     margin-bottom: 0.3rem;
+ }
+
+
+.nav a {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: block;
+    padding: 0.3rem 0; /* Padding augmenté */
+    border-radius: 4px;
+    padding-left: 0.5rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.nav a:hover, .nav a.active { /* Style actif ajouté */
+    text-decoration: none;
+    background-color: #eef2ff; /* Fond léger indigo */
+    color: #3730a3; /* Indigo foncé */
+}
+
+.content {
+    margin-left: calc(var(--nav-width) + 3rem); /* Marge augmentée */
+}
+
+.info-block, .warning-block, .error-block {
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: 4px;
+    border-left-width: 5px; /* Bordure plus épaisse */
+    border-left-style: solid;
+}
+
+.info-block {
+    background-color: #eef2ff; /* indigo-100 */
+    border-color: var(--primary-color);    /* indigo-600 */
+    color: #3730a3;       /* indigo-800 */
+}
+
+.warning-block {
+    background-color: #fffbeb; /* yellow-100 */
+    border-color: #facc15; /* yellow-400 */
+    color: #713f12;       /* yellow-900 */
+}
+
+.error-block {
+    background-color: #fee2e2; /* red-100 */
+    border-color: #ef4444; /* red-500 */
+    color: #991b1b;       /* red-900 */
+}
+
+
+/* Classe pour les attributs dans les tables */
+.attr {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    color: #c0392b; /* Rouge */
+}
+.type {
+    font-style: italic;
+    color: #7f8c8d; /* Gris */
+}
+.default {
+     font-family: 'Courier New', Courier, monospace;
+     color: #27ae60; /* Vert */
+     font-size: 0.9em;
+}
+.value {
+    font-family: 'Courier New', Courier, monospace;
+    color: #2980b9; /* Bleu */
+    font-size: 0.9em;
+}
+
+
+@media (max-width: 1024px) { /* Ajusté le breakpoint */
+    .nav {
+        display: none;
+    }
+    .content {
+        margin-left: 0;
+    }
+}
+@media (max-width: 600px) {
+    body {
+        padding: 1rem;
+    }
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.6rem; }
+    h3 { font-size: 1.2rem; }
+    .container {
+         padding: 1rem;
+    }
+    .example-preview, .example-code {
+         padding: 1rem;
+    }
+}
+
+/* --- Styles spécifiques à la bibliothèque TableFlow (copiés de tableFlow.css) --- */
+/* Base table styles - Utilisez l'ID ou une classe spécifique pour cibler la table gérée par TableFlow */
+table[data-tableflow-id] { /* Exemple: ajouter cet attribut via JS si besoin */
+    width: 100%; /* Ajusté pour prendre toute la largeur disponible */
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.9em; /* Taille de police légèrement réduite pour la densité */
+}
+
+table[data-tableflow-id] th,
+table[data-tableflow-id] td {
+    padding: 0.6rem 0.8rem; /* Padding ajusté */
+    text-align: left;
+    border: 1px solid var(--border-color);
+    vertical-align: middle; /* Centrage vertical */
+}
+
+table[data-tableflow-id] thead th {
+    background-color: #f9fafb; /* Gris très clair */
+    font-weight: 600; /* Police un peu plus grasse */
+    position: relative; /* Pour le positionnement des icônes de tri */
+}
+
+/* Cell wrappers (si activés) */
+.head-wrapper,
+.cell-wrapper {
+    display: flex;
+    align-items: center;
+    min-height: 24px; /* Hauteur minimale pour l'alignement */
+}
+
+/* Sort indicators (Plugin Sort) */
+th.sortable {
+    cursor: pointer;
+    padding-right: 25px; /* Espace pour l'icône */
+}
+
+th.sortable .head-wrapper {
+    justify-content: space-between; /* Pousse l'icône à droite */
+}
+
+.sort-indicator {
+    margin-left: 5px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    font-size: 0.9em;
+}
+
+th.sortable:hover .sort-indicator {
+    opacity: 1;
+}
+
+/* Modified rows (Classe standard) */
+tr.modified td { /* Appliquer sur les TD pour une meilleure visibilité */
+    background-color: #fffbeb; /* Jaune très pâle */
+}
+tr.modified td:first-child { /* Optionnel: Marqueur visuel */
+    border-left: 3px solid #facc15;
+}
+
+
+/* Styles pour le plugin Color */
+.tf-color-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Aligner à gauche par défaut */
+    gap: 5px; /* Espace entre preview et input */
+    padding: 0; /* Le padding est sur le TD */
+}
+
+.tf-color-wrapper .color-preview { /* Style pour l'aperçu ajouté par ColorFlow */
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.tf-color-wrapper .color-input {
+    width: 80px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 3px 5px;
+    font-size: inherit; /* Hériter la taille de police */
+}
+
+/* Styles pour le plugin Actions */
+td.td-actions .cell-wrapper{
+    justify-content: space-around; /* Centre les icônes */
+    padding: 0 5px;
+}
+td.td-actions .cell-wrapper i { /* Style pour les icônes d'action */
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+td.td-actions .cell-wrapper i:hover {
+    opacity: 1;
+}
+
+/* Styles pour le plugin Edit */
+td.td-edit {
+    cursor: pointer; /* Indique qu'on peut cliquer */
+}
+td.td-edit .cell-wrapper {
+    min-height: 24px; /* Assure une hauteur minimale même si vide */
+}
+.edit-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    font-size: inherit;
+    font-family: inherit;
+    box-sizing: border-box; /* Important */
+}
+.validation-error {
+    color: #dc3545; /* Rouge */
+    font-size: 0.8em;
+    margin-top: 4px;
+    display: none; /* Caché par défaut */
+}
+td.invalid {
+    position: relative; /* Pour positionner l'erreur */
+    background-color: #fee2e2 !important; /* Rouge léger pour indiquer l'erreur */
+}
+td.invalid .validation-error {
+    display: block; /* Afficher l'erreur */
+}
+
+
+/* Styles pour les plugins Choice / Select (dropdown) */
+.choice-cell, .select-cell {
+    position: relative; /* Pour positionner le dropdown */
+    cursor: pointer;
+}
+.choice-dropdown, .select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none; /* Caché par défaut */
+    min-width: 180px; /* Largeur minimale */
+    max-height: 200px; /* Hauteur max avec scroll */
+    overflow-y: auto;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    margin-top: 2px; /* Petit espace */
+}
+.choice-dropdown.active, .select-dropdown.active {
+    display: block; /* Afficher quand actif */
+}
+.choice-search, .select-search {
+    width: 100%;
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    outline: none;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+.choice-option, .select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.choice-option:hover, .select-option:hover {
+    background-color: #eef2ff; /* Fond léger au survol */
+}
+.options-container .no-results {
+    padding: 8px 12px;
+    color: #6b7280; /* Gris */
+    font-style: italic;
+    text-align: center;
+}
+
+
+/* Styles pour le plugin FilterAndPaginate (Classes par défaut) */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    flex-wrap: wrap; /* Permettre le retour à la ligne sur petits écrans */
+    font-size: 0.9em;
+}
+.pagination {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0; /* Marge verticale */
+}
+.page-size-container {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem 0; /* Marge verticale */
+    gap: 0.5rem; /* Espace entre label et select */
+}
+.pagination-info {
+    margin: 0.5rem 0; /* Marge verticale */
+    color: #6b7280; /* Gris */
+}
+/* Styles pour les boutons et select (basés sur les classes par défaut) */
+.btn.btn-glass.btn-glass-blue { /* Adaptez si vous changez btnClass */
+   /* Vos styles de boutons ici ou utilisez les classes de votre framework (Bootstrap, Tailwind...) */
+   padding: 0.3rem 0.6rem;
+   border: 1px solid var(--primary-color);
+   background-color: transparent;
+   color: var(--primary-color);
+   border-radius: 4px;
+   cursor: pointer;
+   transition: background-color 0.2s ease, color 0.2s ease;
+}
+.btn.btn-glass.btn-glass-blue:hover:not(:disabled) {
+    background-color: #eef2ff;
+    color: #3730a3;
+}
+.btn.btn-glass.btn-glass-blue.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn.btn-glass.btn-glass-blue.disabled,
+.btn.btn-glass.btn-glass-blue:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #adb5bd;
+    color: #6c757d;
+}
+.form-select { /* Adaptez si vous changez selectClass */
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: white;
+}
+
+/* Styles pour le plugin Selection */
+td.selected {
+    background-color: rgba(79, 70, 229, 0.1) !important; /* Indigo léger */
+    outline: 1px solid rgba(79, 70, 229, 0.4) !important; /* Bordure indigo */
+    outline-offset: -1px; /* Pour que la bordure soit intérieure */
+    position: relative;
+    z-index: 1;
+}
+/* Classes pour la mise en évidence des lignes/colonnes lors de la sélection */
+tr.row-selected td {
+    background-color: rgba(79, 70, 229, 0.05) !important; /* Très léger */
+}
+td.col-selected {
+    background-color: rgba(79, 70, 229, 0.05) !important; /* Très léger */
+}
+td.multiple-selected { /* Quand plusieurs cellules sont sélectionnées */
+     background-color: rgba(79, 70, 229, 0.15) !important; /* Un peu plus foncé */
+}
+/* Menu contextuel (Plugin Selection) */
+.selection-context-menu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 5px 0;
+    z-index: 1000;
+    min-width: 150px;
+}
+.selection-context-menu ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+.selection-context-menu li {
+    padding: 8px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+.selection-context-menu li:hover {
+    background-color: #f5f5f5;
+}
+.selection-context-menu li i { /* Style des icônes dans le menu */
+    color: var(--primary-color);
+    opacity: 0.8;
+    width: 16px; /* Alignement */
+    text-align: center;
+}
+
+/* Pour éviter la sélection de texte pendant le drag (Plugin Selection) */
+.table-drag-selecting {
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+ */
+}

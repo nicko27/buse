@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin FilterAndPaginate - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+
+         /* Styles par défaut du plugin (peuvent être dans documentation.css) */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            flex-wrap: wrap; /* Permettre le retour à la ligne sur petits écrans */
+            font-size: 0.9em;
+            margin-top: 1rem; /* Espace au-dessus */
+        }
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0; /* Marge verticale */
+            gap: 0.3rem; /* Espace entre les boutons */
+        }
+        .page-size-container {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0; /* Marge verticale */
+            gap: 0.5rem; /* Espace entre label et select */
+        }
+        .pagination-info {
+            margin: 0.5rem 0; /* Marge verticale */
+            color: #6b7280; /* Gris */
+        }
+        /* Boutons (exemple simple, adaptez à votre framework) */
+        .btn.btn-glass.btn-glass-blue {
+           padding: 0.3rem 0.6rem;
+           border: 1px solid var(--primary-color, #4f46e5);
+           background-color: transparent;
+           color: var(--primary-color, #4f46e5);
+           border-radius: 4px;
+           cursor: pointer;
+           transition: background-color 0.2s ease, color 0.2s ease;
+           font-size: 0.9em; /* Taille cohérente */
+        }
+        .btn.btn-glass.btn-glass-blue:hover:not(:disabled) {
+            background-color: #eef2ff;
+            color: #3730a3;
+        }
+        .btn.btn-glass.btn-glass-blue.active {
+            background-color: var(--primary-color, #4f46e5);
+            color: white;
+        }
+        .btn.btn-glass.btn-glass-blue.disabled,
+        .btn.btn-glass.btn-glass-blue:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #adb5bd;
+            color: #6c757d;
+        }
+        .form-select {
+            padding: 0.3rem 0.6rem;
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 4px;
+            background-color: white;
+            font-size: 0.9em;
+        }
+        /* Style pour l'input de filtre (exemple) */
+        #globalFilterInput {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 400px; /* Limiter la largeur */
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin FilterAndPaginate</h1>
+
+            <section id="plugin-fp-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>FilterAndPaginate</strong> ajoute deux fonctionnalités essentielles aux tableaux HTML gérés par TableFlow :
+                </p>
+                <ul>
+                    <li><strong>Filtrage Global :</strong> Permet de filtrer les lignes du tableau en fonction d'un terme de recherche saisi dans un champ de texte externe. La recherche s'effectue sur l'ensemble des cellules visibles de chaque ligne.</li>
+                    <li><strong>Pagination Côté Client :</strong> Divise le contenu du tableau (les lignes filtrées) en plusieurs pages, avec des contrôles de navigation (premier, précédent, suivant, dernier, numéros de page) et éventuellement un sélecteur pour choisir le nombre de lignes par page.</li>
+                </ul>
+                <p>
+                    Ce plugin fonctionne entièrement côté client, ce qui signifie qu'il opère sur les données déjà présentes dans le DOM du tableau. Il est idéal pour des tableaux de taille modérée où charger toutes les données initialement est acceptable.
+                </p>
+            </section>
+
+            <section id="plugin-fp-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Ce plugin ne nécessite <strong>aucun attribut spécifique</strong> sur les éléments <code>&lt;th&gt;</code> pour son fonctionnement de base. Son activation et sa configuration se font principalement via JavaScript.
+                </p>
+                <p>
+                    Cependant, vous devez fournir un élément <code>&lt;input&gt;</code> quelque part dans votre page HTML si vous souhaitez utiliser la fonctionnalité de filtrage global. L'ID ou le sélecteur CSS de cet input sera passé dans la configuration JavaScript.
+                </p>
+                <pre><code class="language-html">&lt;!-- Input pour le filtre global (en dehors de la table) --&gt;
+&lt;input type="text" id="monFiltreGlobal" placeholder="Filtrer le tableau..."&gt;
+
+&lt;!-- Votre table HTML --&gt;
+&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="col1"&gt;Colonne 1&lt;/th&gt;
+      &lt;th id="col2"&gt;Colonne 2&lt;/th&gt;
+      &lt;!-- ... --&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr id="row1"&gt;
+        &lt;td id="col1_row1"&gt;Texte A&lt;/td&gt;
+        &lt;!-- Utiliser data-filter-value pour une valeur de filtre différente du texte affiché --&gt;
+        &lt;td id="col2_row1" data-filter-value="valeurCachee1"&gt;Label B&lt;/td&gt;
+    &lt;/tr&gt;
+     &lt;tr id="row2"&gt;
+        &lt;td id="col1_row2"&gt;Texte C&lt;/td&gt;
+        &lt;td id="col2_row2"&gt;Label D&lt;/td&gt; &lt;!-- Filtrera sur "Label D" --&gt;
+    &lt;/tr&gt;
+    &lt;!-- ... autres lignes --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;!-- Le conteneur de pagination sera inséré ici par le plugin --&gt;
+</code></pre>
+                <p>
+                    Pour le filtrage, le plugin recherche le terme saisi dans le contenu textuel de chaque cellule (`<td>`). Vous pouvez fournir une valeur de filtrage alternative pour une cellule en ajoutant l'attribut <code class="attr">data-filter-value</code> à l'élément `<td>`. Si cet attribut est présent, sa valeur sera utilisée pour le filtrage au lieu du contenu textuel de la cellule.
+                </p>
+            </section>
+
+            <section id="plugin-fp-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.filterandpaginate</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        names: ['FilterAndPaginate', /* ... autres plugins ... */], // Activer le plugin
+        filterandpaginate: { // Configuration spécifique
+            // --- Options de Filtrage ---
+            enableFilter: true, // Activer/désactiver le filtrage (défaut: true)
+            globalFilter: '#monFiltreGlobal', // Sélecteur CSS de l'input de filtre (requis si enableFilter=true)
+            debounceTime: 300, // Délai (ms) après saisie avant de filtrer (défaut: 300)
+
+            // --- Options de Pagination ---
+            pageSize: 10, // Nombre de lignes par page (défaut: 10)
+            pageSizes: [10, 25, 50, 100], // Options pour le sélecteur de taille (défaut: [10, 25, 50, 100])
+            showPageSizes: true, // Afficher le sélecteur de taille de page (défaut: true)
+            showInfo: true, // Afficher l'info "Affichage X à Y sur Z" (défaut: true)
+
+            // --- Classes CSS ---
+            containerClass: 'pagination-container', // Classe du conteneur global (défaut)
+            paginationClass: 'pagination', // Classe du conteneur des boutons de page (défaut)
+            activeClass: 'active', // Classe pour le bouton de la page active (défaut)
+            disabledClass: 'disabled', // Classe pour les boutons désactivés (préc/suivant...) (défaut)
+            selectClass: 'form-select', // Classe pour le <select> de taille de page (défaut)
+            btnClass: 'btn btn-glass btn-glass-blue', // Classe(s) pour les boutons <button> (défaut)
+
+            // --- Textes (Labels) ---
+            labels: {
+                first: '«', // Texte/HTML pour le bouton "Première page"
+                prev: '‹', // Texte/HTML pour le bouton "Page précédente"
+                next: '›', // Texte/HTML pour le bouton "Page suivante"
+                last: '»', // Texte/HTML pour le bouton "Dernière page"
+                info: 'Affichage de {start} à {end} sur {total} entrées', // Format de l'info
+                pageSize: 'Entrées par page:' // Label pour le sélecteur de taille
+            },
+
+            // --- Icônes (alternative aux labels texte) ---
+            // Si définies, elles remplacent les labels correspondants
+            icons: {
+                first: '<i class="fas fa-angle-double-left"></i>',
+                prev: '<i class="fas fa-chevron-left"></i>',
+                next: '<i class="fas fa-chevron-right"></i>',
+                last: '<i class="fas fa-angle-double-right"></i>'
+            },
+            // Note: Les options iconAsc, iconDesc, iconNone, backwardIcon, etc. semblent être des restes
+            // d'anciennes versions ou d'autres plugins et ne sont pas utilisées par FilterAndPaginate v1.1.0.
+            // Utilisez la structure `labels` et `icons` ci-dessus.
+
+            // --- Debug ---
+            debug: false // Activer les logs spécifiques à ce plugin
+        }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.filterandpaginate`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin FilterAndPaginate via l'objet `plugins.filterandpaginate`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">enableFilter</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Active ou désactive la fonctionnalité de filtrage.</td></tr>
+                        <tr><td><code class="attr">globalFilter</code></td><td class="type">string</td><td><code class="default">null</code></td><td>Sélecteur CSS pointant vers l'élément `&lt;input&gt;` utilisé pour le filtrage global. Requis si `enableFilter` est `true`.</td></tr>
+                        <tr><td><code class="attr">debounceTime</code></td><td class="type">number</td><td><code class="default">300</code></td><td>Délai en millisecondes après la fin de la saisie dans l'input de filtre avant que le filtrage ne soit appliqué. Réduit la charge lors de la frappe rapide.</td></tr>
+                        <tr><td><code class="attr">pageSize</code></td><td class="type">number</td><td><code class="default">10</code></td><td>Nombre de lignes à afficher par page.</td></tr>
+                        <tr><td><code class="attr">pageSizes</code></td><td class="type">Array&lt;number&gt;</td><td><code class="default">[10, 25, 50, 100]</code></td><td>Tableau des options de taille de page disponibles dans le sélecteur (si `showPageSizes` est `true`).</td></tr>
+                        <tr><td><code class="attr">containerClass</code></td><td class="type">string</td><td><code class="default">'pagination-container'</code></td><td>Classe CSS appliquée au conteneur principal généré par le plugin sous le tableau.</td></tr>
+                        <tr><td><code class="attr">paginationClass</code></td><td class="type">string</td><td><code class="default">'pagination'</code></td><td>Classe CSS appliquée au conteneur des boutons de navigation de page (`&lt;button&gt;`).</td></tr>
+                        <tr><td><code class="attr">activeClass</code></td><td class="type">string</td><td><code class="default">'active'</code></td><td>Classe CSS ajoutée au bouton (`&lt;button&gt;`) correspondant à la page actuellement affichée.</td></tr>
+                        <tr><td><code class="attr">disabledClass</code></td><td class="type">string</td><td><code class="default">'disabled'</code></td><td>Classe CSS ajoutée aux boutons de navigation (premier, précédent, suivant, dernier) lorsqu'ils sont désactivés (ex: bouton "précédent" sur la première page).</td></tr>
+                        <tr><td><code class="attr">selectClass</code></td><td class="type">string</td><td><code class="default">'form-select'</code></td><td>Classe CSS appliquée à l'élément `&lt;select&gt;` utilisé pour choisir la taille de la page.</td></tr>
+                        <tr><td><code class="attr">btnClass</code></td><td class="type">string</td><td><code class="default">'btn btn-glass btn-glass-blue'</code></td><td>Une ou plusieurs classes CSS appliquées à tous les éléments `&lt;button&gt;` de la pagination.</td></tr>
+                        <tr><td><code class="attr">showPageSizes</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, affiche le sélecteur (`&lt;select&gt;`) permettant à l'utilisateur de changer le nombre de lignes par page.</td></tr>
+                        <tr><td><code class="attr">showInfo</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, affiche le texte d'information indiquant le nombre d'entrées affichées et le total (ex: "Affichage de 1 à 10 sur 57 entrées").</td></tr>
+                        <tr><td><code class="attr">labels</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Objet permettant de personnaliser les textes affichés. Voir l'exemple JS pour les clés (`first`, `prev`, `next`, `last`, `info`, `pageSize`). Le format pour `info` utilise `{start}`, `{end}`, `{total}`.</td></tr>
+                        <tr><td><code class="attr">icons</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Objet permettant de définir le contenu HTML (généralement des icônes `&lt;i&gt;`) pour les boutons de navigation (`first`, `prev`, `next`, `last`). Si une icône est définie pour une action, elle remplace le texte défini dans `labels` pour cette action.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin FilterAndPaginate. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="plugin-fp-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `setupFilter`, `createContainer`):</strong>
+                        <ul>
+                            <li>Si `enableFilter` est `true` et `globalFilter` est défini, ajoute un écouteur d'événement `input` à l'élément de filtre spécifié. Utilise `setTimeout` (avec `debounceTime`) pour retarder l'application du filtre.</li>
+                            <li>Crée les éléments DOM nécessaires pour la pagination (conteneur principal, conteneur des boutons, conteneur d'info, sélecteur de taille) en utilisant les classes CSS configurées. Insère le conteneur principal après l'élément `<table>`.</li>
+                            <li>Ajoute un écouteur pour l'événement `sortAppened` afin de rafraîchir la pagination après un tri.</li>
+                            <li>Appelle `refresh()` pour afficher l'état initial.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Filtrage ( déclenché par l'input via `setupFilter`):</strong>
+                        <ul>
+                            <li>Met à jour `this.filterValue` avec le texte saisi (en minuscules, sans espaces superflus).</li>
+                            <li>Réinitialise `this.currentPage` à 1.</li>
+                            <li>Appelle `refresh()`.</li>
+                            <li>Déclenche le callback global `onFilter` s'il est défini.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Rafraîchissement (`refresh`):</strong>
+                        <ul>
+                            <li>Récupère toutes les lignes potentiellement visibles avec `getFilteredRows()`. Cette méthode applique le `this.filterValue` en comparant avec le `data-filter-value` (si présent) ou le `textContent` de chaque cellule.</li>
+                            <li>Calcule `this.totalPages` en fonction du nombre de lignes filtrées et de `this.config.pageSize`.</li>
+                            <li>Ajuste `this.currentPage` si elle dépasse le nouveau nombre total de pages.</li>
+                            <li>Masque toutes les lignes du tableau (`display: none`).</li>
+                            <li>Affiche (`display: ''`) uniquement les lignes filtrées correspondant à la page courante (calculées avec `slice(start, end)`).</li>
+                            <li>Met à jour les contrôles de pagination (boutons, état actif/désactivé) via `updatePagination()`.</li>
+                            <li>Met à jour le texte d'information via `updateInfo()`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Mise à jour des Contrôles (`updatePagination`, `updateInfo`, `createPageButton`):</strong>
+                        <ul>
+                            <li>`updatePagination` vide et recrée les boutons de navigation (premier, précédent, numéros de page, suivant, dernier) en fonction de `this.currentPage` et `this.totalPages`. Utilise `createPageButton` pour générer chaque bouton.</li>
+                            <li>`createPageButton` crée un élément `<button>` avec les classes, texte/icône, état `disabled`, et état `active` appropriés. Ajoute un écouteur de clic qui appelle `goToPage(pageNumber)`.</li>
+                            <li>`updateInfo` met à jour le texte d'information en utilisant le format `labels.info` et les données actuelles.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Changement de Page (`goToPage`):</strong>
+                        <ul>
+                            <li>Appelé lors du clic sur un bouton de page ou de navigation.</li>
+                            <li>Vérifie si la page demandée est valide.</li>
+                            <li>Met à jour `this.currentPage`.</li>
+                            <li>Appelle `refresh()` pour afficher la nouvelle page.</li>
+                            <li>Déclenche l'événement `pageChanged` avec les détails de la nouvelle page.</li>
+                        </ul>
+                    </li>
+                     <li><strong>Changement de Taille (`select` listener dans `createContainer`):</strong>
+                        <ul>
+                            <li>Met à jour `this.config.pageSize`.</li>
+                            <li>Réinitialise `this.currentPage` à 1.</li>
+                            <li>Appelle `refresh()`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-fp-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong>
+                        <ul>
+                            <li><code>sortAppened</code> (déclenché par le plugin Sort) : Pour rafraîchir l'affichage après un tri, en maintenant le filtre et la page actuels (si possible).</li>
+                            <li><code>input</code> (sur l'élément `globalFilter`) : Pour déclencher le filtrage.</li>
+                            <li><code>change</code> (sur le `select` de taille de page) : Pour changer `pageSize`.</li>
+                            <li><code>click</code> (sur les boutons de pagination) : Pour changer de page via `goToPage`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déclenchés :</strong>
+                        <ul>
+                            <li><code>pageChanged</code> (sur l'élément `<table>`) : Déclenché après un changement de page réussi. Contient `{ detail: { page: newPageNumber, pageSize: currentSize } }`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-fp-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table simple avec un filtre global et une pagination.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Filter & Paginate Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles pagination (tirés de documentation.css ou définis ici) */
+        .pagination-container{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;flex-wrap:wrap;font-size:.9em;margin-top:1rem}
+        .pagination{display:flex;list-style:none;padding:0;margin:.5rem 0;gap:.3rem}
+        .page-size-container{display:flex;align-items:center;margin:.5rem 0;gap:.5rem}
+        .pagination-info{margin:.5rem 0;color:#6b7280}
+        .btn.btn-glass.btn-glass-blue{padding:.3rem .6rem;border:1px solid #4f46e5;background-color:transparent;color:#4f46e5;border-radius:4px;cursor:pointer;transition:background-color .2s ease,color .2s ease;font-size:.9em}
+        .btn.btn-glass.btn-glass-blue:hover:not(:disabled){background-color:#eef2ff;color:#3730a3}
+        .btn.btn-glass.btn-glass-blue.active{background-color:#4f46e5;color:#fff}
+        .btn.btn-glass.btn-glass-blue.disabled,.btn.btn-glass.btn-glass-blue:disabled{opacity:.5;cursor:not-allowed;border-color:#adb5bd;color:#6c757d}
+        .form-select{padding:.3rem .6rem;border:1px solid #e5e7eb;border-radius:4px;background-color:#fff;font-size:.9em}
+        #globalFilterInput{padding:.5rem;border:1px solid #ccc;border-radius:4px;margin-bottom:1rem;width:100%;max-width:400px;box-sizing:border-box}
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Filter & Paginate&lt;/h1&gt;
+
+    &lt;label for="globalFilterInput"&gt;Filtrer :&lt;/label&gt;
+    &lt;input type="text" id="globalFilterInput" placeholder="Entrez du texte..."&gt;
+
+    &lt;table id="dataTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="colNom" th-sort&gt;Nom&lt;/th&gt; &lt;!-- Ajout du tri pour tester l'interaction --&gt;
+                &lt;th id="colVille"&gt;Ville&lt;/th&gt;
+                &lt;th id="colPays"&gt;Pays&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="r1"&gt;&lt;td id="colNom_r1"&gt;Alice&lt;/td&gt;&lt;td id="colVille_r1"&gt;Paris&lt;/td&gt;&lt;td id="colPays_r1"&gt;France&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r2"&gt;&lt;td id="colNom_r2"&gt;Bob&lt;/td&gt;&lt;td id="colVille_r2"&gt;Londres&lt;/td&gt;&lt;td id="colPays_r2"&gt;UK&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r3"&gt;&lt;td id="colNom_r3"&gt;Charlie&lt;/td&gt;&lt;td id="colVille_r3"&gt;Berlin&lt;/td&gt;&lt;td id="colPays_r3"&gt;Allemagne&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r4"&gt;&lt;td id="colNom_r4"&gt;David&lt;/td&gt;&lt;td id="colVille_r4"&gt;Madrid&lt;/td&gt;&lt;td id="colPays_r4"&gt;Espagne&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r5"&gt;&lt;td id="colNom_r5"&gt;Eve&lt;/td&gt;&lt;td id="colVille_r5"&gt;Rome&lt;/td&gt;&lt;td id="colPays_r5"&gt;Italie&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r6"&gt;&lt;td id="colNom_r6"&gt;Frank&lt;/td&gt;&lt;td id="colVille_r6"&gt;Paris&lt;/td&gt;&lt;td id="colPays_r6"&gt;France&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r7"&gt;&lt;td id="colNom_r7"&gt;Grace&lt;/td&gt;&lt;td id="colVille_r7"&gt;Lyon&lt;/td&gt;&lt;td id="colPays_r7"&gt;France&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r8"&gt;&lt;td id="colNom_r8"&gt;Heidi&lt;/td&gt;&lt;td id="colVille_r8"&gt;Berlin&lt;/td&gt;&lt;td id="colPays_r8"&gt;Allemagne&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r9"&gt;&lt;td id="colNom_r9"&gt;Ivan&lt;/td&gt;&lt;td id="colVille_r9"&gt;Moscou&lt;/td&gt;&lt;td id="colPays_r9"&gt;Russie&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr id="r10"&gt;&lt;td id="colNom_r10"&gt;Judy&lt;/td&gt;&lt;td id="colVille_r10"&gt;Londres&lt;/td&gt;&lt;td id="colPays_r10"&gt;UK&lt;/td&gt;&lt;/tr&gt;
+             &lt;tr id="r11"&gt;&lt;td id="colNom_r11"&gt;Karl&lt;/td&gt;&lt;td id="colVille_r11"&gt;Vienne&lt;/td&gt;&lt;td id="colPays_r11"&gt;Autriche&lt;/td&gt;&lt;/tr&gt;
+             &lt;tr id="r12"&gt;&lt;td id="colNom_r12"&gt;Liam&lt;/td&gt;&lt;td id="colVille_r12"&gt;Dublin&lt;/td&gt;&lt;td id="colPays_r12"&gt;Irlande&lt;/td&gt;&lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;!-- Le conteneur de pagination sera ajouté ici par le script --&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const dataTable = new TableFlow({
+            tableId: 'dataTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                // Activer aussi Sort pour voir l'interaction
+                names: ['Sort', 'FilterAndPaginate'],
+                filterandpaginate: {
+                    enableFilter: true,
+                    globalFilter: '#globalFilterInput', // Lier à notre input
+                    pageSize: 5, // Afficher 5 lignes par page
+                    pageSizes: [5, 10, 20], // Options de taille
+                    // Utiliser les icônes FontAwesome pour la navigation
+                    icons: {
+                        first: '<i class="fas fa-angle-double-left"></i>',
+                        prev: '<i class="fas fa-chevron-left"></i>',
+                        next: '<i class="fas fa-chevron-right"></i>',
+                        last: '<i class="fas fa-angle-double-right"></i>'
+                    },
+                    labels: { // Garder les labels pour les numéros de page
+                         info: 'Lignes {start} à {end} sur {total}',
+                         pageSize: 'Par page :'
+                    }
+                },
+                sort: {
+                    // Config par défaut pour th-sort
+                }
+            }
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La table s'affiche avec 12 lignes, mais seules les 5 premières sont visibles grâce à `pageSize: 5`.</li>
+                    <li>Sous la table, les contrôles de pagination apparaissent : boutons Précédent/Suivant (et Premier/Dernier avec icônes), les numéros de page (1, 2, 3), le sélecteur de taille (5, 10, 20) et l'info "Lignes 1 à 5 sur 12".</li>
+                    <li>Si vous tapez "Paris" dans le champ de filtre, seules les lignes d'Alice et Frank (2 lignes) seront affichées. La pagination s'adaptera pour n'afficher qu'une seule page et l'info indiquera "Lignes 1 à 2 sur 2".</li>
+                    <li>Si vous effacez le filtre, toutes les lignes réapparaissent, paginées.</li>
+                    <li>Si vous cliquez sur le numéro de page "2", les lignes 6 à 10 seront affichées.</li>
+                    <li>Si vous changez la taille de page à "10", les lignes 1 à 10 seront affichées sur la première page.</li>
+                    <li>Si vous cliquez sur l'en-tête "Nom" pour trier, les lignes seront triées, et la pagination sera appliquée au résultat trié.</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

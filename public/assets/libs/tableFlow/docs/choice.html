@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin Choice - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         /* Style pour les cellules readonly (exemple) */
+         .readonly-locked {
+             font-style: italic;
+             color: #6c757d; /* Gris */
+             cursor: not-allowed !important;
+             background-color: #f8f9fa !important; /* Gris très clair */
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin Choice</h1>
+
+            <section id="plugin-choice-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>Choice</strong> permet aux utilisateurs de sélectionner une valeur pour une cellule parmi une liste d'options prédéfinies. Il offre deux modes de fonctionnement principaux :
+                </p>
+                <ul>
+                    <li><strong><code>toggle</code> (par défaut) :</strong> L'utilisateur clique sur la cellule pour passer séquentiellement à l'option suivante dans la liste définie. Simple et rapide pour des listes courtes.</li>
+                    <li><strong><code>searchable</code> :</strong> L'utilisateur clique sur la cellule pour ouvrir une liste déroulante (dropdown) contenant toutes les options, avec un champ de recherche pour filtrer rapidement la liste. Idéal pour des listes plus longues.</li>
+                </ul>
+                <p>
+                    Le plugin gère la mise à jour de la valeur de la cellule (`data-value`), l'affichage du label correspondant, et peut marquer la ligne comme modifiée. Il permet également de définir certaines options comme étant en lecture seule.
+                </p>
+            </section>
+
+            <section id="plugin-choice-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Pour activer le plugin Choice sur une colonne, ajoutez l'attribut <code class="attr">th-choice</code> à l'élément <code>&lt;th&gt;</code> correspondant. La valeur de cet attribut peut influencer la configuration :
+                </p>
+                <ul>
+                    <li><strong>Attribut vide (<code class="attr">th-choice</code>) :</strong> Active le plugin pour la colonne. La configuration (type, options) doit être fournie via JavaScript.</li>
+                    <li><strong>Type spécifié (<code class="attr">th-choice="searchable"</code> ou <code class="attr">th-choice="toggle"</code>) :</strong> Force le type d'interaction pour cette colonne, surchargeant la configuration JS pour le type.</li>
+                    <li><strong>Options JSON (<code class="attr">th-choice='["Option 1", "Option 2"]'</code> ou <code class="attr">th-choice='{"type": "searchable", "values": [...]}'</code>) :</strong> (Moins courant, déprécié dans la v2 mais potentiellement supporté) Permet de définir les options directement en HTML. Il est généralement préférable de définir les options en JavaScript pour plus de clarté et de flexibilité.</li>
+                </ul>
+
+                <pre><code class="language-html">&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colStatut" th-choice&gt;Statut (Config JS)&lt;/th&gt;
+      &lt;th id="colCategorie" th-choice="searchable"&gt;Catégorie (Dropdown)&lt;/th&gt;
+      &lt;th id="colPriorite" th-choice="toggle"&gt;Priorité (Toggle)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+    &lt;tr id="row1"&gt;
+        &lt;td id="colStatut_row1" data-value="pending"&gt;En attente&lt;/td&gt;
+        &lt;td id="colCategorie_row1" data-value="bug"&gt;Bug&lt;/td&gt;
+        &lt;td id="colPriorite_row1" data-value="high"&gt;Haute&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    Il est recommandé de définir l'attribut <code class="attr">data-value</code> sur les éléments <code>&lt;td&gt;</code> pour stocker la valeur réelle (ex: 'pending', 'bug', 'high') et d'afficher le label correspondant (ex: 'En attente', 'Bug', 'Haute') comme contenu initial de la cellule. Le plugin mettra à jour le label affiché et le `data-value` lors de la sélection.
+                </p>
+            </section>
+
+            <section id="plugin-choice-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration détaillée du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.choice</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        names: ['Choice', /* ... autres plugins ... */], // Activer le plugin
+        choice: { // Configuration spécifique pour 'Choice'
+            // --- Options Générales du Plugin ---
+            choiceAttribute: 'th-choice', // Attribut HTML pour activer (défaut)
+            cellClass: 'choice-cell', // Classe CSS pour les cellules gérées (défaut)
+            readOnlyClass: 'readonly', // Classe CSS pour les cellules non modifiables (défaut)
+            modifiedClass: 'modified', // Classe CSS pour les lignes modifiées (défaut)
+            debug: false, // Activer les logs spécifiques
+
+            // --- Configuration par Colonne ---
+            columns: {
+                // Clé = ID du <th>
+                'colStatut': { // Configuration pour la colonne avec th id="colStatut"
+                    type: 'toggle', // Type d'interaction ('toggle' ou 'searchable')
+                    values: [ // Liste des options possibles
+                        { value: 'pending', label: 'En attente' }, // Option sous forme d'objet
+                        { value: 'in_progress', label: 'En cours' },
+                        { value: 'completed', label: 'Terminé' },
+                        'cancelled' // Option sous forme de chaîne (valeur = label)
+                    ],
+                    // Optionnel: Définir des valeurs non sélectionnables
+                    readOnlyValues: [
+                        { value: 'archived', class: 'readonly-locked' } // Si la cellule a cette valeur, elle est bloquée et a cette classe
+                    ]
+                },
+                'colCategorie': {
+                    type: 'searchable', // Utiliser un dropdown avec recherche
+                    values: [
+                        { value: 'bug', label: 'Bug' },
+                        { value: 'feature', label: 'Fonctionnalité' },
+                        { value: 'improvement', label: 'Amélioration' },
+                        { value: 'task', label: 'Tâche' },
+                        // ... potentiellement beaucoup d'autres options
+                    ],
+                    // Options spécifiques au dropdown searchable (fusionnées avec les défauts)
+                    searchable: {
+                        placeholder: 'Rechercher une catégorie...',
+                        minWidth: '250px'
+                        // dropdownClass: 'custom-dropdown', // Surcharger les classes CSS
+                        // optionClass: 'custom-option',
+                        // searchClass: 'custom-search',
+                        // noResultsText: 'Aucune catégorie trouvée.'
+                    }
+                },
+                'colPriorite': {
+                    // type: 'toggle' (implicite si non défini)
+                    values: ['low', 'medium', 'high'] // Simple tableau pour toggle
+                }
+                // ... configuration pour d'autres colonnes 'th-choice'
+            }
+        }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.choice`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin Choice via l'objet `plugins.choice`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option (dans `plugins.choice`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">choiceAttribute</code></td><td class="type">string</td><td><code class="default">'th-choice'</code></td><td>Nom de l'attribut HTML sur `<th>` pour activer le plugin sur une colonne.</td></tr>
+                        <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'choice-cell'</code></td><td>Classe CSS ajoutée aux `<td>` gérées par ce plugin.</td></tr>
+                        <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS ajoutée aux `<td>` si elles sont considérées en lecture seule (par exemple, via `readOnlyValues`).</td></tr>
+                        <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour marquer les lignes (`<tr>`) modifiées.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Choice. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                        <tr><td><code class="attr">columns</code></td><td class="type">object</td><td><code class="default">{}</code></td><td><strong>(Essentiel)</strong> Objet contenant la configuration pour chaque colonne activée. La clé est l'ID du `<th>`, la valeur est un objet décrivant la configuration de la colonne (voir tableau suivant).</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Structure Complète de Configuration d'une Colonne (dans `plugins.choice.columns[columnId]`)</h3>
+                <div class="info-block">
+                    Ce tableau détaille toutes les propriétés possibles pour configurer une colonne spécifique à l'intérieur de l'objet `plugins.choice.columns`.
+                 </div>
+                <table class="documentation-table">
+                     <thead>
+                         <tr><th>Propriété (dans `columns[columnId]`)</th><th>Type</th><th>Requis?</th><th>Défaut</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">type</code></td><td class="type">string</td><td>Non</td><td><code class="default">'toggle'</code></td><td>Mode d'interaction : `'toggle'` ou `'searchable'`. Peut être surchargé par la valeur de l'attribut `th-choice` en HTML.</td></tr>
+                         <tr><td><code class="attr">values</code></td><td class="type">Array</td><td>Oui</td><td><code class="default">[]</code></td><td>Tableau contenant les options sélectionnables. Chaque élément peut être :<br>- Une chaîne : La valeur et le label sont identiques.<br>- Un objet : `{ value: 'valeur_interne', label: 'Texte affiché', class: 'classe_css_optionnelle' }`.</td></tr>
+                         <tr><td><code class="attr">readOnlyValues</code></td><td class="type">Array</td><td>Non</td><td><code class="default">[]</code></td><td>Tableau d'objets définissant des valeurs qui, si présentes dans une cellule, rendent cette cellule non modifiable par le plugin. Chaque objet a la forme : `{ value: 'valeur_bloquee', class: 'classe_css_a_ajouter' }`. La classe est ajoutée à la `<td>`.</td></tr>
+                         <tr><td><code class="attr">searchable</code></td><td class="type">object</td><td>Non</td><td><code class="default">{...}</code> (voir ci-dessous)</td><td>Objet contenant la configuration spécifique au mode `searchable` (dropdown). Voir tableau suivant.</td></tr>
+                     </tbody>
+                 </table>
+
+                 <h3>Options de Configuration pour le Mode `searchable` (dans `columns[columnId].searchable`)</h3>
+                 <div class="info-block">
+                    Ces options permettent de personnaliser l'apparence et le comportement de la liste déroulante en mode `searchable`. Elles sont fusionnées avec les valeurs par défaut du plugin.
+                 </div>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Propriété (dans `searchable`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code class="attr">minWidth</code></td><td class="type">string</td><td><code class="default">'200px'</code></td><td>Largeur minimale de la liste déroulante.</td></tr>
+                         <tr><td><code class="attr">dropdownClass</code></td><td class="type">string</td><td><code class="default">'choice-dropdown'</code></td><td>Classe CSS principale de la liste déroulante.</td></tr>
+                         <tr><td><code class="attr">optionClass</code></td><td class="type">string</td><td><code class="default">'choice-option'</code></td><td>Classe CSS pour chaque élément option dans la liste.</td></tr>
+                         <tr><td><code class="attr">searchClass</code></td><td class="type">string</td><td><code class="default">'choice-search'</code></td><td>Classe CSS pour le champ de recherche dans la liste déroulante.</td></tr>
+                         <tr><td><code class="attr">placeholder</code></td><td class="type">string</td><td><code class="default">'Rechercher...'</code></td><td>Texte indicatif affiché dans le champ de recherche.</td></tr>
+                         <tr><td><code class="attr">noResultsText</code></td><td class="type">string</td><td><code class="default">'Aucun résultat'</code></td><td>Texte affiché dans la liste lorsqu'aucune option ne correspond à la recherche.</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-choice-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `setupChoiceCells`, `setupChoiceCell`):</strong> Le plugin identifie les colonnes `th-choice`. Pour chaque cellule correspondante, il ajoute la classe `choice-cell`, détermine le type (`toggle` ou `searchable`), lit la valeur initiale (`data-value` ou texte), trouve le label correspondant dans la configuration `values` et l'affiche (souvent via un `cell-wrapper`). Il stocke le type et l'ID de colonne sur la cellule via des attributs `data-*`.</li>
+                    <li><strong>Gestion du Clic (`handleClick`):</strong> Détermine le type de la cellule cliquée (`data-choice-type`) et appelle le handler correspondant (`handleToggleClick` ou `handleSearchableClick`). Vérifie si la cellule est en lecture seule (`readOnlyValues` ou classe `readonly`).</li>
+                    <li><strong>Mode Toggle (`handleToggleClick`):</strong> Récupère les `values` configurées pour la colonne. Trouve l'index de la valeur actuelle dans la liste des options *non readonly*. Calcule l'index de l'option suivante (en boucle). Appelle `updateCellValue` avec la nouvelle valeur et le nouveau label.</li>
+                    <li><strong>Mode Searchable (`handleSearchableClick`):</strong> Ferme tout dropdown actif. Crée dynamiquement le HTML du dropdown (`createSearchableDropdown`), incluant le champ de recherche et la liste initiale des options (filtrées des `readOnlyValues`). Ajoute le dropdown à la cellule et l'affiche. Ajoute un écouteur sur le champ de recherche pour filtrer et réafficher les options (`renderSearchableOptions`). Ajoute des écouteurs de clic sur chaque option pour appeler `updateCellValue` et fermer le dropdown.</li>
+                    <li><strong>Mise à Jour (`updateCellValue`):</strong> Met à jour l'attribut `data-value` de la cellule. Met à jour le contenu visible de la cellule (via le wrapper) avec le `label` correspondant. Marque la ligne comme modifiée (`modifiedClass`) si la nouvelle valeur diffère de `data-initial-value`. Déclenche l'événement `cell:change` avec les détails (cellule, valeur, IDs, source 'choice').</li>
+                    <li><strong>Gestion des Sauvegardes (`cell:saved`, `row:saved`):</strong> Met à jour `data-initial-value` avec la valeur actuelle (`data-value`) pour que la ligne ne soit plus considérée comme modifiée après une sauvegarde. Met également à jour le label affiché si nécessaire.</li>
+                    <li><strong>Nouvelles Lignes (`row:added`):</strong> Appelle `setupChoiceCells` pour initialiser correctement les cellules choice de la nouvelle ligne.</li>
+                    <li><strong>Fermeture Dropdown (`closeAllDropdowns`, écouteur document):</strong> Ferme le dropdown `searchable` actif s'il y en a un lorsqu'on clique en dehors d'une cellule choice.</li>
+                </ul>
+            </section>
+
+            <section id="plugin-choice-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong>
+                        <ul>
+                            <li><code>click</code> (sur la table) : Détecte les clics sur les cellules gérées.</li>
+                            <li><code>click</code> (sur le document) : Pour fermer les dropdowns ouverts.</li>
+                            <li><code>cell:saved</code> : Pour mettre à jour `data-initial-value` et le label après sauvegarde.</li>
+                            <li><code>row:saved</code> : Pour mettre à jour `data-initial-value` des cellules choice de la ligne.</li>
+                            <li><code>row:added</code> : Pour initialiser les nouvelles lignes.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déclenchés :</strong>
+                        <ul>
+                            <li><code>cell:change</code> : Après qu'un utilisateur a sélectionné une nouvelle valeur (en mode toggle ou searchable). Contient `{ detail: { cell, value, columnId, rowId, source: 'choice', isModified, eventId } }`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-choice-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple combine les modes `toggle` et `searchable`.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Choice Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
+        tr.modified td { background-color: #fffbeb; }
+        .choice-cell { min-width: 100px; /* Pour une meilleure visibilité */ }
+        .readonly-locked { font-style: italic; color: #6c757d; cursor: not-allowed !important; background-color: #f8f9fa !important; }
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Choice&lt;/h1&gt;
+
+    &lt;table id="taskTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="taskName"&gt;Tâche&lt;/th&gt;
+                &lt;th id="taskStatus" th-choice&gt;Statut (Toggle)&lt;/th&gt;
+                &lt;th id="taskAssignee" th-choice="searchable"&gt;Assigné à (Searchable)&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="t1"&gt;
+                &lt;td id="taskName_t1"&gt;Corriger le bug #123&lt;/td&gt;
+                &lt;td id="taskStatus_t1" data-value="pending"&gt;En attente&lt;/td&gt;
+                &lt;td id="taskAssignee_t1" data-value="alice"&gt;Alice&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="t2"&gt;
+                &lt;td id="taskName_t2"&gt;Implémenter nouvelle feature&lt;/td&gt;
+                &lt;td id="taskStatus_t2" data-value="in_progress"&gt;En cours&lt;/td&gt;
+                &lt;td id="taskAssignee_t2" data-value="bob"&gt;Bob&lt;/td&gt;
+            &lt;/tr&gt;
+             &lt;tr id="t3"&gt;
+                &lt;td id="taskName_t3"&gt;Archiver vieux projets&lt;/td&gt;
+                &lt;td id="taskStatus_t3" data-value="archived"&gt;Archivé&lt;/td&gt; &lt;!-- Sera readonly --&gt;
+                &lt;td id="taskAssignee_t3" data-value="system"&gt;Système&lt;/td&gt; &lt;!-- Sera readonly --&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const taskTable = new TableFlow({
+            tableId: 'taskTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                names: ['Choice'], // Activer le plugin
+                choice: {
+                    columns: {
+                        'taskStatus': { // Configuration pour la colonne Statut
+                            type: 'toggle',
+                            values: [
+                                { value: 'pending', label: 'En attente' },
+                                { value: 'in_progress', label: 'En cours' },
+                                { value: 'completed', label: 'Terminé' }
+                            ],
+                            readOnlyValues: [ // La valeur 'archived' bloque la cellule
+                                { value: 'archived', class: 'readonly-locked' }
+                            ]
+                        },
+                        'taskAssignee': { // Configuration pour la colonne Assigné
+                            type: 'searchable', // Forcé ici, mais aussi par th-choice="searchable"
+                            values: [
+                                { value: 'alice', label: 'Alice' },
+                                { value: 'bob', label: 'Bob' },
+                                { value: 'charlie', label: 'Charlie' },
+                                { value: 'david', label: 'David' },
+                                { value: 'eve', label: 'Eve' }
+                            ],
+                             readOnlyValues: [ // 'system' n'est pas sélectionnable
+                                { value: 'system', class: 'readonly-locked' }
+                            ],
+                            searchable: {
+                                placeholder: 'Chercher un nom...'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La colonne "Statut" est en mode `toggle`. Cliquer dessus fera défiler les options : En attente -> En cours -> Terminé -> En attente... La ligne "Archiver vieux projets" a un statut "Archivé" qui est défini comme `readOnlyValues`, donc cliquer sur cette cellule ne fera rien et elle aura la classe `readonly-locked`.</li>
+                    <li>La colonne "Assigné à" est en mode `searchable`. Cliquer dessus ouvrira une liste déroulante.</li>
+                    <li>Vous pouvez taper dans le champ de recherche (ex: "li") pour filtrer la liste (afficherait "Alice", "Charlie").</li>
+                    <li>Cliquer sur un nom dans la liste mettra à jour la cellule et fermera le dropdown.</li>
+                    <li>La ligne "Archiver vieux projets" a "Système" comme assigné, qui est `readOnlyValues`, donc cliquer sur cette cellule ne fera rien.</li>
+                    <li>Modifier une valeur marquera la ligne en jaune pâle (classe `modified`).</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

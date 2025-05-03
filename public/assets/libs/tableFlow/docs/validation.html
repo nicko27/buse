@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin Validation - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+         /* Styles pour la validation (identiques à ceux du plugin Edit) */
+         .validation-error {
+            color: #dc3545; /* Rouge */
+            font-size: 0.8em;
+            margin-top: 4px;
+            display: none; /* Caché par défaut */
+         }
+         td.invalid {
+            position: relative; /* Pour positionner l'erreur */
+            background-color: #fee2e2 !important; /* Rouge léger pour indiquer l'erreur */
+            outline: 1px solid #f8d7da;
+         }
+         td.invalid .validation-error {
+            display: block; /* Afficher l'erreur */
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin Validation</h1>
+
+            <section id="plugin-validation-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>Validation</strong> étend les capacités du plugin <a href="#plugin-edit">Edit</a> en fournissant un système robuste pour valider les données saisies par l'utilisateur avant qu'elles ne soient enregistrées dans la cellule.
+                </p>
+                <p>
+                    Il s'intègre au processus d'édition : lorsqu'un utilisateur termine de modifier une cellule gérée par le plugin Edit, le plugin Validation intercepte la nouvelle valeur et la vérifie par rapport à un ensemble de règles définies. Si la validation échoue, la sauvegarde est annulée, et un retour visuel (message d'erreur, classe CSS) est fourni à l'utilisateur.
+                </p>
+                <div class="warning-block">
+                    <strong>Dépendance Forte :</strong> Ce plugin <strong>nécessite</strong> que le plugin <strong>Edit</strong> soit également activé et configuré sur les colonnes concernées. Il ne fonctionne pas de manière indépendante.
+                </div>
+            </section>
+
+            <section id="plugin-validation-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    L'activation de la validation pour une colonne se fait en ajoutant l'attribut <code class="attr">th-validate</code> à l'élément <code>&lt;th&gt;</code> de cette colonne. Cet attribut doit également avoir l'attribut <code class="attr">th-edit</code> (du plugin Edit).
+                </p>
+                <p>
+                    La valeur de l'attribut <code class="attr">th-validate</code> doit être une chaîne JSON valide décrivant les règles de validation à appliquer.
+                </p>
+                <pre><code class="language-html">&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;!-- Colonne éditable SANS validation spécifique par ce plugin --&gt;
+      &lt;th id="colNom" th-edit&gt;Nom&lt;/th&gt;
+      &lt;!-- Colonne éditable AVEC validation --&gt;
+      &lt;th id="colAge" th-edit th-validate='{"number": {"min": 18, "integer": true}}'&gt;Âge (Majeur)&lt;/th&gt;
+      &lt;th id="colEmail" th-edit th-validate='{"email": true}'&gt;Email&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    Les règles définies dans ce JSON utilisent les noms des validateurs disponibles (intégrés ou personnalisés).
+                </p>
+            </section>
+
+            <section id="plugin-validation-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.validation</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        // IMPORTANT: 'Edit' doit être activé avant ou en même temps que 'Validation'
+        names: ['Edit', 'Validation', /* ... autres plugins ... */],
+        validation: { // Configuration spécifique pour 'Validation'
+            // --- Options Générales du Plugin ---
+            validateAttribute: 'th-validate', // Attribut HTML pour les règles (défaut)
+            validateClass: 'validate-cell', // Classe CSS ajoutée aux <td> des colonnes validées (défaut)
+            invalidClass: 'invalid', // Classe CSS pour les <td> invalides (défaut)
+            errorClass: 'validation-error', // Classe CSS pour le conteneur du message d'erreur (défaut)
+            debug: false, // Activer les logs spécifiques
+
+            // --- Validateurs ---
+            validators: { // Objet contenant les fonctions de validation
+                // Validateurs intégrés (peuvent être surchargés)
+                maxLength: (value, config) => { /* ... */ },
+                minLength: (value, config) => { /* ... */ },
+                number: (value, config) => { /* ... */ },
+                email: (value) => { /* ... */ },
+                date: (value, config) => { /* ... */ },
+                regex: (value, config) => { /* ... */ },
+                // Note: Le validateur 'custom' n'est pas présent dans ce plugin,
+                // il faudrait l'ajouter ici si nécessaire ou utiliser une règle regex complexe.
+
+                // Ajouter des validateurs personnalisés
+                'nonNegative': (value, config) => {
+                    if (value && parseFloat(value) < 0) {
+                        return 'La valeur ne peut pas être négative.';
+                    }
+                    return true;
+                }
+                // ... autres validateurs personnalisés ...
+            }
+        },
+        edit: {
+            // Configuration du plugin Edit si nécessaire
+        }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.validation`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin Validation via l'objet `plugins.validation`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option (dans `plugins.validation`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">validateAttribute</code></td><td class="type">string</td><td><code class="default">'th-validate'</code></td><td>Nom de l'attribut HTML sur `<th>` contenant les règles de validation JSON pour la colonne.</td></tr>
+                        <tr><td><code class="attr">validateClass</code></td><td class="type">string</td><td><code class="default">'validate-cell'</code></td><td>Classe CSS ajoutée aux `<td>` des colonnes ayant des règles de validation définies via `th-validate`.</td></tr>
+                        <tr><td><code class="attr">invalidClass</code></td><td class="type">string</td><td><code class="default">'invalid'</code></td><td>Classe CSS ajoutée à une `<td>` lorsque sa valeur échoue à la validation lors de la tentative de sauvegarde du plugin Edit.</td></tr>
+                        <tr><td><code class="attr">errorClass</code></td><td class="type">string</td><td><code class="default">'validation-error'</code></td><td>Classe CSS du `&lt;div&gt;` créé dynamiquement dans la cellule pour afficher le message d'erreur de validation.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Validation. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                        <tr><td><code class="attr">validators</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Objet contenant les fonctions de validation disponibles. Les clés sont les noms des règles (utilisées dans le JSON de `th-validate`), les valeurs sont les fonctions `(value, config, cell) => boolean|string`. Vous pouvez surcharger les validateurs existants ou en ajouter de nouveaux via cette option ou via la méthode `registerValidator`.</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Validateurs Intégrés</h3>
+                 <p>Le plugin fournit plusieurs validateurs prêts à l'emploi que vous pouvez utiliser dans l'attribut <code class="attr">th-validate</code> :</p>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Nom (Clé JSON)</th><th>Config (Valeur JSON)</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="value">"maxLength"</code></td><td><code class="type">number</code> (ex: <code class="value">50</code>)</td><td>Vérifie que la longueur de la chaîne ne dépasse pas la valeur spécifiée.</td></tr>
+                        <tr><td><code class="value">"minLength"</code></td><td><code class="type">number</code> (ex: <code class="value">5</code>)</td><td>Vérifie que la longueur de la chaîne est au moins égale à la valeur spécifiée.</td></tr>
+                        <tr><td><code class="value">"number"</code></td><td><code class="type">boolean | object</code> (ex: <code class="value">true</code> ou <code class="value">{ "min": 0, "max": 100, "integer": true }</code>)</td><td>Vérifie si la valeur est un nombre valide. L'objet de configuration peut spécifier `min`, `max`, et `integer` (booléen).</td></tr>
+                        <tr><td><code class="value">"email"</code></td><td><code class="type">boolean</code> (ex: <code class="value">true</code>)</td><td>Vérifie si la valeur ressemble à une adresse email valide (regex simple).</td></tr>
+                        <tr><td><code class="value">"date"</code></td><td><code class="type">boolean | object</code> (ex: <code class="value">true</code> ou <code class="value">{ "minDate": "2024-01-01", "maxDate": "2024-12-31" }</code>)</td><td>Vérifie si la valeur peut être interprétée comme une date valide. L'objet de configuration peut spécifier `minDate` et `maxDate`.</td></tr>
+                        <tr><td><code class="value">"regex"</code></td><td><code class="type">object</code> (ex: <code class="value">{ "pattern": "^[A-Z]+$", "patternMessage": "Majuscules seulement" }</code>)</td><td>Vérifie si la valeur correspond à l'expression régulière fournie dans `pattern`. `patternMessage` est le message d'erreur si le test échoue.</td></tr>
+                        </tbody>
+                </table>
+                 <p>Pour ajouter vos propres règles de validation réutilisables, vous pouvez les définir dans l'option `validators` de la configuration JS ou utiliser la méthode `registerValidator`.</p>
+            </section>
+
+            <section id="plugin-validation-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `detectValidateColumns`):</strong>
+                        <ul>
+                            <li>Récupère une référence au plugin `Edit` actif. Si `Edit` n'est pas trouvé, le plugin ne s'initialise pas correctement.</li>
+                            <li>Identifie les colonnes ayant l'attribut `validateAttribute` et stocke leur configuration JSON dans `validateColumns`.</li>
+                            <li>S'enregistre auprès du plugin `Edit` en utilisant des "hooks" (méthodes `addHook` hypothétiques sur `Edit`).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Intégration avec Edit (`registerWithEditPlugin`):</strong>
+                        <ul>
+                            <li>Hook `beforeSave`: Le plugin Validation enregistre sa méthode `validateBeforeSave` pour qu'elle soit appelée par le plugin Edit *avant* que ce dernier ne sauvegarde la nouvelle valeur.</li>
+                            <li>Hook `afterEdit`: Le plugin Validation enregistre sa méthode `setupValidationForInput` pour qu'elle soit appelée par le plugin Edit *après* la création de l'input d'édition.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Validation Avant Sauvegarde (`validateBeforeSave`):</strong>
+                        <ul>
+                            <li>Appelée par le hook `beforeSave` du plugin Edit.</li>
+                            <li>Récupère la configuration de validation pour la colonne de la cellule en cours d'édition.</li>
+                            <li>Si une configuration existe, appelle `validateValue` avec la *nouvelle* valeur.</li>
+                            <li>Retourne `true` si la validation réussit (autorisant Edit à sauvegarder), `false` sinon (empêchant la sauvegarde).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Validation d'une Valeur (`validateValue`):</strong>
+                        <ul>
+                            <li>Itère sur chaque règle (ex: "number", "maxLength") définie dans la configuration de validation pour la colonne.</li>
+                            <li>Appelle la fonction validateur correspondante (depuis `config.validators`) avec la valeur et la configuration de la règle.</li>
+                            <li>Si un validateur retourne une chaîne (message d'erreur), appelle `showValidationError` et retourne `false`.</li>
+                            <li>Si tous les validateurs retournent `true`, appelle `clearValidationError` et retourne `true`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Affichage/Masquage Erreur (`showValidationError`, `clearValidationError`):</strong>
+                        <ul>
+                            <li>Ajoute ou retire la classe `invalidClass` à la cellule `<td>`.</li>
+                            <li>Trouve ou crée un `<div>` avec la classe `errorClass` dans la cellule.</li>
+                            <li>Affiche ou masque ce `<div>` et y insère le message d'erreur.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Configuration de l'Input (`setupValidationForInput`):</strong>
+                        <ul>
+                             <li>Appelée par le hook `afterEdit` du plugin Edit.</li>
+                             <li>Récupère la configuration de validation pour la colonne.</li>
+                             <li>Si une configuration existe, configure l'input créé par Edit :
+                                 <ul>
+                                     <li>Définit le `type` de l'input (`number`, `email`, `date`) si approprié.</li>
+                                     <li>Ajoute les attributs HTML5 de validation (`min`, `max`, `step`, `maxLength`, `minLength`, `pattern`, `required`).</li>
+                                     <li>Ajoute un écouteur `input` à l'input pour déclencher la validation (`validateValue`) en temps réel pendant la saisie, mettant à jour l'affichage de l'erreur.</li>
+                                 </ul>
+                             </li>
+                        </ul>
+                    </li>
+                     <li><strong>Rafraîchissement (`refresh`):</strong> Ré-exécute `detectValidateColumns()` pour mettre à jour la liste des colonnes à valider (utile si les attributs `th-validate` sont modifiés dynamiquement).</li>
+                </ul>
+                <div class="info-block">
+                    <strong>Note sur les Hooks :</strong> Le code fourni pour `validation.js` utilise `this.editPlugin.addHook(...)`. Cela suppose que le plugin `Edit` expose une méthode `addHook` permettant à d'autres plugins de s'enregistrer pour être notifiés à des moments clés de son cycle de vie (avant sauvegarde, après création de l'input, etc.). Cette fonctionnalité `addHook` n'est pas visible dans le code du plugin `Edit` fourni précédemment, ce qui pourrait indiquer une incompatibilité ou une partie manquante du système global.
+                </div>
+            </section>
+
+             <section id="plugin-validation-api">
+                <h2>API Publique</h2>
+                <p>
+                    Si vous récupérez l'instance du plugin via `tableInstance.getPlugin('Validation')`, vous pouvez accéder aux méthodes suivantes :
+                </p>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code>registerValidator(name, validatorFn)</code></td><td><code class="attr">name</code> <span class="type">(string)</span>, <code class="attr">validatorFn</code> <span class="type">(function)</span></td><td>Ajoute une nouvelle fonction de validation personnalisée au plugin. `validatorFn` doit être de la forme `(value, config, cell) => boolean|string`.</td><td class="type">this (permet le chaînage)</td></tr>
+                         <tr><td><code>validateValue(cell, value, config)</code></td><td><code class="attr">cell</code> <span class="type">(HTMLTableCellElement)</span>, <code class="attr">value</code> <span class="type">(any)</span>, <code class="attr">config</code> <span class="type">(object)</span></td><td>Valide une valeur donnée par rapport à un objet de configuration de validation spécifique (similaire à ce qui se trouve dans `th-validate`). Met à jour l'affichage de l'erreur sur la cellule.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>validateCell(cell)</code></td><td><code class="attr">cell</code> <span class="type">(HTMLTableCellElement)</span></td><td>Valide la valeur actuelle de la cellule (basée sur `data-value` ou `textContent`) par rapport aux règles définies dans l'attribut `th-validate` de sa colonne. Met à jour l'affichage de l'erreur. (Note: Cette méthode n'est pas explicitement dans le code fourni mais serait une addition logique).</td><td class="type">boolean</td></tr>
+                         <tr><td><code>refresh()</code></td><td>-</td><td>Ré-analyse les en-têtes pour détecter les colonnes avec l'attribut `th-validate`.</td><td class="type">void</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-validation-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong> Aucun événement DOM direct. Le plugin fonctionne en s'accrochant aux hooks du plugin Edit.</li>
+                    <li><strong>Déclenchés :</strong> Aucun événement spécifique déclenché par ce plugin. Il empêche la sauvegarde du plugin Edit en retournant `false` depuis le hook `beforeSave` en cas d'échec de validation.</li>
+                </ul>
+            </section>
+
+            <section id="plugin-validation-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple reprend celui du plugin Edit et montre comment le plugin Validation interagit pour appliquer les règles définies dans `th-validate`.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Validation Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
+        tr.modified td { background-color: #fffbeb; }
+        /* Styles validation */
+        .validation-error{color:#dc3545;font-size:.8em;margin-top:4px;display:none}
+        td.invalid{position:relative;background-color:#fee2e2!important;outline:1px solid #f8d7da}
+        td.invalid .validation-error{display:block}
+        td.td-edit { cursor: pointer; }
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Validation (avec Edit)&lt;/h1&gt;
+
+    &lt;table id="dataTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="itemName" th-edit&gt;Nom Article (Non validé)&lt;/th&gt;
+                &lt;th id="itemQty" th-edit th-validate='{"number": {"min": 1, "integer": true}, "required": true}'&gt;Quantité (>=1, entier)&lt;/th&gt;
+                &lt;th id="itemCode" th-edit th-validate='{"regex": {"pattern": "^[A-Z]{3}-[0-9]{4}$", "patternMessage": "Format AAA-1234 requis"}}'&gt;Code Produit (AAA-1234)&lt;/th&gt;
+                 &lt;th id="itemEmail" th-edit th-validate='{"email": true}'&gt;Contact Email&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="r1"&gt;
+                &lt;td id="itemName_r1"&gt;Stylo&lt;/td&gt;
+                &lt;td id="itemQty_r1" data-value="10"&gt;10&lt;/td&gt;
+                &lt;td id="itemCode_r1" data-value="ABC-1234"&gt;ABC-1234&lt;/td&gt;
+                &lt;td id="itemEmail_r1" data-value="contact@abc.com"&gt;contact@abc.com&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="r2"&gt;
+                &lt;td id="itemName_r2"&gt;Cahier&lt;/td&gt;
+                &lt;td id="itemQty_r2" data-value="5"&gt;5&lt;/td&gt;
+                &lt;td id="itemCode_r2" data-value="XYZ-9876"&gt;XYZ-9876&lt;/td&gt;
+                &lt;td id="itemEmail_r2" data-value="info@xyz.net"&gt;info@xyz.net&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const dataTable = new TableFlow({
+            tableId: 'dataTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                // Edit et Validation doivent être activés
+                names: ['Edit', 'Validation'],
+                validation: {
+                    // Utiliser les validateurs par défaut
+                },
+                edit: {
+                    // Config par défaut pour Edit
+                }
+            }
+        });
+
+        // Optionnel: Ajouter un validateur personnalisé via l'API
+        const validationPlugin = dataTable.getPlugin('Validation');
+        if (validationPlugin) {
+            validationPlugin.registerValidator('startsWithUpper', (value) => {
+                if (value && value[0] !== value[0].toUpperCase()) {
+                    return 'Doit commencer par une majuscule.';
+                }
+                return true;
+            });
+            console.log('Validateur startsWithUpper enregistré.');
+            // Pour l'utiliser, ajoutez th-validate='{"startsWithUpper": true}' à un <th>
+        }
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>Vous pouvez double-cliquer sur les cellules des colonnes "Quantité", "Code Produit" et "Contact Email" pour les éditer (via le plugin Edit).</li>
+                    <li>Pendant que vous tapez dans l'input, le plugin Validation (via le hook `afterEdit` et l'écouteur `input`) vérifie la valeur en temps réel et peut afficher/masquer un message d'erreur sous l'input si la règle n'est pas respectée (ex: taper "abc" dans Quantité).</li>
+                    <li>Lorsque vous essayez de sauvegarder (Entrée ou clic en dehors), le plugin Edit appelle le hook `beforeSave`.</li>
+                    <li>Le plugin Validation intercepte cet appel (`validateBeforeSave`), exécute toutes les règles définies dans `th-validate` pour la colonne.</li>
+                    <li>Si une règle échoue (ex: Quantité = 0, Code Produit = "AB-123", Email = "contact@abc"), `validateBeforeSave` retourne `false`. Le plugin Edit annule la sauvegarde, la cellule garde son ancienne valeur, et le message d'erreur reste affiché.</li>
+                    <li>Si toutes les règles réussissent, `validateBeforeSave` retourne `true`. Le plugin Edit procède à la sauvegarde (met à jour `data-value`, le texte, déclenche `cell:change`), et le plugin Validation efface tout message d'erreur (`clearValidationError`).</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

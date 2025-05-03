@@ -1,137 +1,37 @@
 export default class EditPlugin {
     constructor(config = {}) {
         this.name = 'edit';
-        this.version = '1.0.0';
+        this.version = '2.0.0';
         this.type = 'edit';
         this.table = null;
         this.dependencies = [];
         
-        // Configuration unifiée
-        this.config = {
-            // Configuration edit
-            editAttribute: 'th-edit',
-            cellClass: 'td-edit',
-            readOnlyClass: 'readonly',
-            inputClass: 'edit-input',
-            modifiedClass: 'modified',
-            
-            // Configuration validate
-            validateAttribute: 'th-validate',
-            validateClass: 'validate-cell',
-            invalidClass: 'invalid',
-            errorClass: 'validation-error',
-            validators: {
-                // Validation de longueur
-                maxLength: (value, config) => {
-                    if (value && value.length > config.maxLength) {
-                        return `Maximum ${config.maxLength} caractères`;
-                    }
-                    return true;
-                },
-                minLength: (value, config) => {
-                    if (value && value.length < config.minLength) {
-                        return `Minimum ${config.minLength} caractères`;
-                    }
-                    return true;
-                },
-                
-                // Validation numérique
-                number: (value, config) => {
-                    if (!value) return true;
-                    const num = parseFloat(value);
-                    if (isNaN(num)) {
-                        return 'Doit être un nombre';
-                    }
-                    if (config.min !== undefined && num < config.min) {
-                        return `Doit être supérieur à ${config.min}`;
-                    }
-                    if (config.max !== undefined && num > config.max) {
-                        return `Doit être inférieur à ${config.max}`;
-                    }
-                    if (config.integer && !Number.isInteger(num)) {
-                        return 'Doit être un nombre entier';
-                    }
-                    return true;
-                },
-                
-                // Validation email
-                email: (value) => {
-                    if (!value) return true;
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(value)) {
-                        return 'Email invalide';
-                    }
-                    return true;
-                },
-                
-                // Validation date
-                date: (value, config) => {
-                    if (!value) return true;
-                    const date = new Date(value);
-                    if (isNaN(date.getTime())) {
-                        return 'Date invalide';
-                    }
-                    if (config.minDate && date < new Date(config.minDate)) {
-                        return `Date doit être après ${config.minDate}`;
-                    }
-                    if (config.maxDate && date > new Date(config.maxDate)) {
-                        return `Date doit être avant ${config.maxDate}`;
-                    }
-                    return true;
-                },
-                
-                // Validation regex
-                regex: (value, config) => {
-                    if (!value || !config.pattern) return true;
-                    const regex = new RegExp(config.pattern);
-                    if (!regex.test(value)) {
-                        return config.patternMessage || 'Format invalide';
-                    }
-                    return true;
-                },
-                
-                // Validation custom
-                custom: (value, config, cell) => {
-                    if (typeof config.validate === 'function') {
-                        return config.validate(value, cell) || 'Valeur invalide';
-                    }
-                    return true;
-                }
-            },
-            
-            debug: false,
-            ...config
+        // Système de hooks pour extensions
+        this.hooks = {
+            beforeEdit: [],    // Avant de commencer l'édition
+            afterEdit: [],     // Après avoir créé le champ d'édition
+            beforeSave: [],    // Avant d'enregistrer les modifications
+            afterSave: [],     // Après l'enregistrement
+            onKeydown: [],     // Lors d'un événement clavier
+            onRender: []       // Lors du rendu du contenu
         };
-
-        this.validateColumns = new Map();
-        this.errors = new Map();
         
-        this.debug = this.config.debug === true ? 
-            (...args) => console.log('[EditPlugin]', ...args) : 
-            () => {};
-    }
-
-    getDefaultConfig() {
-        return {
+        // Configuration de base
+        this.config = {
             editAttribute: 'th-edit',
             cellClass: 'td-edit',
             readOnlyClass: 'readonly',
             inputClass: 'edit-input',
             modifiedClass: 'modified',
-            validateAttribute: 'th-validate',
-            validateClass: 'validate-cell',
-            invalidClass: 'invalid',
-            errorClass: 'validation-error',
-            validators: {
-                maxLength: (value, config) => {
-                    if (value && value.length > config.maxLength) {
-                        return `Maximum ${config.maxLength} caractères`;
-                    }
-                    return true;
-                }
-            },
             debug: false
         };
+        
+        // Fusion avec la config fournie
+        Object.assign(this.config, config);
+        
+        this.debug = this.config.debug ? 
+            (...args) => console.log('[EditPlugin]', ...args) : 
+            () => {};
     }
 
     init(tableHandler) {
@@ -140,85 +40,13 @@ export default class EditPlugin {
         }
         this.table = tableHandler;
         
-        // Initialisation des colonnes de validation
-        this.detectValidateColumns();
-        
-        // Configuration des cellules
+        // Configuration des cellules éditables
         this.setupEditCells();
         
         // Configuration des événements
         this.setupEventListeners();
         
-        this.debug('Plugin initialisé');
-    }
-
-    detectValidateColumns() {
-        if (!this.table || !this.table.table) return;
-
-        const headers = this.table.table.querySelectorAll('th');
-        headers.forEach((header, index) => {
-            const validateConfig = header.getAttribute(this.config.validateAttribute);
-            if (validateConfig) {
-                try {
-                    // Parser la configuration JSON
-                    const config = JSON.parse(validateConfig);
-                    this.validateColumns.set(index, config);
-                    this.debug('Configuration de validation détectée', { index, config });
-                } catch (e) {
-                    console.error('Erreur de parsing de la configuration de validation:', e);
-                }
-            }
-        });
-    }
-
-    validateCell(cell, config) {
-        const value = this.getCellValue(cell);
-        const columnIndex = Array.from(cell.parentElement.children).indexOf(cell);
-        const rowIndex = Array.from(cell.parentElement.parentElement.children).indexOf(cell.parentElement);
-
-        // Vérifier chaque type de validation configuré
-        for (const [validationType, validationConfig] of Object.entries(config)) {
-            if (this.config.validators[validationType]) {
-                const result = this.config.validators[validationType](value, validationConfig, cell);
-                if (result !== true) {
-                    this.updateValidationDisplay(cell, false, result);
-                    return false;
-                }
-            }
-        }
-
-        this.updateValidationDisplay(cell, true, '');
-        return true;
-    }
-
-    updateValidationDisplay(cell, isValid, error) {
-        // Ajouter le conteneur d'erreur s'il n'existe pas
-        let errorContainer = cell.querySelector(`.${this.config.errorClass}`);
-        if (!errorContainer) {
-            errorContainer = document.createElement('div');
-            errorContainer.className = this.config.errorClass;
-            cell.appendChild(errorContainer);
-        }
-
-        if (!isValid) {
-            cell.classList.add(this.config.invalidClass);
-            errorContainer.textContent = error;
-            errorContainer.style.display = 'block';
-        } else {
-            cell.classList.remove(this.config.invalidClass);
-            errorContainer.style.display = 'none';
-        }
-    }
-
-    getCellValue(cell) {
-        // Essayer d'abord de récupérer la valeur de l'input si en cours d'édition
-        const input = cell.querySelector(`.${this.config.inputClass}`);
-        if (input) {
-            return input.value.trim();
-        }
-
-        // Sinon prendre la valeur stockée
-        return cell.getAttribute('data-value') || cell.textContent.trim();
+        this.debug('Plugin initialized');
     }
 
     setupEditCells() {
@@ -265,6 +93,9 @@ export default class EditPlugin {
                 if (cell.getAttribute('data-initial-value') === null) {
                     cell.setAttribute('data-initial-value', currentValue);
                 }
+                
+                // Point d'extension pour le rendu
+                this.executeHook('onRender', cell, currentValue);
             });
         });
     }
@@ -291,10 +122,19 @@ export default class EditPlugin {
             cell.setAttribute('data-value', currentValue);
             
             const wrapper = cell.querySelector('.cell-wrapper');
+            
+            // Utiliser le hook onRender pour le rendu personnalisé
+            const renderResult = this.executeHook('onRender', cell, currentValue);
+            
             if (wrapper) {
-                wrapper.innerHTML = currentValue;
+                // Si un hook a géré le rendu, on ne fait rien
+                if (renderResult !== false) {
+                    wrapper.innerHTML = currentValue;
+                }
             } else {
-                cell.innerHTML = currentValue;
+                if (renderResult !== false) {
+                    cell.innerHTML = currentValue;
+                }
                 if (this.table.initializeWrappers) {
                     this.table.initializeWrappers();
                 }
@@ -308,7 +148,7 @@ export default class EditPlugin {
             if (!row) return;
 
             // Vérifier et mettre à jour toutes les cellules edit de la ligne
-            Array.from(row.cells).forEach((cell, index) => {
+            Array.from(row.cells).forEach((cell) => {
                 if (!cell.classList.contains(this.config.cellClass)) return;
 
                 const currentValue = cell.getAttribute('data-value');
@@ -317,10 +157,18 @@ export default class EditPlugin {
                 cell.setAttribute('data-initial-value', currentValue);
 
                 const wrapper = cell.querySelector('.cell-wrapper');
+                
+                // Utiliser le hook onRender pour le rendu personnalisé
+                const renderResult = this.executeHook('onRender', cell, currentValue);
+                
                 if (wrapper) {
-                    wrapper.innerHTML = currentValue;
+                    if (renderResult !== false) {
+                        wrapper.innerHTML = currentValue;
+                    }
                 } else {
-                    cell.innerHTML = currentValue;
+                    if (renderResult !== false) {
+                        cell.innerHTML = currentValue;
+                    }
                     if (this.table.initializeWrappers) {
                         this.table.initializeWrappers();
                     }
@@ -332,21 +180,6 @@ export default class EditPlugin {
         this.table.table.addEventListener('row:added', () => {
             this.debug('row:added event received');
             this.setupEditCells();
-        });
-
-        // Écouter les touches spéciales
-        this.table.table.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                const activeInput = document.querySelector(`.${this.config.inputClass}`);
-                if (activeInput) {
-                    const cell = activeInput.closest('td');
-                    const wrapper = cell.querySelector('.cell-wrapper') || cell;
-                    wrapper.innerHTML = cell.getAttribute('data-value');
-                    if (this.table.initializeWrappers) {
-                        this.table.initializeWrappers();
-                    }
-                }
-            }
         });
     }
 
@@ -366,106 +199,79 @@ export default class EditPlugin {
 
         const wrapper = cell.querySelector('.cell-wrapper') || cell;
         const currentValue = cell.getAttribute('data-value') || wrapper.textContent.trim();
-        const input = document.createElement('input');
         
-        // Déterminer le type d'input en fonction de la validation
-        const columnIndex = Array.from(cell.parentElement.children).indexOf(cell);
-        const validationConfig = this.validateColumns.get(columnIndex);
-        
-        if (validationConfig) {
-            // Type number pour la validation numérique
-            if (validationConfig.number) {
-                input.type = 'number';
-                if (validationConfig.number.min !== undefined) {
-                    input.min = validationConfig.number.min;
-                }
-                if (validationConfig.number.max !== undefined) {
-                    input.max = validationConfig.number.max;
-                }
-                if (validationConfig.number.step !== undefined) {
-                    input.step = validationConfig.number.step;
-                }
-                if (validationConfig.number.integer) {
-                    input.step = '1';
-                }
-                // Forcer la valeur à être un nombre valide
-                const numValue = parseFloat(currentValue);
-                input.value = !isNaN(numValue) ? numValue : '';
-            }
-            // Type email pour la validation email
-            else if (validationConfig.email) {
-                input.type = 'email';
-                input.value = currentValue;
-            }
-            // Type date pour la validation date
-            else if (validationConfig.date) {
-                input.type = 'date';
-                if (validationConfig.date.minDate) {
-                    input.min = validationConfig.date.minDate;
-                }
-                if (validationConfig.date.maxDate) {
-                    input.max = validationConfig.date.maxDate;
-                }
-                input.value = currentValue;
-            }
-            // Type par défaut
-            else {
-                input.type = 'text';
-                input.value = currentValue;
-            }
-
-            // Ajouter les attributs de validation HTML5
-            if (validationConfig.maxLength) {
-                input.maxLength = validationConfig.maxLength;
-            }
-            if (validationConfig.minLength) {
-                input.minLength = validationConfig.minLength;
-            }
-            if (validationConfig.pattern) {
-                input.pattern = validationConfig.pattern;
-            }
-            if (validationConfig.required) {
-                input.required = true;
-            }
-        } else {
-            input.type = 'text';
-            input.value = currentValue;
+        // Point d'extension important - permettre aux plugins d'empêcher l'édition
+        if (this.executeHook('beforeEdit', cell, currentValue) === false) {
+            this.debug('Editing prevented by a hook');
+            return;
         }
-
-        input.className = this.config.inputClass;
         
+        // Créer le champ d'édition
+        this.createEditField(cell, wrapper, currentValue);
+    }
+
+    createEditField(cell, wrapper, currentValue) {
+        // Créer un input standard
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = this.config.inputClass;
+        input.value = currentValue;
+        
+        // Vider le wrapper et ajouter l'input
         wrapper.innerHTML = '';
         wrapper.appendChild(input);
+        
+        // Focus et sélection
         input.focus();
         input.select();
+        
+        // Ajout des événements de base
+        input.addEventListener('blur', () => this.finishEditing(cell, input));
+        input.addEventListener('keydown', (e) => this.handleKeydown(e, cell, input));
+        
+        // Point d'extension après création du champ d'édition
+        this.executeHook('afterEdit', cell, input, currentValue);
+        
+        return input;
+    }
 
-        const finishEditing = () => {
-            let newValue = input.value.trim();
+    handleKeydown(event, cell, input) {
+        // Point d'extension pour le plugin clavier
+        if (this.executeHook('onKeydown', event, cell, input) === false) {
+            return;
+        }
+        
+        // Gestion standard des touches
+        if (event.key === 'Enter') {
+            this.finishEditing(cell, input);
+            event.preventDefault();
+        } else if (event.key === 'Escape') {
+            this.cancelEditing(cell);
+            event.preventDefault();
+        }
+    }
 
-            // Pour les nombres, s'assurer qu'on a une valeur valide
-            if (validationConfig && validationConfig.number) {
-                const numValue = parseFloat(newValue);
-                if (isNaN(numValue)) {
-                    newValue = currentValue; // Restaurer la valeur initiale si ce n'est pas un nombre
-                }
-            }
-
-            // Valider la nouvelle valeur
-            if (validationConfig && !this.validateCell(cell, validationConfig)) {
-                if (wrapper === cell) {
-                    cell.innerHTML = currentValue;
-                    if (this.table.initializeWrappers) {
-                        this.table.initializeWrappers();
-                    }
-                } else {
-                    wrapper.innerHTML = currentValue;
-                }
-                return;
-            }
-
-            cell.setAttribute('data-value', newValue);
-
-            // Mettre à jour le contenu
+    finishEditing(cell, input) {
+        const newValue = input.value.trim();
+        const oldValue = cell.getAttribute('data-value');
+        
+        // Point d'extension avant sauvegarde
+        if (this.executeHook('beforeSave', cell, newValue, oldValue) === false) {
+            this.debug('Save prevented by a hook');
+            this.cancelEditing(cell);
+            return;
+        }
+        
+        // Mise à jour de la valeur
+        cell.setAttribute('data-value', newValue);
+        
+        // Mise à jour du contenu
+        const wrapper = cell.querySelector('.cell-wrapper') || cell;
+        
+        // Utiliser le hook onRender pour personnaliser le rendu
+        const renderResult = this.executeHook('onRender', cell, newValue);
+        
+        if (renderResult !== false) {
             if (wrapper === cell) {
                 cell.innerHTML = newValue;
                 if (this.table.initializeWrappers) {
@@ -474,52 +280,100 @@ export default class EditPlugin {
             } else {
                 wrapper.innerHTML = newValue;
             }
-            
-            // Marquer la ligne comme modifiée si la valeur a changé
-            const row = cell.closest('tr');
-            const initialValue = cell.getAttribute('data-initial-value');
-            if (newValue !== initialValue && row) {
-                row.classList.add(this.config.modifiedClass);
-            }
+        }
+        
+        // Marquer la ligne comme modifiée si la valeur a changé
+        const row = cell.closest('tr');
+        const initialValue = cell.getAttribute('data-initial-value');
+        if (newValue !== initialValue && row) {
+            row.classList.add(this.config.modifiedClass);
+        }
+        
+        // Déclencher l'événement de changement
+        this.triggerChangeEvent(cell, newValue, oldValue);
+        
+        // Point d'extension après sauvegarde
+        this.executeHook('afterSave', cell, newValue, oldValue);
+    }
 
-            // Déclencher l'événement de changement
-            const changeEvent = new CustomEvent('cell:change', {
-                detail: {
-                    cellId: cell.id,
-                    columnId: cell.id.split('_')[0],
-                    rowId: row ? row.id : null,
-                    value: newValue,
-                    cell: cell,
-                    source: 'edit',
-                    tableId: this.table.table.id
-                },
-                bubbles: false
-            });
-            this.table.table.dispatchEvent(changeEvent);
-        };
+    cancelEditing(cell) {
+        const originalValue = cell.getAttribute('data-value');
+        const wrapper = cell.querySelector('.cell-wrapper') || cell;
+        
+        // Utiliser le hook onRender pour le rendu personnalisé
+        const renderResult = this.executeHook('onRender', cell, originalValue);
+        
+        if (renderResult !== false) {
+            wrapper.innerHTML = originalValue;
+        }
+    }
 
-        const handleKeydown = (e) => {
-            if (e.key === 'Enter') {
-                finishEditing();
-                e.preventDefault();
-            } else if (e.key === 'Escape') {
-                wrapper.innerHTML = currentValue;
-                if (wrapper === cell && this.table.initializeWrappers) {
-                    this.table.initializeWrappers();
-                }
-                e.preventDefault();
-            }
-        };
-
-        // Valider pendant la saisie
-        input.addEventListener('input', () => {
-            const validationConfig = this.validateColumns.get(columnIndex);
-            if (validationConfig) {
-                this.validateCell(cell, validationConfig);
-            }
+    triggerChangeEvent(cell, newValue, oldValue) {
+        const row = cell.closest('tr');
+        const changeEvent = new CustomEvent('cell:change', {
+            detail: {
+                cellId: cell.id,
+                columnId: cell.id.split('_')[0],
+                rowId: row ? row.id : null,
+                value: newValue,
+                oldValue: oldValue,
+                cell: cell,
+                source: 'edit',
+                tableId: this.table.table.id
+            },
+            bubbles: false
         });
+        
+        this.table.table.dispatchEvent(changeEvent);
+    }
 
-        input.addEventListener('blur', finishEditing);
-        input.addEventListener('keydown', handleKeydown);
+    // Méthodes pour gérer les hooks
+    addHook(hookName, callback) {
+        if (!this.hooks[hookName]) {
+            this.hooks[hookName] = [];
+        }
+        
+        this.hooks[hookName].push(callback);
+        return this;
+    }
+
+    executeHook(hookName, ...args) {
+        if (!this.hooks[hookName] || !this.hooks[hookName].length) {
+            return true;
+        }
+        
+        for (const callback of this.hooks[hookName]) {
+            try {
+                const result = callback(...args);
+                // Si un hook retourne explicitement false, on arrête l'exécution
+                if (result === false) return false;
+            } catch (error) {
+                console.error(`Error executing hook ${hookName}:`, error);
+            }
+        }
+        
+        return true;
+    }
+
+    refresh() {
+        this.setupEditCells();
+    }
+
+    destroy() {
+        // Nettoyage des événements et des références
+        if (this.table?.table) {
+            const editCells = this.table.table.querySelectorAll('.' + this.config.cellClass);
+            editCells.forEach(cell => {
+                if (cell.hasAttribute('data-edit-initialized')) {
+                    cell.removeEventListener('dblclick', (e) => this.startEditing(e));
+                    cell.removeAttribute('data-edit-initialized');
+                }
+            });
+        }
+        
+        // Vider les hooks
+        Object.keys(this.hooks).forEach(key => {
+            this.hooks[key] = [];
+        });
     }
 }

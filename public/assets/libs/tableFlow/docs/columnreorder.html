@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin ColumnReorder - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles additionnels spécifiques si nécessaire */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+         h1 { margin-bottom: 2rem; }
+         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+
+         /* Styles par défaut du plugin (peuvent être dans documentation.css ou surchargés) */
+        th.reorderable-column {
+            position: relative; /* Nécessaire pour le conteneur absolu potentiel */
+            cursor: grab;
+        }
+        .column-header-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            position: relative; /* Pour positionner la poignée */
+        }
+        .column-drag-handle {
+            cursor: grab;
+            /* margin-right: 8px; */ /* Ajustez selon handlePosition */
+            color: #999;
+            transition: color 0.2s ease;
+            padding: 0 5px; /* Zone de clic */
+            touch-action: none; /* Empêche le défilement sur mobile lors du drag */
+        }
+        .column-drag-handle:hover {
+            color: #333;
+        }
+        th.column-dragging {
+            opacity: 0.5;
+            cursor: grabbing !important; /* Force le curseur */
+        }
+        .column-drop-indicator {
+            position: fixed; /* Positionné par rapport à la fenêtre */
+            width: 4px; /* Largeur de l'indicateur */
+            background-color: #4f46e5; /* Couleur par défaut (Indigo) */
+            z-index: 1000; /* Au-dessus des autres éléments */
+            pointer-events: none; /* Ne pas interférer avec la souris */
+            transition: left 0.1s ease-out, top 0.1s ease-out; /* Transition douce */
+            box-shadow: 0 0 5px rgba(79, 70, 229, 0.5);
+        }
+        /* Style pour l'élément fantôme (ghost) */
+        body > .column-reorder-ghost { /* Cibler le ghost ajouté au body */
+             position: fixed;
+             z-index: 1001;
+             opacity: 0.7; /* Configurable via dragImageOpacity */
+             pointer-events: none;
+             transition: none; /* Pas de transition pendant le déplacement */
+             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+             background: #fff;
+             cursor: grabbing !important;
+             border: 1px solid #ccc;
+        }
+        /* Empêcher la sélection de texte pendant le drag */
+        body.user-select-none {
+             user-select: none;
+             -webkit-user-select: none;
+             -moz-user-select: none;
+             -ms-user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin ColumnReorder</h1>
+
+            <section id="plugin-colreorder-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>ColumnReorder</strong> permet aux utilisateurs de modifier l'ordre des colonnes d'un tableau HTML en les faisant glisser et déposer (drag and drop) via leur en-tête.
+                </p>
+                <p>
+                    Il ajoute une "poignée" visuelle (configurable) à chaque en-tête de colonne réorganisable. L'utilisateur peut cliquer et maintenir sur cette poignée, puis déplacer la souris (ou le doigt sur écran tactile) pour choisir une nouvelle position pour la colonne. Un indicateur visuel montre où la colonne sera insérée.
+                </p>
+                <p>
+                    Le plugin peut également sauvegarder l'ordre des colonnes choisi par l'utilisateur dans le `localStorage` du navigateur, afin de le restaurer lors des visites ultérieures.
+                </p>
+            </section>
+
+            <section id="plugin-colreorder-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Par défaut, toutes les colonnes sont réorganisables lorsque le plugin est activé. Vous n'avez généralement pas besoin d'ajouter d'attribut spécifique pour activer la fonctionnalité sur une colonne.
+                </p>
+                <p>
+                    Pour <strong>exclure</strong> une colonne de la réorganisation, ajoutez l'attribut <code class="attr">th-noreorder</code> (ou un autre sélecteur défini dans l'option `excludeSelector`) à l'élément <code>&lt;th&gt;</code> de cette colonne.
+                </p>
+                <pre><code class="language-html">&lt;table id="maTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colId" th-noreorder&gt;ID (Non réorganisable)&lt;/th&gt;
+      &lt;th id="colNom"&gt;Nom (Réorganisable)&lt;/th&gt;
+      &lt;th id="colDate"&gt;Date (Réorganisable)&lt;/th&gt;
+      &lt;th id="colActions" th-noreorder&gt;Actions (Non réorganisable)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;!-- Lignes de données --&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    Le plugin ajoutera automatiquement la poignée de glisser-déposer (définie par `handleHTML`) à l'intérieur des en-têtes réorganisables, en respectant la `handlePosition` configurée.
+                </p>
+            </section>
+
+            <section id="plugin-colreorder-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration détaillée du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.columnreorder</code>.
+                </p>
+                <pre><code class="language-javascript">const tableInstance = new TableFlow({
+    tableId: 'maTable',
+    pluginsPath: '../plugins', // Ajustez
+    plugins: {
+        names: ['ColumnReorder', /* ... autres plugins ... */], // Activer le plugin
+        columnreorder: { // Configuration spécifique pour 'ColumnReorder'
+            // --- Options Générales ---
+            enabled: true, // Activer le plugin (défaut: true)
+            debug: false, // Activer les logs spécifiques
+
+            // --- Poignée de Drag & Drop ---
+            handleSelector: '.column-drag-handle', // Sélecteur CSS de la poignée (défaut)
+            handleHTML: '&lt;div class="column-drag-handle" title="Glisser pour réorganiser"&gt;&lt;i class="fas fa-grip-vertical"&gt;&lt;/i&gt;&lt;/div&gt;', // HTML de la poignée (défaut)
+            handlePosition: 'prepend', // Où insérer la poignée: 'prepend', 'append', 'replace' (défaut: 'prepend')
+
+            // --- Classes CSS ---
+            reorderableClass: 'reorderable-column', // Classe ajoutée aux <th> réorganisables (défaut)
+            draggingClass: 'column-dragging', // Classe ajoutée au <th> pendant le drag (défaut)
+            dropIndicatorClass: 'column-drop-indicator', // Classe de l'indicateur de dépôt (défaut)
+            headerContainerClass: 'column-header-container', // Classe du conteneur ajouté dans le <th> (défaut)
+
+            // --- Comportement du Drag & Drop ---
+            // dragThreshold: 5, // Seuil (px) avant de démarrer le drag (Note: non utilisé dans le code v1.0.0)
+            // animationDuration: 300, // Durée de l'animation (Note: non utilisé dans le code v1.0.0)
+            excludeSelector: '[th-noreorder]', // Sélecteur CSS pour exclure des colonnes (défaut)
+            dragImageOpacity: 0.7, // Opacité de l'élément "fantôme" pendant le drag (défaut: 0.7)
+            // dragImage: 'path/to/custom-drag-image.png', // URL d'une image à utiliser comme fantôme (défaut: null, utilise un clone du <th>)
+
+            // --- Persistance ---
+            persistOrder: true, // Sauvegarder l'ordre dans localStorage (défaut: true)
+            storageKey: null, // Clé localStorage (défaut: tableId + '_columnOrder')
+
+            // --- Callbacks ---
+            onColumnReorder: (details) => {
+                console.log('Colonnes réorganisées !', details);
+                // details: { from: number, to: number, columnId: string, newOrder: Array<number> }
+            },
+            onDragStart: (details) => {
+                console.log('Début du drag', details);
+                // details: { columnId: string, index: number, element: HTMLTableCellElement }
+            },
+            onDragEnd: (details) => {
+                console.log('Fin du drag', details);
+                // details: { sourceIndex: number, targetIndex: number, newOrder: Array<number> }
+            }
+        }
+    }
+    // ... autres options TableFlow ...
+});</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.columnreorder`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin ColumnReorder via l'objet `plugins.columnreorder`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">enabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Active ou désactive complètement le plugin.</td></tr>
+                        <tr><td><code class="attr">handleSelector</code></td><td class="type">string</td><td><code class="default">'.column-drag-handle'</code></td><td>Sélecteur CSS utilisé pour identifier la poignée de glisser-déposer à l'intérieur de l'en-tête. Le `mousedown`/`touchstart` doit démarrer sur cet élément.</td></tr>
+                        <tr><td><code class="attr">handleHTML</code></td><td class="type">string</td><td><code class="default">'&lt;div class="column-drag-handle" ...&gt;&lt;i class="fas fa-grip-vertical"&gt;&lt;/i&gt;&lt;/div&gt;'</code></td><td>Code HTML qui sera injecté dans les en-têtes réorganisables pour créer la poignée. Doit contenir un élément correspondant au `handleSelector`.</td></tr>
+                        <tr><td><code class="attr">handlePosition</code></td><td class="type">string</td><td><code class="default">'prepend'</code></td><td>Où insérer `handleHTML` dans le contenu de l'en-tête : `'prepend'` (avant), `'append'` (après), ou `'replace'` (remplace tout le contenu).</td></tr>
+                        <tr><td><code class="attr">reorderableClass</code></td><td class="type">string</td><td><code class="default">'reorderable-column'</code></td><td>Classe CSS ajoutée aux éléments `&lt;th&gt;` qui sont réorganisables.</td></tr>
+                        <tr><td><code class="attr">draggingClass</code></td><td class="type">string</td><td><code class="default">'column-dragging'</code></td><td>Classe CSS ajoutée à l'élément `&lt;th&gt;` original pendant qu'il est glissé.</td></tr>
+                        <tr><td><code class="attr">dropIndicatorClass</code></td><td class="type">string</td><td><code class="default">'column-drop-indicator'</code></td><td>Classe CSS appliquée à l'élément `&lt;div&gt;` qui sert d'indicateur visuel de la position de dépôt.</td></tr>
+                        <tr><td><code class="attr">headerContainerClass</code></td><td class="type">string</td><td><code class="default">'column-header-container'</code></td><td>Classe CSS du `&lt;div&gt;` ajouté automatiquement à l'intérieur du `&lt;th&gt;` pour contenir le contenu original et la poignée. Facilite le positionnement.</td></tr>
+                        <tr><td><code class="attr">dragThreshold</code></td><td class="type">number</td><td><code class="default">5</code></td><td>(Note: Non implémenté dans v1.0.0) Seuil de déplacement en pixels avant que le glissement ne soit réellement initié.</td></tr>
+                        <tr><td><code class="attr">animationDuration</code></td><td class="type">number</td><td><code class="default">300</code></td><td>(Note: Non implémenté dans v1.0.0) Durée souhaitée pour une éventuelle animation lors du dépôt.</td></tr>
+                        <tr><td><code class="attr">excludeSelector</code></td><td class="type">string</td><td><code class="default">'[th-noreorder]'</code></td><td>Sélecteur CSS pour identifier les `&lt;th&gt;` qui ne doivent PAS être réorganisables.</td></tr>
+                        <tr><td><code class="attr">persistOrder</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, l'ordre des colonnes est sauvegardé dans le `localStorage` du navigateur et restauré au prochain chargement.</td></tr>
+                        <tr><td><code class="attr">storageKey</code></td><td class="type">string</td><td><code class="default">null</code></td><td>Clé utilisée pour le `localStorage`. Si `null`, une clé est générée automatiquement basée sur l'ID de la table (`tableId + '_columnOrder'`).</td></tr>
+                        <tr><td><code class="attr">dragImage</code></td><td class="type">string</td><td><code class="default">null</code></td><td>URL d'une image à utiliser comme "fantôme" visuel pendant le glisser-déposer. Si `null`, un clone de l'en-tête (`&lt;th&gt;`) est utilisé.</td></tr>
+                        <tr><td><code class="attr">dragImageOpacity</code></td><td class="type">number</td><td><code class="default">0.7</code></td><td>Opacité appliquée à l'élément fantôme pendant le glissement (valeur entre 0 et 1).</td></tr>
+                        <tr><td><code class="attr">onColumnReorder</code></td><td class="type">function</td><td><code class="default">null</code></td><td>Callback exécuté après qu'une colonne a été réorganisée avec succès. Reçoit `(details)` où `details = { from: number, to: number, columnId: string, newOrder: Array<number> }`.</td></tr>
+                        <tr><td><code class="attr">onDragStart</code></td><td class="type">function</td><td><code class="default">null</code></td><td>Callback exécuté au moment où le glissement d'une colonne commence. Reçoit `(details)` où `details = { columnId: string, index: number, element: HTMLTableCellElement }`.</td></tr>
+                        <tr><td><code class="attr">onDragEnd</code></td><td class="type">function</td><td><code class="default">null</code></td><td>Callback exécuté lorsque le glissement se termine (que le dépôt soit réussi ou non). Reçoit `(details)` où `details = { sourceIndex: number, targetIndex: number, newOrder: Array<number> }` (targetIndex peut être -1 si le dépôt est invalide).</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin ColumnReorder. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="plugin-colreorder-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `analyzeTableStructure`, `setupDragHandles`, `loadColumnOrder`):</strong>
+                        <ul>
+                            <li>Analyse les `<th>` pour identifier les colonnes réorganisables (non `excludeSelector`).</li>
+                            <li>Stocke les références aux éléments `<th>` et aux cellules `<td>` de chaque colonne.</li>
+                            <li>Initialise l'ordre des colonnes (`columnOrder`) avec l'ordre original.</li>
+                            <li>Charge un ordre sauvegardé depuis `localStorage` (si `persistOrder` est `true`) et l'applique via `applyColumnOrder`.</li>
+                            <li>Injecte le `handleHTML` dans chaque `<th>` réorganisable.</li>
+                            <li>Ajoute les écouteurs d'événements (`mousedown`, `touchstart`).</li>
+                            <li>Injecte les styles CSS nécessaires.</li>
+                            <li>Crée l'élément `<div>` pour l'indicateur de dépôt (caché initialement).</li>
+                            <li>Met en place un `MutationObserver` pour détecter les ajouts/suppressions de lignes/cellules et appeler `refresh()`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Début du Drag (`handleMouseDown`/`handleTouchStart` -> `startDrag`):</strong>
+                        <ul>
+                            <li>Déclenché par un appui sur une poignée (`handleSelector`).</li>
+                            <li>Empêche les actions par défaut (sélection, scroll).</li>
+                            <li>Marque l'état comme `isDragging = true`.</li>
+                            <li>Stocke la colonne et l'index source (`draggedColumn`, `draggedIndex`).</li>
+                            <li>Stocke les coordonnées de départ (`dragStartX`, `dragStartY`).</li>
+                            <li>Ajoute la classe `draggingClass` au `<th>` source.</li>
+                            <li>Crée un élément "fantôme" (`createGhostElement`) : un clone du `<th>` (ou une image personnalisée) positionné en `fixed` et le suit sous le curseur/doigt.</li>
+                            <li>Appelle le callback `onDragStart`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déplacement (`handleMouseMove`/`handleTouchMove`):</strong>
+                        <ul>
+                            <li>Si `isDragging` est `true`.</li>
+                            <li>Met à jour la position de l'élément fantôme (`moveGhostElement`).</li>
+                            <li>Calcule en continu la position potentielle de dépôt (`updateDropPosition`) :
+                                <ul>
+                                    <li>Parcourt les `<th>` réorganisables.</li>
+                                    <li>Détermine entre quelles colonnes le curseur se trouve.</li>
+                                    <li>Calcule la position X où afficher l'indicateur de dépôt.</li>
+                                    <li>Affiche/masque et positionne l'indicateur (`showDropIndicator`/`hideDropIndicator`).</li>
+                                    <li>Stocke l'index de dépôt potentiel (`currentDropIndex`).</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong>Fin du Drag (`handleMouseUp`/`handleTouchEnd` -> `finishDrag`):</strong>
+                        <ul>
+                            <li>Si `isDragging` est `true`.</li>
+                            <li>Vérifie si la position de dépôt (`currentDropIndex`) est valide (différente de l'index source).</li>
+                            <li>Si valide, appelle `reorderColumns(draggedIndex, currentDropIndex)`.</li>
+                            <li>Nettoie l'état : supprime le fantôme, masque l'indicateur, retire la classe `draggingClass`, réinitialise les variables d'état (`cleanupDragState`).</li>
+                            <li>Appelle le callback `onDragEnd`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Réorganisation (`reorderColumns` -> `applyColumnOrder`):</strong>
+                        <ul>
+                            <li>Calcule le nouvel ordre des indices dans le tableau `columnOrder`.</li>
+                            <li>Appelle `applyColumnOrder` pour modifier le DOM :
+                                <ul>
+                                    <li>Pour chaque ligne (`thead`, `tbody`, `tfoot`), récupère les cellules dans le nouvel ordre.</li>
+                                    <li>Vide la ligne.</li>
+                                    <li>Réinsère les cellules dans le nouvel ordre.</li>
+                                </ul>
+                            </li>
+                             <li>Ré-analyse la structure de la table (`analyzeTableStructure`) pour mettre à jour les références internes.</li>
+                             <li>Sauvegarde le nouvel ordre dans `localStorage` via `saveColumnOrder` (si `persistOrder` est `true`).</li>
+                             <li>Appelle le callback `onColumnReorder`.</li>
+                             <li>Déclenche l'événement DOM `column:reordered`.</li>
+                        </ul>
+                    </li>
+                     <li><strong>Rafraîchissement (`refresh`, appelé par `MutationObserver` ou `handleTableChange`):</strong> Ré-analyse la structure et réinitialise les poignées pour s'adapter aux changements du DOM.</li>
+                </ul>
+            </section>
+
+             <section id="plugin-colreorder-api">
+                <h2>API Publique</h2>
+                <p>
+                    Si vous récupérez l'instance du plugin via `tableInstance.getPlugin('ColumnReorder')`, vous pouvez accéder aux méthodes suivantes :
+                </p>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr><td><code>getColumnOrder()</code></td><td>-</td><td>Retourne un tableau contenant les indices des colonnes dans leur ordre actuel.</td><td class="type">Array&lt;number&gt;</td></tr>
+                         <tr><td><code>setColumnOrder(newOrder, persist)</code></td><td><code class="attr">newOrder</code> <span class="type">(Array&lt;number&gt;)</span>, <code class="attr">persist</code> <span class="type">(boolean, optionnel)</span></td><td>Définit un nouvel ordre pour les colonnes. `newOrder` doit être un tableau contenant tous les indices originaux (0 à N-1) dans l'ordre souhaité. Si `persist` est `true` (défaut) et `persistOrder` est activé, le nouvel ordre est sauvegardé.</td><td class="type">void</td></tr>
+                         <tr><td><code>resetColumnOrder()</code></td><td>-</td><td>Réinitialise l'ordre des colonnes à celui d'origine (lors de l'initialisation). Supprime également l'ordre sauvegardé dans `localStorage`. Déclenche l'événement `column:orderreset`.</td><td class="type">void</td></tr>
+                         <tr><td><code>isColumnReorderable(columnIndex)</code></td><td><code class="attr">columnIndex</code> <span class="type">(number)</span></td><td>Vérifie si la colonne à l'index donné est marquée comme réorganisable (ne correspond pas à `excludeSelector`).</td><td class="type">boolean</td></tr>
+                         <tr><td><code>setEnabled(enabled)</code></td><td><code class="attr">enabled</code> <span class="type">(boolean)</span></td><td>Active ou désactive dynamiquement le plugin. Si désactivé, les poignées sont retirées et le drag-and-drop ne fonctionne plus.</td><td class="type">void</td></tr>
+                         <tr><td><code>refresh()</code></td><td>-</td><td>Force une ré-analyse de la structure de la table et une réinitialisation des poignées. Utile après des modifications majeures du DOM non détectées par l'observateur.</td><td class="type">void</td></tr>
+                     </tbody>
+                 </table>
+            </section>
+
+            <section id="plugin-colreorder-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong>
+                        <ul>
+                            <li><code>mousedown</code> (sur la table) : Pour initier le drag via la souris.</li>
+                            <li><code>mousemove</code> (sur document) : Pour suivre le déplacement pendant le drag souris.</li>
+                            <li><code>mouseup</code> (sur document) : Pour terminer le drag souris.</li>
+                            <li><code>touchstart</code> (sur la table) : Pour initier le drag via toucher.</li>
+                            <li><code>touchmove</code> (sur document) : Pour suivre le déplacement pendant le drag toucher.</li>
+                            <li><code>touchend</code> / <code>touchcancel</code> (sur document) : Pour terminer le drag toucher.</li>
+                            <li><code>row:added</code> / <code>row:removed</code> (sur la table) : Pour déclencher un `refresh` si la structure des lignes change.</li>
+                            <li>(Via `MutationObserver`) : Changements dans le `thead`/`tbody`/`tfoot` pour déclencher un `refresh`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déclenchés (sur l'élément `<table>`) :</strong>
+                        <ul>
+                            <li><code>column:reordered</code> : Déclenché après qu'une colonne a été déplacée avec succès. Contient `{ detail: { from: number, to: number, columnId: string, newOrder: Array<number> } }`.</li>
+                            <li><code>column:orderreset</code> : Déclenché après un appel à `resetColumnOrder()`. Contient `{ detail: { order: Array<number> } }`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-colreorder-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table simple où les colonnes "Nom" et "Ville" peuvent être réorganisées.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple ColumnReorder Plugin&lt;/title&gt;
+    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { padding: 2rem; }
+        /* Styles par défaut du plugin */
+        th.reorderable-column{position:relative;cursor:grab}
+        .column-header-container{display:flex;align-items:center;width:100%;position:relative}
+        .column-drag-handle{cursor:grab;color:#999;transition:color .2s ease;padding:0 5px;touch-action:none}
+        .column-drag-handle:hover{color:#333}
+        th.column-dragging{opacity:.5;cursor:grabbing!important}
+        .column-drop-indicator{position:fixed;width:4px;background-color:#4f46e5;z-index:1000;pointer-events:none;transition:left .1s ease-out,top .1s ease-out;box-shadow:0 0 5px rgba(79,70,229,.5)}
+        body > .column-reorder-ghost{position:fixed;z-index:1001;opacity:.7;pointer-events:none;transition:none;box-shadow:0 4px 8px rgba(0,0,0,.2);background:#fff;cursor:grabbing!important;border:1px solid #ccc}
+        body.user-select-none{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+    </style>
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin ColumnReorder&lt;/h1&gt;
+
+    &lt;table id="peopleTable"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="personId" th-noreorder&gt;ID&lt;/th&gt; &lt;!-- Non réorganisable --&gt;
+                &lt;th id="personName"&gt;Nom&lt;/th&gt;
+                &lt;th id="personCity"&gt;Ville&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="p1"&gt;
+                &lt;td id="personId_p1"&gt;1&lt;/td&gt;
+                &lt;td id="personName_p1"&gt;Alice&lt;/td&gt;
+                &lt;td id="personCity_p1"&gt;Paris&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="p2"&gt;
+                &lt;td id="personId_p2"&gt;2&lt;/td&gt;
+                &lt;td id="personName_p2"&gt;Bob&lt;/td&gt;
+                &lt;td id="personCity_p2"&gt;Londres&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;button onclick="resetOrder()"&gt;Réinitialiser l'ordre&lt;/button&gt;
+    &lt;button onclick="swapNameCity()"&gt;Inverser Nom/Ville (API)&lt;/button&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+        const peopleTable = new TableFlow({
+            tableId: 'peopleTable',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                names: ['ColumnReorder'], // Activer le plugin
+                columnreorder: {
+                    persistOrder: true, // Activer la sauvegarde localStorage
+                    onColumnReorder: (details) => {
+                        console.log(`Colonne déplacée de ${details.from} à ${details.to}. Nouvel ordre: ${details.newOrder}`);
+                    }
+                }
+            }
+        });
+
+        // Fonctions pour les boutons de test
+        window.resetOrder = () => {
+            const reorderPlugin = peopleTable.getPlugin('ColumnReorder');
+            if (reorderPlugin) {
+                reorderPlugin.resetColumnOrder();
+                console.log('Ordre réinitialisé.');
+            }
+        };
+
+        window.swapNameCity = () => {
+             const reorderPlugin = peopleTable.getPlugin('ColumnReorder');
+             if (reorderPlugin) {
+                 // Ordre actuel des INDEX originaux: [0, 1, 2] (ID, Nom, Ville)
+                 // Nouvel ordre souhaité : [0, 2, 1] (ID, Ville, Nom)
+                 reorderPlugin.setColumnOrder([0, 2, 1]);
+                 console.log('Ordre défini par API:', reorderPlugin.getColumnOrder());
+             }
+        };
+
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La table s'affiche. Les en-têtes "Nom" et "Ville" ont une petite poignée (<i class="fas fa-grip-vertical"></i>) au début. L'en-tête "ID" n'en a pas car il a `th-noreorder`.</li>
+                    <li>Vous pouvez cliquer sur la poignée de "Nom" ou "Ville" et la faire glisser vers la gauche ou la droite. Un indicateur bleu vertical montre où la colonne sera insérée.</li>
+                    <li>Relâchez le bouton de la souris pour déposer la colonne à la nouvelle position. L'ordre des colonnes dans le `<thead>` et le `<tbody>` est mis à jour.</li>
+                    <li>L'ordre actuel est sauvegardé dans le `localStorage`. Si vous rechargez la page, l'ordre modifié devrait être restauré.</li>
+                    <li>Le bouton "Réinitialiser l'ordre" utilise l'API `resetColumnOrder()` pour revenir à l'ordre initial (ID, Nom, Ville) et efface la sauvegarde.</li>
+                    <li>Le bouton "Inverser Nom/Ville (API)" utilise `setColumnOrder([0, 2, 1])` pour intervertir les colonnes Nom (index 1) et Ville (index 2) par programmation.</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>
