@@ -7,12 +7,12 @@
 export default class ChoicePlugin {
     constructor(config = {}) {
         this.name = 'choice';
-        this.version = '2.0.0';
+        this.version = '2.0.1';  // Mise à jour de la version
         this.type = 'edit';
         this.table = null;
         this.dependencies = [];
         this.activeDropdown = null;
-        
+
         // Configuration par défaut
         this.defaultSearchableConfig = {
             minWidth: '200px',
@@ -22,7 +22,7 @@ export default class ChoicePlugin {
             placeholder: 'Rechercher...',
             noResultsText: 'Aucun résultat'
         };
-        
+
         // Configuration unifiée
         this.config = {
             // Configuration de base
@@ -31,7 +31,7 @@ export default class ChoicePlugin {
             readOnlyClass: 'readonly',
             modifiedClass: 'modified',
             debug: false,
-            
+
             // Options pour chaque colonne
             columns: {}
         };
@@ -40,12 +40,17 @@ export default class ChoicePlugin {
         Object.assign(this.config, config);
 
         // Configurer le debug
-        this.debug = this.config.debug ? 
-            (...args) => console.log('[ChoicePlugin]', ...args) : 
-            () => {};
+        this.debug = this.config.debug ?
+            (...args) => console.log('[ChoicePlugin]', ...args) :
+            () => { };
 
         // Ajouter les styles CSS
         this.addSearchableStyles();
+
+        // Lier les méthodes pour préserver le contexte
+        this.handleClick = this.handleClick.bind(this);
+        this.handleToggleClick = this.handleToggleClick.bind(this);
+        this.handleSearchableClick = this.handleSearchableClick.bind(this);
     }
 
     getColumnConfig(columnId) {
@@ -100,7 +105,7 @@ export default class ChoicePlugin {
         const dropdown = document.createElement('div');
         const columnConfig = this.getColumnConfig(columnId);
         const searchableConfig = columnConfig.searchable || this.defaultSearchableConfig;
-        
+
         dropdown.className = searchableConfig.dropdownClass || this.defaultSearchableConfig.dropdownClass;
         dropdown.style.minWidth = searchableConfig.minWidth || this.defaultSearchableConfig.minWidth;
 
@@ -157,7 +162,7 @@ export default class ChoicePlugin {
             const optionElement = document.createElement('div');
             optionElement.className = searchableConfig.optionClass || this.defaultSearchableConfig.optionClass;
             optionElement.innerHTML = label;
-            
+
             optionElement.addEventListener('click', () => {
                 this.updateCellValue(cell, value, label, columnId);
                 this.closeAllDropdowns();
@@ -190,9 +195,9 @@ export default class ChoicePlugin {
             const style = document.createElement('style');
             style.id = 'choice-plugin-styles';
             style.textContent = `
-                .${this.config.cellClass} { 
-                    cursor: pointer; 
-                    position: relative; 
+                .${this.config.cellClass} {
+                    cursor: pointer;
+                    position: relative;
                 }
                 .${this.defaultSearchableConfig.dropdownClass} {
                     position: absolute;
@@ -208,8 +213,8 @@ export default class ChoicePlugin {
                     overflow: auto;
                     max-height: 200px;
                 }
-                .${this.defaultSearchableConfig.dropdownClass}.active { 
-                    display: block; 
+                .${this.defaultSearchableConfig.dropdownClass}.active {
+                    display: block;
                 }
                 .${this.defaultSearchableConfig.searchClass} {
                     width: 100%;
@@ -223,8 +228,8 @@ export default class ChoicePlugin {
                     padding: 8px;
                     cursor: pointer;
                 }
-                .${this.defaultSearchableConfig.optionClass}:hover { 
-                    background-color: #f5f5f5; 
+                .${this.defaultSearchableConfig.optionClass}:hover {
+                    background-color: #f5f5f5;
                 }
                 .no-results {
                     padding: 8px;
@@ -258,7 +263,7 @@ export default class ChoicePlugin {
                 const columnId = header.id;
                 const columnConfig = this.getColumnConfig(columnId);
                 const headerType = header.getAttribute(this.config.choiceAttribute);
-                
+
                 return {
                     id: columnId,
                     index: Array.from(headerCells).indexOf(header),
@@ -270,7 +275,7 @@ export default class ChoicePlugin {
 
         const rows = this.table.table.querySelectorAll('tbody tr');
         rows.forEach(row => {
-            choiceColumns.forEach(({id: columnId, index, type}) => {
+            choiceColumns.forEach(({ id: columnId, index, type }) => {
                 const cell = row.cells[index];
                 if (!cell) return;
 
@@ -287,6 +292,7 @@ export default class ChoicePlugin {
         cell.classList.add(this.config.cellClass);
         cell.setAttribute('data-plugin', 'choice');
         cell.setAttribute('data-choice-type', type);
+        cell.setAttribute('data-choice-column', columnId);  // Nouvelle attribution
 
         const columnConfig = this.getColumnConfig(columnId);
         if (!columnConfig) return;
@@ -296,7 +302,7 @@ export default class ChoicePlugin {
 
         // Récupérer la valeur actuelle
         let currentValue = cell.getAttribute('data-value');
-        if (!currentValue) {
+        if (currentValue === null) {
             currentValue = cell.textContent.trim();
             cell.setAttribute('data-value', currentValue);
         }
@@ -307,7 +313,7 @@ export default class ChoicePlugin {
         }
 
         // Trouver et afficher la valeur actuelle
-        const currentChoice = choices.find(c => 
+        const currentChoice = choices.find(c =>
             (typeof c === 'object' ? c.value : c) === currentValue
         );
 
@@ -327,9 +333,7 @@ export default class ChoicePlugin {
         if (!this.table?.table) return;
 
         // Gestionnaire de clic sur les cellules
-        this.table.table.addEventListener('click', (event) => {
-            this.handleClick(event);
-        });
+        this.table.table.addEventListener('click', this.handleClick);
 
         // Fermer le dropdown quand on clique ailleurs
         document.addEventListener('click', (event) => {
@@ -347,10 +351,10 @@ export default class ChoicePlugin {
             cell.setAttribute('data-initial-value', currentValue);
 
             // Mettre à jour le label si nécessaire
-            const columnId = cell.id.split('_')[0];
+            const columnId = cell.getAttribute('data-choice-column') || cell.id.split('_')[0];
             const columnConfig = this.getColumnConfig(columnId);
             if (columnConfig) {
-                const currentChoice = columnConfig.values.find(c => 
+                const currentChoice = columnConfig.values.find(c =>
                     (typeof c === 'object' ? c.value : c) === currentValue
                 );
                 if (currentChoice) {
@@ -393,7 +397,7 @@ export default class ChoicePlugin {
         if (cell.classList.contains(this.config.readOnlyClass)) return;
 
         const type = cell.getAttribute('data-choice-type') || 'toggle';
-        
+
         if (type === 'toggle') {
             this.handleToggleClick(cell);
         } else if (type === 'searchable') {
@@ -402,7 +406,7 @@ export default class ChoicePlugin {
     }
 
     handleToggleClick(cell) {
-        const columnId = cell.id.split('_')[0];
+        const columnId = cell.getAttribute('data-choice-column') || cell.id.split('_')[0];
         const columnConfig = this.getColumnConfig(columnId);
         if (!columnConfig) return;
 
@@ -414,14 +418,14 @@ export default class ChoicePlugin {
             const value = typeof choice === 'object' ? choice.value : choice;
             return !this.isReadOnly(columnId, value);
         });
-        
+
         if (!availableChoices.length) return;
 
         // Obtenir la valeur actuelle
         const currentValue = cell.getAttribute('data-value');
-        
+
         // Trouver l'index du choix actuel
-        const currentIndex = availableChoices.findIndex(choice => 
+        const currentIndex = availableChoices.findIndex(choice =>
             (typeof choice === 'object' ? choice.value : choice) === currentValue
         );
 
@@ -443,7 +447,7 @@ export default class ChoicePlugin {
     }
 
     handleSearchableClick(cell) {
-        const columnId = cell.id.split('_')[0];
+        const columnId = cell.getAttribute('data-choice-column') || cell.id.split('_')[0];
         const columnConfig = this.getColumnConfig(columnId);
         if (!columnConfig) return;
 
@@ -466,10 +470,20 @@ export default class ChoicePlugin {
         }
     }
 
+    // Méthode updateCellValue corrigée pour éviter la double exécution
     updateCellValue(cell, value, label, columnId) {
         // Mettre à jour la cellule
         cell.setAttribute('data-value', value);
-        const wrapper = cell.querySelector('.cell-wrapper') || cell;
+
+        // Rechercher ou créer un wrapper
+        let wrapper = cell.querySelector('.cell-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'cell-wrapper';
+            cell.textContent = '';
+            cell.appendChild(wrapper);
+        }
+
         wrapper.innerHTML = label;
 
         // S'assurer que data-initial-value existe
@@ -482,7 +496,10 @@ export default class ChoicePlugin {
         const isModified = value !== initialValue;
         const row = cell.closest('tr');
 
-        // Toujours déclencher l'événement de changement
+        // Important : Créer un identifiant unique pour cet événement
+        const eventId = `change_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Créer l'événement avec bubbles:true pour permettre sa propagation
         const changeEvent = new CustomEvent('cell:change', {
             detail: {
                 cell,
@@ -491,16 +508,19 @@ export default class ChoicePlugin {
                 rowId: row?.id,
                 source: 'choice',
                 tableId: this.table.table.id,
-                isModified: isModified
+                isModified,
+                eventId  // Ajouter un identifiant unique pour détecter les doublons
             },
-            bubbles: false
+            bubbles: true  // Permettre la remontée de l'événement
         });
+
+        // Ne dispatcher l'événement qu'une seule fois, sur la table
         this.table.table.dispatchEvent(changeEvent);
 
-        // Mettre à jour la classe modified
-        if (isModified) {
+        // Mettre à jour la classe modified sur la ligne
+        if (isModified && row) {
             row.classList.add(this.config.modifiedClass);
-        } else {
+        } else if (row) {
             row.classList.remove(this.config.modifiedClass);
         }
     }
@@ -521,6 +541,9 @@ export default class ChoicePlugin {
     }
 
     destroy() {
+        if (this.table?.table) {
+            this.table.table.removeEventListener('click', this.handleClick);
+        }
         this.closeAllDropdowns();
     }
 }

@@ -2,7 +2,7 @@
     <div class="block" id="cities">
         <div class="block__title glass">
             <div class="block__title-left">
-                Gestion des communes et des brigades territorialement compétentes
+                Gestion des mairies et des brigades territorialement compétentes
             </div>
         </div>
 
@@ -24,15 +24,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in cities_tbl %}
-                        <tr id="{{c.id}}" name="{{ c.id }}">
-                            <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
-                            <td id="old_name_{{ c.id }}" name="old_name_{{ c.id}}">{{ c.old_name }}</td>
-                            <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
-                            <td id="brigade_{{ c.id }}" name="brigade_{{ c.id }}">{{ c.unit_id }}</td>
-                            <td id="maire_{{ c.id }}" name="maire_{{ c.id }}">{{ c.maire }}</td>
-                            <td id="mail_{{ c.id }}" name="mail_{{ c.id }}">{{ c.mail }}</td>
-                            <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
+                    {% for m in mairies_tbl %}
+                        <tr id="{{m.id}}" name="{{ m.id }}">
+                            <td id="name_{{ m.id }}" name="name_{{ m.id}}">{{ m.name }}</td>
+                            <td id="old_name_{{ m.id }}" name="old_name_{{ m.id}}">{{ m.old_name }}</td>
+                            <td id="cp_{{ m.id }}" name="id_{{ m.id }}">{{ m.code_postal }}</td>
+                            <td id="brigade_{{ m.id }}" name="brigade_{{ m.id }}">{{ m.unit_id }}</td>
+                            <td id="maire_{{ m.id }}" name="maire_{{ m.id }}">{{ m.maire }}</td>
+                            <td id="mail_{{ m.id }}" name="mail_{{ m.id }}">{{ m.mail }}</td>
+                            <td id="actions_{{ m.id }}" name="actions_{{ m.code_postal }}"></td>
 
                         </tr>
                     {% endfor %}

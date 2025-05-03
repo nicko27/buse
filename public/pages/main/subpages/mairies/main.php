@@ -19,4 +19,4 @@ $stmt = $sqlManager->prepare($sql);
 $stmt->execute([
     ":dpt" => $dpt,
 ]);
-$vars['cities_tbl'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$vars['mairies_tbl'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
