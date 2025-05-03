@@ -1,759 +1,460 @@
+/**
+ * Plugin TextEditor pour TableFlow
+ * Étend les plugins Edit et ContextMenu pour fournir des actions
+ * de manipulation de texte sur les cellules éditables (ex: supprimer phrase,
+ * supprimer motif, mettre en majuscules).
+ *
+ * @class TextEditorPlugin
+ * @version 1.0.2 - Intégration TableInstance, nettoyage destroy
+ * @depends EditPlugin - Requis pour l'édition et le hook onKeydown.
+ * @depends ContextMenuPlugin - Requis pour l'intégration du menu contextuel.
+ */
 export default class TextEditorPlugin {
+    /**
+     * Crée une instance de TextEditorPlugin.
+     * @param {object} [config={}] - Configuration du plugin.
+     */
     constructor(config = {}) {
         this.name = 'textEditor';
-        this.version = '2.0.0';
-        this.type = 'extension';
+        this.version = '1.0.2';
+        this.type = 'extension'; // Type de plugin: étend d'autres plugins
+        /** @type {TableInstance|null} Référence à l'instance TableInstance */
+        this.table = null;
+        /** @type {object|null} Référence à l'instance du plugin Edit */
+        this.editPlugin = null;
+        /** @type {object|null} Référence à l'instance du plugin ContextMenu */
+        this.contextMenuPlugin = null;
+        /** @type {string[]} Dépendances requises */
+        this.dependencies = ['Edit', 'ContextMenu']; // Dépend de Edit et ContextMenu
+
+        // Configuration par défaut fusionnée avec celle fournie
+        // Utilise des fonctions pour obtenir les défauts et éviter la mutation
+        const mergedConfig = {
+            ...this.getDefaultConfig(),
+            ...config
+        };
+        // Fusionner spécifiquement les actions et raccourcis
+        mergedConfig.actions = { ...this.getDefaultActions(), ...(config.actions || {}) };
+        mergedConfig.shortcuts = { ...this.getDefaultShortcuts(), ...(config.shortcuts || {}) };
+        this.config = mergedConfig;
+
+
+        // Configuration du logger (sera pleinement fonctionnel après init)
+        this.debug = this.config.debug === true ?
+            (...args) => this.table?.logger?.debug(`[TextEditor ${this.table?.tableId}]`, ...args) ?? console.debug('[TextEditor]', ...args) :
+            () => { };
+        this.logger = this.table?.logger || console;
+
+        // Lier les méthodes pour les hooks et listeners
+        this._handleKeydown = this._handleKeydown.bind(this);
+        this.getMenuItems = this.getMenuItems.bind(this); // Pour ContextMenu provider
+        this.executeAction = this.executeAction.bind(this); // Pour ContextMenu provider
+    }
+
+    /** Retourne la configuration par défaut. */
+    getDefaultConfig() {
+        return {
+            shortcutsEnabled: true,
+            menuSection: 'Texte', // Titre section menu contextuel
+            debug: false,
+            actions: {}, // Sera peuplé par getDefaultActions
+            shortcuts: {} // Sera peuplé par getDefaultShortcuts
+        };
+    }
+
+    /** Retourne les actions par défaut. */
+    getDefaultActions() {
+        // Lie les handlers à 'this' au moment de la définition
+        return {
+            deleteSentence: { label: 'Supprimer 1ère phrase', icon: '✂️', handler: this._deleteFirstSentence.bind(this) },
+            deleteRegexMatch: { label: 'Supprimer motif...', icon: '🔍', handler: this._deleteRegexMatch.bind(this) },
+            capitalizeSentence: { label: 'Majuscules 1ère phrase', icon: 'Aa', handler: this._capitalizeFirstSentence.bind(this) }
+        };
+    }
+     /** Retourne les raccourcis par défaut. */
+     getDefaultShortcuts() {
+         return { 'Ctrl+Delete': 'deleteSentence' };
+     }
+
+    /**
+     * Initialise le plugin pour une instance de table.
+     * @param {TableInstance} tableHandler - L'instance TableInstance gérant la table.
+     * @throws {Error} Si tableHandler ou le plugin Edit requis n'est pas valide/trouvé.
+     */
+    init(tableHandler) {
+        if (!tableHandler || !tableHandler.element) {
+            throw new Error('TextEditorPlugin: Instance TableHandler ou tableHandler.element invalide.');
+        }
+        this.table = tableHandler;
+        this.logger = this.table.logger || this.logger; // Assigner le logger définitif
+        this.debug('Initialisation du plugin TextEditor...');
+
+        // 1. Obtenir les instances des plugins dépendants
+        try {
+            this.editPlugin = this.table.getPlugin('Edit'); // Requis
+            // ContextMenu est optionnel, getPlugin peut retourner null ou lever une erreur
+            this.contextMenuPlugin = this.table.getPlugin('ContextMenu');
+        } catch (error) {
+             if (error.message.includes("Plugin 'Edit' non actif")) {
+                 this.logger.error("Le plugin 'Edit' est requis par TextEditorPlugin mais n'est pas actif.");
+                 throw new Error("Le plugin 'Edit' est requis par TextEditorPlugin.");
+             } else if (error.message.includes("Plugin 'ContextMenu' non actif")) {
+                 this.debug("Plugin 'ContextMenu' non actif. Le menu contextuel TextEditor sera désactivé.");
+                 this.contextMenuPlugin = null;
+             } else {
+                  // Autre erreur lors de getPlugin
+                  this.logger.error(`Erreur inattendue lors de la récupération des dépendances: ${error.message}`, error);
+                  throw error; // Propage l'erreur inconnue
+             }
+        }
+        this.debug("Plugin 'Edit' trouvé.");
+        if (this.contextMenuPlugin) {
+             this.debug("Plugin 'ContextMenu' trouvé.");
+             // Vérifier l'interface de ContextMenu
+             if (typeof this.contextMenuPlugin.registerProvider !== 'function' || typeof this.contextMenuPlugin.unregisterProvider !== 'function') {
+                  this.logger.warn("L'instance de ContextMenuPlugin ne semble pas supporter registerProvider/unregisterProvider. L'intégration du menu sera désactivée.");
+                  this.contextMenuPlugin = null; // Désactiver l'intégration
+             }
+        }
+
+        // 2. S'enregistrer auprès des plugins dépendants
+        this.registerWithPlugins();
+
+        this.debug('Plugin TextEditor initialisé.');
+    }
+
+    /**
+     * S'enregistre aux hooks de Edit et comme fournisseur de ContextMenu.
+     */
+    registerWithPlugins() {
+        // S'enregistrer au hook onKeydown de Edit pour les raccourcis
+        if (this.config.shortcutsEnabled && this.editPlugin && typeof this.editPlugin.addHook === 'function') {
+            // Utilise le namespace 'TextEditor' pour pouvoir se désenregistrer proprement
+            this.editPlugin.addHook('onKeydown', this._handleKeydown, 'TextEditor');
+            this.debug("Enregistré au hook 'onKeydown' du plugin Edit.");
+        } else if (this.config.shortcutsEnabled) {
+             this.logger.warn("Raccourcis TextEditor activés mais impossible de s'enregistrer au hook 'onKeydown' de EditPlugin (manquant ou invalide).");
+        }
+
+        // S'enregistrer comme fournisseur de ContextMenu
+        if (this.contextMenuPlugin && typeof this.contextMenuPlugin.registerProvider === 'function') {
+            this.contextMenuPlugin.registerProvider(this);
+            this.debug("Enregistré comme fournisseur auprès de ContextMenuPlugin.");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Implémentation Interface Fournisseur pour ContextMenuPlugin
+    // -------------------------------------------------------------------------
+
+    /**
+     * Retourne les items de menu pour le ContextMenuPlugin.
+     * Appelé par ContextMenu lors d'un clic droit sur une cellule.
+     * @param {HTMLTableCellElement} cell - La cellule <td> ciblée.
+     * @returns {Array<object>} Tableau d'items de menu pour ce plugin.
+     */
+    getMenuItems(cell) {
+        // Vérifier si la cellule est éditable (gérée par EditPlugin)
+        // Utilise la classe configurée dans EditPlugin
+        const editCellClass = this.editPlugin?.config?.cellClass || 'td-edit';
+        if (!this.editPlugin || !cell.classList.contains(editCellClass)) {
+            return []; // Ne rien ajouter si la cellule n'est pas éditable par Edit
+        }
+
+        const items = [];
+        const availableActions = Object.entries(this.config.actions);
+
+        if (availableActions.length === 0) {
+             return []; // Pas d'actions configurées
+        }
+
+        // Ajouter l'en-tête de section si configuré et s'il y a des actions
+        if (this.config.menuSection) {
+            items.push({ type: 'header', label: this.config.menuSection });
+        }
+
+        // Ajouter chaque action configurée comme item de menu
+        availableActions.forEach(([id, actionConfig]) => {
+            if (actionConfig && actionConfig.label && typeof actionConfig.handler === 'function') {
+                items.push({
+                    id: id, // Utiliser la clé de l'action comme ID unique pour ce provider
+                    label: actionConfig.label,
+                    icon: actionConfig.icon || '' // Utiliser l'icône si fournie
+                    // Le 'provider' sera ajouté par ContextMenuPlugin lors de la collecte
+                });
+            } else {
+                 this.logger.warn(`Action TextEditor mal configurée ignorée: ${id}`, actionConfig);
+            }
+        });
+
+        // Ne retourner des items que si on a ajouté autre chose que l'en-tête
+        if (items.length <= (this.config.menuSection ? 1 : 0)) {
+             return [];
+        }
+
+        this.debug(`Fourniture de ${items.length} item(s) de menu TextEditor pour ${cell.id}`);
+        return items;
+    }
+
+    /**
+     * Exécute une action demandée via le menu contextuel.
+     * Appelé par ContextMenuPlugin lorsqu'un item de ce fournisseur est cliqué.
+     * @param {string} actionId - L'ID de l'action (correspond à la clé dans config.actions).
+     * @param {HTMLTableCellElement} cell - La cellule <td> qui était ciblée lors de l'ouverture du menu.
+     */
+    executeAction(actionId, cell) {
+        const actionConfig = this.config.actions[actionId];
+
+        if (!actionConfig || typeof actionConfig.handler !== 'function') {
+            this.logger.error(`Action ContextMenu TextEditor non trouvée ou handler invalide pour ID: ${actionId}`);
+            return;
+        }
+
+        // Récupérer la valeur actuelle de la cellule (priorité data-value)
+        const currentValue = cell.getAttribute('data-value') ?? cell.textContent?.trim() ?? '';
+
+        this.debug(`Exécution de l'action TextEditor '${actionId}' sur ${cell.id}`);
+        try {
+            // Appeler le handler de l'action configurée
+            // Le handler reçoit (cell, currentValue) et 'this' est l'instance TextEditorPlugin
+            actionConfig.handler(cell, currentValue);
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'exécution du handler pour l'action '${actionId}': ${error.message}`, error);
+            this.table?.notify('error', `Erreur lors de l'action '${actionConfig.label || actionId}'.`);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Handlers pour les Actions de Texte (Implémentations par défaut)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Handler pour l'action 'deleteSentence'. Supprime la première phrase.
+     * @param {HTMLTableCellElement} cell - La cellule cible.
+     * @param {string} text - Le texte actuel de la cellule.
+     * @private
+     */
+    _deleteFirstSentence(cell, text) {
+        if (!text) return;
+        const sentences = this._splitIntoSentences(text);
+        if (sentences.length <= 1) {
+            this.debug('Impossible de supprimer la seule phrase restante.');
+            this.updateCellValue(cell, ''); // Vider la cellule
+            return;
+        }
+        sentences.shift(); // Supprimer la première
+        this.updateCellValue(cell, sentences.join(' ').trim()); // Rejoindre et mettre à jour
+    }
+
+    /**
+     * Handler pour l'action 'deleteRegexMatch'. Demande une regex et supprime les correspondances.
+     * @param {HTMLTableCellElement} cell - La cellule cible.
+     * @param {string} text - Le texte actuel de la cellule.
+     * @private
+     */
+    _deleteRegexMatch(cell, text) {
+        if (!text) return;
+        // Demander le motif à l'utilisateur (simple prompt)
+        const pattern = prompt('Entrez le texte ou le motif (regex) à supprimer:', '');
+        if (pattern === null) { // Vérifier si l'utilisateur a annulé
+            this.debug("Suppression par motif annulée par l'utilisateur.");
+            return;
+        }
+
+        try {
+            // Créer la regex globale et insensible à la casse par défaut
+            const regex = new RegExp(pattern, 'gi');
+            const newText = text.replace(regex, ''); // Remplacer par chaîne vide
+            this.updateCellValue(cell, newText.trim()); // Mettre à jour
+        } catch (error) {
+            this.logger.error(`Expression régulière invalide fournie par l'utilisateur: "${pattern}"`, error);
+            alert(`Expression régulière invalide: ${error.message}`);
+        }
+    }
+
+    /**
+     * Handler pour l'action 'capitalizeSentence'. Met la première phrase en majuscules.
+     * @param {HTMLTableCellElement} cell - La cellule cible.
+     * @param {string} text - Le texte actuel de la cellule.
+     * @private
+     */
+    _capitalizeFirstSentence(cell, text) {
+        if (!text) return;
+        const sentences = this._splitIntoSentences(text);
+        if (sentences.length === 0) return;
+        sentences[0] = sentences[0].toUpperCase(); // Mettre la première en majuscules
+        this.updateCellValue(cell, sentences.join(' ').trim()); // Rejoindre et mettre à jour
+    }
+
+    // -------------------------------------------------------------------------
+    // Méthodes Utilitaires
+    // -------------------------------------------------------------------------
+
+    /**
+     * Sépare un texte en phrases (méthode simpliste).
+     * @param {string} text - Le texte à séparer.
+     * @returns {string[]} Un tableau de phrases.
+     * @private
+     */
+    _splitIntoSentences(text) {
+        if (!text) return [];
+        // Regex simple: coupe après ., !, ? suivi d'un espace ou fin de ligne.
+         return text.split(/(?<=[.!?])\s+/).filter(s => s && s.trim() !== '');
+    }
+
+    /**
+     * Met à jour la valeur d'une cellule et déclenche l'événement 'cell:change'.
+     * C'est la méthode que les handlers d'action doivent appeler pour appliquer les modifications.
+     * @param {HTMLTableCellElement} cell - La cellule <td> à mettre à jour.
+     * @param {string} newValue - La nouvelle valeur textuelle.
+     */
+    updateCellValue(cell, newValue) {
+        if (!cell || !this.table) return;
+        const oldValue = cell.getAttribute('data-value') ?? cell.textContent?.trim() ?? '';
+
+        // Ne rien faire si la valeur n'a pas changé
+        if (newValue === oldValue) {
+            this.debug(`Valeur inchangée pour ${cell.id}, pas de mise à jour par TextEditor.`);
+            return;
+        }
+        this.debug(`Mise à jour de ${cell.id} par TextEditor: "${oldValue}" -> "${newValue}"`);
+
+        // Mettre à jour l'attribut data-value
+        cell.setAttribute('data-value', newValue);
+
+        // Mettre à jour l'affichage (via le wrapper si possible)
+        const wrapperClass = this.table.config?.wrapCellClass || 'cell-wrapper';
+        const wrapper = cell.querySelector(`.${wrapperClass}`) || cell;
+        // Utiliser le sanitizer pour insérer la valeur (traiter comme texte brut)
+        if (this.table.sanitizer) {
+            this.table.sanitizer.setHTML(wrapper, newValue, { isPlainText: true });
+        } else {
+            wrapper.textContent = newValue; // Fallback
+        }
+
+        // Déclencher l'événement cell:change pour notifier les autres plugins et TableFlow
+        const row = cell.closest('tr');
+        const columnId = this.table.element?.querySelector(`thead th:nth-child(${cell.cellIndex + 1})`)?.id;
+        const initialValue = cell.getAttribute('data-initial-value');
+        const isModified = newValue !== initialValue;
+
+        const changeEvent = new CustomEvent('cell:change', {
+            detail: {
+                cell: cell, cellId: cell.id, columnId: columnId, rowId: row?.id,
+                value: newValue, oldValue: oldValue, initialValue: initialValue, isModified: isModified,
+                source: 'textEditor', // Indiquer la source
+                tableId: this.table.tableId
+            },
+            bubbles: true
+        });
+        this.table.element?.dispatchEvent(changeEvent);
+        this.debug(`Événement cell:change déclenché depuis TextEditor pour ${cell.id}`);
+
+        // La classe 'modified' sur la ligne sera gérée par le listener de cell:change
+    }
+
+    // -------------------------------------------------------------------------
+    // Gestion des Raccourcis Clavier (via hook Edit)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Gestionnaire appelé par le hook `onKeydown` du plugin Edit.
+     * Vérifie si la combinaison de touches correspond à un raccourci configuré.
+     * @param {KeyboardEvent} event - L'événement keydown.
+     * @param {HTMLTableCellElement} cell - La cellule en cours d'édition.
+     * @param {HTMLInputElement} input - L'élément input d'édition.
+     * @returns {boolean} `false` si le raccourci a été géré ici (pour empêcher Edit de continuer), `true` sinon.
+     * @private
+     */
+    _handleKeydown(event, cell, input) {
+        if (!this.config.shortcutsEnabled || !this.config.shortcuts) {
+            return true; // Laisser Edit gérer
+        }
+
+        // Construire la chaîne identifiant la combinaison de touches
+        let keyIdentifier = '';
+        if (event.ctrlKey) keyIdentifier += 'Ctrl+';
+        if (event.altKey) keyIdentifier += 'Alt+';
+        if (event.shiftKey) keyIdentifier += 'Shift+';
+        keyIdentifier += event.key;
+        keyIdentifier = keyIdentifier.replace('Control', 'Ctrl'); // Normalisation
+
+        const actionId = this.config.shortcuts[keyIdentifier];
+
+        if (actionId && this.config.actions[actionId]) {
+            this.debug(`Raccourci clavier détecté: ${keyIdentifier} -> Action: ${actionId}`);
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Exécuter l'action sur la valeur ACTUELLE de l'input
+            // C'est différent de l'exécution via menu contextuel qui prend la valeur de la cellule
+            const actionConfig = this.config.actions[actionId];
+            if (typeof actionConfig.handler === 'function') {
+                 try {
+                     // Passer la valeur de l'input au handler
+                     actionConfig.handler(cell, input.value);
+                     // Mettre à jour l'input avec la nouvelle valeur de la cellule après l'action
+                     const newValue = cell.getAttribute('data-value');
+                     if (input.value !== newValue) {
+                         input.value = newValue;
+                         // Déclencher 'input' pour que d'autres plugins (Highlight) réagissent
+                         input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                     }
+                 } catch (error) {
+                      this.logger.error(`Erreur lors de l'exécution du handler (raccourci) pour '${actionId}': ${error.message}`, error);
+                      this.table?.notify('error', `Erreur lors de l'action '${actionConfig.label || actionId}'.`);
+                 }
+            } else {
+                 this.logger.error(`Handler invalide pour l'action de raccourci '${actionId}'.`);
+            }
+
+            return false; // Indiquer à EditPlugin que l'événement a été géré
+        }
+        return true; // Laisser EditPlugin gérer
+    }
+
+    // -------------------------------------------------------------------------
+    // Cycle de vie
+    // -------------------------------------------------------------------------
+
+    /**
+     * Rafraîchit l'état du plugin (pas d'action spécifique requise ici).
+     */
+    refresh() {
+        this.debug('Rafraîchissement du plugin TextEditor (aucune action spécifique).');
+    }
+
+    /**
+     * Nettoie les ressources utilisées par le plugin (désenregistrement des hooks/providers).
+     */
+    destroy() {
+        this.debug('Destruction du plugin TextEditor...');
+
+        // Se désenregistrer du hook onKeydown de Edit
+        if (this.config.shortcutsEnabled && this.editPlugin && typeof this.editPlugin.removeHook === 'function') {
+            try {
+                // Utilise le namespace 'TextEditor'
+                this.editPlugin.removeHook('onKeydown', 'TextEditor');
+                this.debug("Désenregistré du hook 'onKeydown' de EditPlugin.");
+            } catch (error) {
+                 this.logger.error(`Erreur lors du désenregistrement du hook 'onKeydown' d'Edit: ${error.message}`, error);
+            }
+        }
+
+        // Se désenregistrer de ContextMenu
+        if (this.contextMenuPlugin && typeof this.contextMenuPlugin.unregisterProvider === 'function') {
+            try {
+                this.contextMenuPlugin.unregisterProvider(this);
+                this.debug("Désenregistré de ContextMenuPlugin.");
+            } catch (error) {
+                 this.logger.error(`Erreur lors du désenregistrement de ContextMenuPlugin: ${error.message}`, error);
+            }
+        }
+
+        // Nettoyer les références
         this.table = null;
         this.editPlugin = null;
         this.contextMenuPlugin = null;
-        
-        // Configuration par défaut
-        this.config = {
-            // Actions prédéfinies
-            actions: {
-                deleteSentence: {
-                    label: 'Supprimer cette phrase',
-                    icon: '✂️',
-                    handler: this.deleteSentence.bind(this),
-                    shortcut: 'Ctrl+Delete'
-                },
-                deleteWord: {
-                    label: 'Supprimer ce mot',
-                    icon: '🔤',
-                    handler: this.deleteWord.bind(this),
-                    shortcut: 'Ctrl+Backspace'
-                },
-                deleteRegexMatch: {
-                    label: 'Supprimer texte contenant...',
-                    icon: '🔍',
-                    handler: this.deleteRegexMatch.bind(this)
-                },
-                capitalizeSentence: {
-                    label: 'Mettre la phrase en majuscules',
-                    icon: 'Aa',
-                    handler: this.capitalizeSentence.bind(this)
-                },
-                capitalizeWord: {
-                    label: 'Mettre le mot en majuscules',
-                    icon: 'A',
-                    handler: this.capitalizeWord.bind(this),
-                    shortcut: 'Ctrl+Shift+U'
-                },
-                lowercaseText: {
-                    label: 'Mettre en minuscules',
-                    icon: 'a',
-                    handler: this.lowercaseText.bind(this),
-                    shortcut: 'Ctrl+Shift+L'
-                },
-                trimSpaces: {
-                    label: 'Supprimer les espaces superflus',
-                    icon: '⌫',
-                    handler: this.trimSpaces.bind(this)
-                },
-                wrapQuotes: {
-                    label: 'Entourer de guillemets',
-                    icon: '"',
-                    handler: this.wrapQuotes.bind(this),
-                    shortcut: 'Ctrl+Shift+Quote'
-                },
-                findReplace: {
-                    label: 'Rechercher et remplacer...',
-                    icon: '🔄',
-                    handler: this.findReplace.bind(this),
-                    shortcut: 'Ctrl+H'
-                }
-            },
-            
-            // Raccourcis clavier
-            shortcutsEnabled: true,
-            
-            // Section dans le menu contextuel
-            menuSection: 'Édition de texte',
-            
-            // Options avancées
-            sentenceDetection: 'smart', // 'simple' ou 'smart'
-            preserveFormatting: true,
-            undoEnabled: true,
-            maxUndoSteps: 10,
-            
-            // Personnalisation
-            customActions: {},
-            
-            debug: false
-        };
-        
-        // Fusion avec la configuration fournie
-        this.config = this.mergeConfig(this.config, config);
-        
-        // Historique pour undo/redo
-        this.history = new Map(); // cellId -> [states]
-        this.historyIndex = new Map(); // cellId -> currentIndex
-        
-        // Détection du curseur
-        this.cursorTracker = {
-            cell: null,
-            position: 0,
-            selection: null
-        };
-        
-        // Logger
-        this.debug = this.config.debug ? 
-            (...args) => console.log('[TextEditorPlugin]', ...args) : 
-            () => {};
-    }
-    
-    /**
-     * Fusionne les configurations en profondeur
-     */
-    mergeConfig(defaultConfig, userConfig) {
-        const merged = { ...defaultConfig };
-        
-        for (const key in userConfig) {
-            if (typeof userConfig[key] === 'object' && !Array.isArray(userConfig[key])) {
-                merged[key] = this.mergeConfig(defaultConfig[key] || {}, userConfig[key]);
-            } else {
-                merged[key] = userConfig[key];
-            }
-        }
-        
-        // Ajouter les actions personnalisées
-        if (userConfig.customActions) {
-            merged.actions = { ...merged.actions, ...userConfig.customActions };
-        }
-        
-        return merged;
-    }
-    
-    init(tableHandler) {
-        this.table = tableHandler;
-        
-        // Trouver les plugins nécessaires
-        this.editPlugin = this.table.getPlugin('edit');
-        if (!this.editPlugin) {
-            console.error('TextEditorPlugin: Edit plugin is required but not found');
-            return;
-        }
-        
-        this.contextMenuPlugin = this.table.getPlugin('contextMenu');
-        if (this.contextMenuPlugin) {
-            this.contextMenuPlugin.registerProvider(this);
-        }
-        
-        // S'enregistrer aux hooks du plugin Edit
-        this.registerWithEditPlugin();
-        
-        // Ajouter des écouteurs pour le tracking du curseur
-        this.setupCursorTracking();
-    }
-    
-    registerWithEditPlugin() {
-        // Écouter les événements clavier
-        if (this.config.shortcutsEnabled) {
-            this.editPlugin.addHook('onKeydown', this.handleKeydown.bind(this), 'textEditor');
-        }
-        
-        // Écouter le début de l'édition pour initialiser l'historique
-        this.editPlugin.addHook('afterEdit', this.initializeHistory.bind(this), 'textEditor');
-        
-        // Écouter les changements pour l'historique
-        this.editPlugin.addHook('beforeSave', this.saveToHistory.bind(this), 'textEditor');
-    }
-    
-    setupCursorTracking() {
-        // Écouter les événements de sélection
-        document.addEventListener('selectionchange', () => {
-            const selection = window.getSelection();
-            if (!selection.rangeCount) return;
-            
-            const range = selection.getRangeAt(0);
-            const container = range.commonAncestorContainer;
-            
-            // Trouver la cellule parente
-            const cell = container.nodeType === Node.TEXT_NODE ? 
-                container.parentElement.closest('td') : 
-                container.closest('td');
-                
-            if (cell && cell.classList.contains(this.editPlugin.config.cellClass)) {
-                this.cursorTracker.cell = cell;
-                this.cursorTracker.position = range.startOffset;
-                this.cursorTracker.selection = {
-                    start: range.startOffset,
-                    end: range.endOffset,
-                    text: selection.toString()
-                };
-            }
-        });
-    }
-    
-    /**
-     * Initialise l'historique pour une cellule
-     */
-    initializeHistory(cell, input, currentValue) {
-        const cellId = cell.id;
-        
-        if (!this.history.has(cellId)) {
-            this.history.set(cellId, [currentValue]);
-            this.historyIndex.set(cellId, 0);
-        }
-    }
-    
-    /**
-     * Sauvegarde dans l'historique
-     */
-    saveToHistory(cell, newValue, oldValue) {
-        if (!this.config.undoEnabled) return true;
-        
-        const cellId = cell.id;
-        
-        if (this.history.has(cellId)) {
-            const history = this.history.get(cellId);
-            const currentIndex = this.historyIndex.get(cellId);
-            
-            // Supprimer les états après l'index actuel
-            history.splice(currentIndex + 1);
-            
-            // Ajouter le nouvel état
-            history.push(newValue);
-            
-            // Limiter la taille de l'historique
-            if (history.length > this.config.maxUndoSteps) {
-                history.shift();
-            } else {
-                this.historyIndex.set(cellId, history.length - 1);
-            }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Annule la dernière action
-     */
-    undo(cell) {
-        const cellId = cell.id;
-        
-        if (!this.history.has(cellId)) return;
-        
-        const history = this.history.get(cellId);
-        const currentIndex = this.historyIndex.get(cellId);
-        
-        if (currentIndex > 0) {
-            const newIndex = currentIndex - 1;
-            const previousValue = history[newIndex];
-            
-            this.historyIndex.set(cellId, newIndex);
-            this.updateCellValue(cell, previousValue, false); // false = pas d'ajout à l'historique
-        }
-    }
-    
-    /**
-     * Rétablit la dernière action annulée
-     */
-    redo(cell) {
-        const cellId = cell.id;
-        
-        if (!this.history.has(cellId)) return;
-        
-        const history = this.history.get(cellId);
-        const currentIndex = this.historyIndex.get(cellId);
-        
-        if (currentIndex < history.length - 1) {
-            const newIndex = currentIndex + 1;
-            const nextValue = history[newIndex];
-            
-            this.historyIndex.set(cellId, newIndex);
-            this.updateCellValue(cell, nextValue, false);
-        }
-    }
-    
-    // Méthode pour fournir des éléments de menu au ContextMenuPlugin
-    getMenuItems(cell) {
-        if (!cell || !cell.classList.contains(this.editPlugin.config.cellClass)) {
-            return [];
-        }
-        
-        const items = [];
-        
-        // En-tête de section
-        if (this.config.menuSection) {
-            items.push({
-                type: 'header',
-                label: this.config.menuSection
-            });
-        }
-        
-        // Ajouter chaque action configurée
-        Object.entries(this.config.actions).forEach(([id, action]) => {
-            const menuItem = {
-                id,
-                label: action.label,
-                icon: action.icon
-            };
-            
-            // Ajouter le raccourci dans le label si disponible
-            if (action.shortcut) {
-                menuItem.label += ` (${action.shortcut})`;
-            }
-            
-            items.push(menuItem);
-        });
-        
-        // Ajouter un séparateur puis undo/redo si activé
-        if (this.config.undoEnabled) {
-            items.push({ type: 'separator' });
-            items.push({
-                id: 'undo',
-                label: 'Annuler (Ctrl+Z)',
-                icon: '↩️'
-            });
-            items.push({
-                id: 'redo',
-                label: 'Rétablir (Ctrl+Y)',
-                icon: '↪️'
-            });
-        }
-        
-        return items;
-    }
-    
-    // Exécuter une action demandée via le menu contextuel
-    executeAction(actionId, cell) {
-        if (actionId === 'undo') {
-            this.undo(cell);
-            return;
-        }
-        
-        if (actionId === 'redo') {
-            this.redo(cell);
-            return;
-        }
-        
-        const action = this.config.actions[actionId];
-        if (!action || typeof action.handler !== 'function') {
-            this.debug(`Action non trouvée: ${actionId}`);
-            return;
-        }
-        
-        // Récupérer la valeur actuelle et la position du curseur
-        const currentValue = cell.getAttribute('data-value') || cell.textContent.trim();
-        const context = {
-            cell,
-            value: currentValue,
-            cursor: this.cursorTracker,
-            selection: this.getSelectionContext(cell)
-        };
-        
-        // Exécuter le handler
-        action.handler(context);
-    }
-    
-    /**
-     * Récupère le contexte de sélection
-     */
-    getSelectionContext(cell) {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return null;
-        
-        const range = selection.getRangeAt(0);
-        const container = range.commonAncestorContainer;
-        
-        // Vérifier si la sélection est dans cette cellule
-        const isInCell = container.nodeType === Node.TEXT_NODE ? 
-            container.parentElement.closest('td') === cell : 
-            container.closest('td') === cell;
-            
-        if (!isInCell) return null;
-        
-        return {
-            start: range.startOffset,
-            end: range.endOffset,
-            text: selection.toString()
-        };
-    }
-    
-    /**
-     * Actions de manipulation de texte
-     */
-    
-    // Supprimer la phrase courante
-    deleteSentence(context) {
-        const { value, cursor } = context;
-        if (!value) return;
-        
-        const sentences = this.splitIntoSentences(value);
-        if (sentences.length <= 1) {
-            this.debug('Impossible de supprimer la seule phrase');
-            return;
-        }
-        
-        // Trouver la phrase sous le curseur
-        let currentPos = 0;
-        let sentenceIndex = 0;
-        
-        for (let i = 0; i < sentences.length; i++) {
-            const sentenceLength = sentences[i].length;
-            if (cursor.position >= currentPos && cursor.position <= currentPos + sentenceLength) {
-                sentenceIndex = i;
-                break;
-            }
-            currentPos += sentenceLength + 1; // +1 pour l'espace entre phrases
-        }
-        
-        // Supprimer la phrase
-        sentences.splice(sentenceIndex, 1);
-        const newText = sentences.join(' ').trim();
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Supprimer le mot courant
-    deleteWord(context) {
-        const { value, cursor } = context;
-        if (!value) return;
-        
-        const words = this.splitIntoWords(value);
-        if (words.length <= 1) return;
-        
-        // Trouver le mot sous le curseur
-        let currentPos = 0;
-        let wordIndex = 0;
-        
-        for (let i = 0; i < words.length; i++) {
-            const wordLength = words[i].length;
-            if (cursor.position >= currentPos && cursor.position <= currentPos + wordLength) {
-                wordIndex = i;
-                break;
-            }
-            currentPos += wordLength + 1; // +1 pour l'espace
-        }
-        
-        // Supprimer le mot
-        words.splice(wordIndex, 1);
-        const newText = words.join(' ').trim();
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Supprimer le texte correspondant à une regex
-    deleteRegexMatch(context) {
-        const { value } = context;
-        if (!value) return;
-        
-        const pattern = prompt('Entrez le texte ou le motif à rechercher:');
-        if (!pattern) return;
-        
-        try {
-            const regex = new RegExp(pattern, 'gi');
-            const newText = value.replace(regex, '').replace(/\s+/g, ' ').trim();
-            
-            if (newText === value) {
-                alert('Aucune correspondance trouvée');
-                return;
-            }
-            
-            this.updateCellValue(context.cell, newText);
-        } catch (error) {
-            alert('Expression régulière invalide');
-            console.error('Erreur de regex:', error);
-        }
-    }
-    
-    // Mettre en majuscules la phrase courante
-    capitalizeSentence(context) {
-        const { value, cursor } = context;
-        if (!value) return;
-        
-        const sentences = this.splitIntoSentences(value);
-        
-        // Trouver la phrase sous le curseur
-        let currentPos = 0;
-        let sentenceIndex = 0;
-        
-        for (let i = 0; i < sentences.length; i++) {
-            const sentenceLength = sentences[i].length;
-            if (cursor.position >= currentPos && cursor.position <= currentPos + sentenceLength) {
-                sentenceIndex = i;
-                break;
-            }
-            currentPos += sentenceLength + 1;
-        }
-        
-        // Capitaliser la phrase
-        sentences[sentenceIndex] = sentences[sentenceIndex].toUpperCase();
-        const newText = sentences.join(' ');
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Mettre en majuscules le mot courant
-    capitalizeWord(context) {
-        const { value, cursor } = context;
-        if (!value) return;
-        
-        const words = this.splitIntoWords(value);
-        
-        // Trouver le mot sous le curseur
-        let currentPos = 0;
-        let wordIndex = 0;
-        
-        for (let i = 0; i < words.length; i++) {
-            const wordLength = words[i].length;
-            if (cursor.position >= currentPos && cursor.position <= currentPos + wordLength) {
-                wordIndex = i;
-                break;
-            }
-            currentPos += wordLength + 1;
-        }
-        
-        // Capitaliser le mot
-        words[wordIndex] = words[wordIndex].toUpperCase();
-        const newText = words.join(' ');
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Mettre en minuscules
-    lowercaseText(context) {
-        const { value, selection } = context;
-        if (!value) return;
-        
-        let newText;
-        if (selection && selection.text) {
-            // Appliquer uniquement à la sélection
-            const before = value.substring(0, selection.start);
-            const selected = selection.text.toLowerCase();
-            const after = value.substring(selection.end);
-            newText = before + selected + after;
-        } else {
-            // Appliquer à tout le texte
-            newText = value.toLowerCase();
-        }
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Supprimer les espaces superflus
-    trimSpaces(context) {
-        const { value } = context;
-        if (!value) return;
-        
-        // Supprimer les espaces multiples et trim
-        const newText = value.replace(/\s+/g, ' ').trim();
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Entourer de guillemets
-    wrapQuotes(context) {
-        const { value, selection } = context;
-        if (!value) return;
-        
-        let newText;
-        if (selection && selection.text) {
-            // Entourer la sélection
-            const before = value.substring(0, selection.start);
-            const selected = `"${selection.text}"`;
-            const after = value.substring(selection.end);
-            newText = before + selected + after;
-        } else {
-            // Entourer tout le texte
-            newText = `"${value}"`;
-        }
-        
-        this.updateCellValue(context.cell, newText);
-    }
-    
-    // Rechercher et remplacer
-    findReplace(context) {
-        const { value } = context;
-        if (!value) return;
-        
-        const find = prompt('Rechercher:');
-        if (!find) return;
-        
-        const replace = prompt('Remplacer par:');
-        if (replace === null) return; // null = annulé, "" = remplacer par vide
-        
-        // Demander si sensible à la casse
-        const caseSensitive = confirm('Sensible à la casse ?');
-        
-        // Demander si utiliser regex
-        const useRegex = confirm('Utiliser une expression régulière ?');
-        
-        try {
-            let newText;
-            if (useRegex) {
-                const flags = caseSensitive ? 'g' : 'gi';
-                const regex = new RegExp(find, flags);
-                newText = value.replace(regex, replace);
-            } else {
-                // Remplacement simple
-                if (caseSensitive) {
-                    newText = value.split(find).join(replace);
-                } else {
-                    const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                    newText = value.replace(regex, replace);
-                }
-            }
-            
-            if (newText === value) {
-                alert('Aucune correspondance trouvée');
-                return;
-            }
-            
-            this.updateCellValue(context.cell, newText);
-        } catch (error) {
-            alert('Erreur: ' + error.message);
-        }
-    }
-    
-    /**
-     * Utilitaires de manipulation de texte
-     */
-    
-    // Séparer en phrases (version améliorée)
-    splitIntoSentences(text) {
-        if (this.config.sentenceDetection === 'simple') {
-            return text.split(/(?<=[.!?])\s+/);
-        }
-        
-        // Détection intelligente des phrases
-        // Gère les abréviations, nombres décimaux, etc.
-        const abbreviations = ['Dr', 'Mr', 'Mrs', 'Ms', 'vs', 'etc', 'Inc', 'Ltd', 'Jr', 'Sr', 'Ph.D'];
-        const pattern = new RegExp(
-            `(?<!\\b(?:${abbreviations.join('|')}))(?<![0-9])\\. |[!?] `, 
-            'g'
-        );
-        
-        const sentences = [];
-        let lastIndex = 0;
-        let match;
-        
-        while ((match = pattern.exec(text)) !== null) {
-            sentences.push(text.substring(lastIndex, match.index + 1).trim());
-            lastIndex = match.index + match[0].length;
-        }
-        
-        if (lastIndex < text.length) {
-            sentences.push(text.substring(lastIndex).trim());
-        }
-        
-        return sentences.filter(s => s.length > 0);
-    }
-    
-    // Séparer en mots
-    splitIntoWords(text) {
-        return text.split(/\s+/).filter(word => word.length > 0);
-    }
-    
-    // Mise à jour de la valeur de la cellule
-    updateCellValue(cell, newValue, addToHistory = true) {
-        const oldValue = cell.getAttribute('data-value');
-        
-        // Sauvegarder dans l'historique si demandé
-        if (addToHistory && this.config.undoEnabled) {
-            this.saveToHistory(cell, newValue, oldValue);
-        }
-        
-        // Mettre à jour la valeur
-        cell.setAttribute('data-value', newValue);
-        
-        // Mettre à jour l'affichage
-        const wrapper = cell.querySelector('.cell-wrapper') || cell;
-        wrapper.textContent = newValue;
-        
-        // Marquer la ligne comme modifiée
-        const row = cell.closest('tr');
-        if (row) {
-            row.classList.add(this.editPlugin.config.modifiedClass);
-        }
-        
-        // Déclencher l'événement de changement
-        const changeEvent = new CustomEvent('cell:change', {
-            detail: {
-                cellId: cell.id,
-                columnId: cell.id.split('_')[0],
-                rowId: row ? row.id : null,
-                value: newValue,
-                oldValue: oldValue,
-                cell: cell,
-                source: 'textEditor',
-                tableId: this.table.table.id
-            },
-            bubbles: false
-        });
-        
-        this.table.table.dispatchEvent(changeEvent);
-    }
-    
-    // Gestion des raccourcis clavier
-    handleKeydown(event, cell, input) {
-        // Construire l'identificateur de la touche
-        let key = '';
-        if (event.ctrlKey || event.metaKey) key += 'Ctrl+';
-        if (event.altKey) key += 'Alt+';
-        if (event.shiftKey) key += 'Shift+';
-        key += event.key;
-        
-        // Normaliser certaines touches
-        const normalizedKey = key
-            .replace('Control', 'Ctrl')
-            .replace('Delete', 'Delete')
-            .replace('Backspace', 'Backspace')
-            .replace('"', 'Quote')
-            .replace("'", 'Quote');
-        
-        // Gérer Undo/Redo
-        if (normalizedKey === 'Ctrl+z') {
-            this.undo(cell);
-            event.preventDefault();
-            return false;
-        }
-        
-        if (normalizedKey === 'Ctrl+y' || normalizedKey === 'Ctrl+Shift+z') {
-            this.redo(cell);
-            event.preventDefault();
-            return false;
-        }
-        
-        // Vérifier si un raccourci correspond
-        for (const [actionId, action] of Object.entries(this.config.actions)) {
-            if (action.shortcut === normalizedKey) {
-                const context = {
-                    cell,
-                    value: input.value,
-                    cursor: {
-                        position: input.selectionStart,
-                        cell: cell
-                    },
-                    selection: {
-                        start: input.selectionStart,
-                        end: input.selectionEnd,
-                        text: input.value.substring(input.selectionStart, input.selectionEnd)
-                    }
-                };
-                
-                action.handler(context);
-                event.preventDefault();
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    refresh() {
-        // Réinitialiser si nécessaire
-    }
-    
-    destroy() {
-        // Nettoyer les hooks
-        if (this.editPlugin) {
-            this.editPlugin.removeHooksByNamespace('textEditor');
-        }
-        
-        // Nettoyer l'historique
-        this.history.clear();
-        this.historyIndex.clear();
+        this.debug('Plugin TextEditor détruit.');
     }
 }

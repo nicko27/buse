@@ -5,19 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentation Plugin LineToggle - TableFlow</title>
     <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="../src/tableFlow.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Styles additionnels spécifiques si nécessaire */
+        /* Styles spécifiques à cette page de documentation */
+        /* NOTE: Il est préférable de définir les styles TableFlow dans un fichier CSS dédié */
         body { padding: 2rem; }
         .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
          h1 { margin-bottom: 2rem; }
-         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+         /* Style pour la cohérence (ligne modifiée) */
+         tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
 
-         /* Exemples de classes pour LineToggle */
-         tr.highlight { background-color: #d1fae5 !important; /* Vert pâle */ }
-         tr.dim { opacity: 0.6; }
-         tr.error-row { background-color: #fee2e2 !important; /* Rouge pâle */ }
-         tr.warning-row { border-left: 5px solid #facc15; /* Jaune */ }
+         /* Exemples de classes CSS que LineToggle pourrait ajouter/retirer */
+         /* Ces styles DOIVENT être définis dans votre CSS global ou celui de la documentation */
+         tr.highlight td { /* Style pour la classe 'highlight' */
+            background-color: #d1fae5 !important; /* Vert pâle (tailwind green-100) */
+            font-weight: 500;
+         }
+         tr.dim { /* Style pour la classe 'dim' */
+            opacity: 0.6;
+            font-style: italic;
+         }
+         tr.error-row td { /* Style pour la classe 'error-row' */
+            background-color: #fee2e2 !important; /* Rouge pâle (tailwind red-100) */
+            color: #991b1b; /* Rouge foncé */
+         }
+         tr.warning-row { /* Style pour la classe 'warning-row' */
+            /* Ajoute une bordure gauche jaune */
+            border-left: 5px solid var(--tf-warning-color, #facc15);
+         }
+         /* Styles pour l'exemple spécifique */
+         tr.status-termine td {
+            background-color: #f0fdf4 !important; /* Vert très pâle */
+            text-decoration: line-through;
+            color: var(--tf-text-muted-color, #6b7280);
+         }
+         tr.status-erreur td {
+             background-color: var(--tf-invalid-bg, #fee2e2) !important;
+             font-weight: bold;
+             color: var(--tf-error-text-color, #b91c1c);
+         }
+         tr.priorite-haute {
+            border-left: 4px solid #dc2626; /* Rouge */
+         }
+         tr.priorite-basse {
+            opacity: 0.7;
+         }
+         /* Style pour Choice (simple) utilisé dans l'exemple */
+         td.choice-cell { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -28,51 +63,64 @@
             <section id="plugin-linetoggle-intro">
                 <h2>Objectif</h2>
                 <p>
-                    Le plugin <strong>LineToggle</strong> permet de modifier dynamiquement les classes CSS d'une ligne entière (`&lt;tr&gt;`) en fonction de la valeur d'une cellule spécifique dans cette ligne.
+                    Le plugin <strong>LineToggle</strong> permet de modifier dynamiquement les classes CSS appliquées à une ligne entière (`&lt;tr&gt;`) en fonction de la valeur d'une cellule spécifique (`<td>`) dans cette ligne.
                 </p>
                 <p>
-                    Cela permet de mettre en évidence visuellement des lignes basées sur des conditions définies (par exemple, changer la couleur de fond si un statut est "Terminé", ajouter une bordure si une priorité est "Haute", etc.). Les règles de modification de classe peuvent être définies directement dans l'attribut HTML ou via la configuration JavaScript.
+                    Cela est très utile pour appliquer des styles conditionnels aux lignes afin de les mettre en évidence visuellement selon leur état ou leurs données. Par exemple, vous pouvez changer la couleur de fond si un statut est "Terminé", ajouter une bordure si une priorité est "Haute", ou griser une ligne si elle est inactive.
                 </p>
+                <p>
+                    Les règles de modification de classe (quelles classes ajouter ou retirer selon quelle valeur) peuvent être définies de deux manières, qui peuvent être combinées :
+                </p>
+                <ul>
+                    <li>Directement dans l'attribut HTML <code class="attr">th-linetoggle</code> de l'en-tête `<th>` (pour des règles simples au format JSON).</li>
+                    <li>Via la configuration JavaScript du plugin (`plugins.linetoggle.rules`) pour des règles plus complexes ou centralisées.</li>
+                </ul>
             </section>
 
             <section id="plugin-linetoggle-activation">
                 <h2>Activation et Configuration HTML</h2>
                 <p>
-                    Pour activer le plugin LineToggle sur une colonne, ajoutez l'attribut <code class="attr">th-linetoggle</code> à l'élément <code>&lt;th&gt;</code> correspondant.
+                    Pour activer le plugin LineToggle sur une colonne (c'est-à-dire pour que le style de la ligne dépende de la valeur de cette colonne), ajoutez l'attribut <code class="attr">th-linetoggle</code> (configurable via `lineToggleAttribute`) à l'élément <code>&lt;th&gt;</code> correspondant.
                 </p>
                 <p>
-                    Vous pouvez définir des règles simples directement dans cet attribut en utilisant une chaîne JSON valide. Si l'attribut est présent mais vide (<code class="attr">th-linetoggle</code>) ou égal à `true`, les règles doivent être définies dans la configuration JavaScript.
+                    Vous pouvez optionnellement définir des règles directement dans cet attribut en fournissant une chaîne JSON valide comme valeur. Si l'attribut est présent mais vide (<code class="attr">th-linetoggle</code>) ou égal à `true`, les règles pour cette colonne <strong>doivent</strong> être définies dans la configuration JavaScript.
                 </p>
-                <pre><code class="language-html">&lt;table id="maTable"&gt;
+                <pre><code class="language-html">&lt;!-- Assurez-vous que la table a un ID unique --&gt;
+&lt;table id="maTableLineToggle"&gt;
   &lt;thead&gt;
     &lt;tr&gt;
       &lt;th id="colDescription"&gt;Description&lt;/th&gt;
-      &lt;!-- Activer via JS --&gt;
+      &lt;!-- Activation simple, règles définies en JS --&gt;
       &lt;th id="colStatut" th-linetoggle&gt;Statut (Règles via JS)&lt;/th&gt;
-      &lt;!-- Activer et définir des règles simples via HTML --&gt;
+      &lt;!-- Activation et règles simples définies en HTML (JSON valide requis) --&gt;
       &lt;th id="colPriorite"
           th-linetoggle='[
-              {"value": "Haute", "addClass": "highlight"},
-              {"value": "Basse", "addClass": "dim"}
-          ]'&gt;Priorité (Règles via HTML)&lt;/th&gt;
+              {"value": "Haute", "addClass": "priorite-haute"},
+              {"value": "Basse", "addClass": "priorite-basse", "removeClass": "highlight"}
+          ]'&gt;Priorité (Règles via HTML + JS)&lt;/th&gt;
     &lt;/tr&gt;
   &lt;/thead&gt;
   &lt;tbody&gt;
     &lt;!-- Lignes de données --&gt;
     &lt;tr id="row1"&gt;
         &lt;td id="colDescription_row1"&gt;Tâche 1&lt;/td&gt;
-        &lt;td id="colStatut_row1" data-value="pending"&gt;En attente&lt;/td&gt;
-        &lt;td id="colPriorite_row1" data-value="Haute"&gt;Haute&lt;/td&gt; &lt;!-- Aura la classe 'highlight' --&gt;
+        &lt;td id="colStatut_row1" data-value="pending"&gt;En attente&lt;/td&gt; &lt;!-- Style défini par JS --&gt;
+        &lt;td id="colPriorite_row1" data-value="Haute"&gt;Haute&lt;/td&gt; &lt;!-- Aura la classe 'priorite-haute' via HTML --&gt;
     &lt;/tr&gt;
      &lt;tr id="row2"&gt;
         &lt;td id="colDescription_row2"&gt;Tâche 2&lt;/td&gt;
         &lt;td id="colStatut_row2" data-value="completed"&gt;Terminé&lt;/td&gt; &lt;!-- Style défini par JS --&gt;
-        &lt;td id="colPriorite_row2" data-value="Basse"&gt;Basse&lt;/td&gt; &lt;!-- Aura la classe 'dim' --&gt;
+        &lt;td id="colPriorite_row2" data-value="Basse"&gt;Basse&lt;/td&gt; &lt;!-- Aura la classe 'priorite-basse' via HTML --&gt;
+    &lt;/tr&gt;
+     &lt;tr id="row3"&gt;
+        &lt;td id="colDescription_row3"&gt;Tâche 3&lt;/td&gt;
+        &lt;td id="colStatut_row3" data-value="error"&gt;Erreur&lt;/td&gt; &lt;!-- Style défini par JS --&gt;
+        &lt;td id="colPriorite_row3" data-value="Moyenne"&gt;Moyenne&lt;/td&gt; &lt;!-- Style défini par JS --&gt;
     &lt;/tr&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;</code></pre>
                 <p>
-                    Les règles définies dans l'attribut HTML sont fusionnées avec celles définies dans la configuration JavaScript pour la même colonne.
+                    <strong>Important :</strong> Les règles définies dans l'attribut HTML sont <strong>fusionnées</strong> avec celles définies dans la configuration JavaScript pour la même colonne (identifiée par l'ID du `<th>`). Les deux ensembles de règles seront appliqués.
                 </p>
             </section>
 
@@ -81,65 +129,72 @@
                 <p>
                     La configuration détaillée du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.linetoggle</code>.
                 </p>
-                <pre><code class="language-javascript">const tableInstance = new TableFlow({
-    tableId: 'maTable',
+                <pre><code class="language-javascript">// Exemple d'initialisation de TableFlow
+import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
+
+const tableLT = new TableFlow({
+    tableId: 'maTableLineToggle',
     pluginsPath: '../plugins', // Ajustez
+    debug: true,
     plugins: {
-        names: ['LineToggle', /* ... autres plugins ... */], // Activer le plugin
+        names: ['LineToggle', 'Choice'], // Activer LineToggle (et Choice pour tester les changements)
         linetoggle: { // Configuration spécifique pour 'LineToggle'
-            // --- Options Générales du Plugin ---
-            lineToggleAttribute: 'th-linetoggle', // Attribut HTML pour activer/configurer (défaut)
-            applyOnInit: true, // Appliquer les règles au chargement initial (défaut: true)
-            applyOnChange: true, // Appliquer les règles lors d'un 'cell:change' (défaut: true)
-            debug: false, // Activer les logs spécifiques
+            // --- Options Générales ---
+            // lineToggleAttribute: 'th-linetoggle', // Défaut
+            applyOnInit: true, // Appliquer au chargement (défaut)
+            applyOnChange: true, // Réappliquer si la valeur de la cellule change (défaut)
+            // debug: true, // Activer logs spécifiques
 
             // --- Règles de Modification de Classe ---
             rules: {
                 // Clé = ID du <th> de la colonne à surveiller
-                'colStatut': [ // Règles pour la colonne avec th id="colStatut"
+                'colStatut': [ // Règles pour la colonne th#colStatut
                     {
-                        // Condition: la valeur de la cellule est exactement 'completed'
-                        value: 'completed',
-                        // Actions: ajouter la classe 'highlight', retirer la classe 'dim'
-                        addClass: 'highlight',
-                        removeClass: 'dim'
+                        value: 'completed', // Si valeur === 'completed'
+                        addClass: 'status-termine', // Ajouter cette classe à <tr>
+                        removeClass: ['status-erreur', 'highlight'] // Retirer celles-ci
                     },
                     {
-                        // Condition: la valeur est 'pending' OU 'in_progress'
-                        values: ['pending', 'in_progress'],
-                        // Action: retirer la classe 'highlight'
-                        removeClass: 'highlight'
+                        value: 'error',
+                        addClass: 'status-erreur',
+                        removeClass: ['status-termine']
                     },
                     {
-                        // Condition: la valeur commence par 'error' (insensible à la casse via regex)
-                        regex: '^error', // Le plugin utilise new RegExp(), donc pas besoin de /.../i
-                        // Action: ajouter la classe 'error-row'
-                        addClass: 'error-row'
+                        // Si la valeur n'est ni 'completed' ni 'error'
+                        // Utiliser une condition pour retirer les classes spécifiques
+                        condition: 'notEquals', compareValue: 'completed',
+                        removeClass: 'status-termine' // Assurer que la classe est retirée
+                    },
+                     {
+                        condition: 'notEquals', compareValue: 'error',
+                        removeClass: 'status-erreur'
                     }
                 ],
-                'colPriorite': [ // Règles additionnelles pour la colonne 'colPriorite'
-                    // Ces règles seront fusionnées avec celles définies dans l'attribut th-linetoggle
+                'colPriorite': [ // Règles pour th#colPriorite (s'ajoutent à celles de l'HTML)
                     {
-                        // Condition: la valeur est 'Moyenne'
-                        condition: 'equals',
-                        compareValue: 'Moyenne',
-                        // Action: retirer les classes 'highlight' et 'dim'
-                        removeClass: ['highlight', 'dim']
+                        value: 'Basse', // La règle HTML gère déjà l'ajout de 'priorite-basse'
+                        removeClass: 'priorite-haute' // Assurer le nettoyage de l'autre classe
                     },
                     {
-                        // Condition: la valeur de la cellule est vide
-                        condition: 'empty',
-                        // Action: ajouter la classe 'warning-row'
-                        addClass: 'warning-row'
-                    }
-                    // Note: les règles HTML pour 'Haute' et 'Basse' s'appliquent aussi
+                        value: 'Moyenne',
+                        // Aucune classe à ajouter, mais retirer celles des autres priorités
+                        removeClass: ['priorite-haute', 'priorite-basse']
+                    },
+                     // Nettoyage si pas Basse (la règle HTML gère déjà le nettoyage de 'priorite-haute')
+                     { condition: 'notEquals', compareValue: 'Basse', removeClass: 'priorite-basse' }
                 ]
-                // ... règles pour d'autres colonnes 'th-linetoggle'
+                // ... règles pour d'autres colonnes ...
             }
+        },
+        choice: { // Configurer Choice pour permettre de changer les valeurs et tester applyOnChange
+             columns: {
+                 'colStatut': { type: 'toggle', values: ['pending', 'in_progress', 'completed', 'error'] },
+                 'colPriorite': { type: 'toggle', values: ['Basse', 'Moyenne', 'Haute'] }
+             }
         }
     }
-    // ... autres options TableFlow ...
-});</code></pre>
+});
+</code></pre>
 
                 <h3>Tableau Complet des Options de Configuration JS (`plugins.linetoggle`)</h3>
                 <div class="info-block">
@@ -151,34 +206,37 @@
                     </thead>
                     <tbody>
                         <tr><td><code class="attr">lineToggleAttribute</code></td><td class="type">string</td><td><code class="default">'th-linetoggle'</code></td><td>Nom de l'attribut HTML sur `<th>` pour activer le plugin et potentiellement définir des règles JSON.</td></tr>
-                        <tr><td><code class="attr">applyOnInit</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, les règles sont appliquées à toutes les lignes lors de l'initialisation de TableFlow.</td></tr>
-                        <tr><td><code class="attr">applyOnChange</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, les règles sont ré-appliquées à une ligne lorsque la valeur d'une cellule dans une colonne surveillée change (événement `cell:change`).</td></tr>
+                        <tr><td><code class="attr">applyOnInit</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, les règles sont appliquées à toutes les lignes lors de l'initialisation de TableFlow et lors de l'ajout de nouvelles lignes.</td></tr>
+                        <tr><td><code class="attr">applyOnChange</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, les règles de la colonne correspondante sont ré-appliquées à une ligne lorsque la valeur d'une cellule dans cette colonne change (via l'événement `cell:change`).</td></tr>
                         <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin LineToggle. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
-                        <tr><td><code class="attr">rules</code></td><td class="type">object</td><td><code class="default">{}</code></td><td><strong>(Essentiel si non défini en HTML)</strong> Objet contenant les règles de modification de classe pour chaque colonne surveillée. La clé est l'ID du `<th>`, la valeur est un tableau d'objets "règle" (voir tableau suivant).</td></tr>
+                        <tr><td><code class="attr">rules</code></td><td class="type">object</td><td><code class="default">{}</code></td><td>Objet contenant les règles de modification de classe définies en JavaScript. La clé est l'ID du `<th>` de la colonne surveillée, la valeur est un tableau d'objets "règle" (voir tableau suivant). Ces règles sont fusionnées avec celles définies dans l'attribut HTML.</td></tr>
                     </tbody>
                 </table>
 
-                <h3>Structure Complète d'un Objet Règle (dans `plugins.linetoggle.rules[columnId]`)</h3>
+                <h3>Structure Complète d'un Objet Règle (dans `plugins.linetoggle.rules[columnId]` ou dans l'attribut HTML)</h3>
                  <div class="info-block">
-                    Chaque élément du tableau de règles pour une colonne définit une condition et les actions (ajout/suppression de classes) à effectuer sur la ligne (`<tr>`) si la condition est remplie par la valeur de la cellule (`<td>`) dans cette colonne. Plusieurs règles peuvent s'appliquer à la même cellule/ligne.
+                    Chaque objet dans le tableau de règles pour une colonne définit une <strong>condition</strong> basée sur la valeur de la cellule et les <strong>actions</strong> (ajout/suppression de classes CSS) à effectuer sur l'élément `<tr>` parent si la condition est remplie. Plusieurs règles peuvent s'appliquer à la même cellule/ligne ; leurs actions `addClass`/`removeClass` se cumulent.
                  </div>
                 <table class="documentation-table">
                      <thead>
-                         <tr><th>Propriété (dans l'objet règle)</th><th>Type</th><th>Description</th></tr>
+                         <tr><th>Propriété (dans l'objet règle)</th><th>Type</th><th>Description de la Condition</th></tr>
                      </thead>
                      <tbody>
-                         <tr><td><code class="attr">value</code></td><td><code class="type">string | number | boolean</code></td><td>La règle s'applique si la valeur de la cellule est <strong>strictement égale</strong> (après conversion en chaîne) à cette valeur.</td></tr>
-                         <tr><td><code class="attr">values</code></td><td><code class="type">Array</code></td><td>La règle s'applique si la valeur de la cellule (convertie en chaîne) est présente dans ce tableau de valeurs.</td></tr>
-                         <tr><td><code class="attr">regex</code></td><td><code class="type">string</code></td><td>La règle s'applique si la valeur de la cellule correspond à cette <strong>expression régulière</strong> (fournie comme chaîne, ex: `"^start"`, `"[0-9]+$"`).</td></tr>
-                         <tr><td><code class="attr">condition</code></td><td><code class="type">string</code></td><td>Utilise une condition prédéfinie pour comparer la valeur de la cellule avec `compareValue`. Valeurs possibles : `'equals'`, `'notEquals'`, `'contains'`, `'startsWith'`, `'endsWith'`, `'greater'`, `'less'`, `'greaterOrEqual'`, `'lessOrEqual'`, `'empty'`, `'notEmpty'`.</td></tr>
-                         <tr><td><code class="attr">compareValue</code></td><td><code class="type">any</code></td><td>La valeur à utiliser pour la comparaison lorsque `condition` est définie (sauf pour 'empty'/'notEmpty').</td></tr>
-                         <tr><td><code class="attr">test</code></td><td><code class="type">function</code></td><td>Une fonction personnalisée `(cellValue) => boolean`. La règle s'applique si la fonction retourne `true`. Permet des logiques de condition complexes.</td></tr>
-                         <tr><td><code class="attr">addClass</code></td><td><code class="type">string | Array&lt;string&gt;</code></td><td><strong>(Action)</strong> Une ou plusieurs classes CSS à ajouter à l'élément `<tr>` si la condition est remplie.</td></tr>
-                         <tr><td><code class="attr">removeClass</code></td><td><code class="type">string | Array&lt;string&gt;</code></td><td><strong>(Action)</strong> Une ou plusieurs classes CSS à retirer de l'élément `<tr>` si la condition est remplie.</td></tr>
+                         <tr><td><code class="attr">value</code></td><td><code class="type">string | number | boolean</code></td><td>La règle s'applique si la valeur de la cellule (convertie en chaîne) est <strong>strictement égale</strong> à cette valeur (convertie en chaîne).</td></tr>
+                         <tr><td><code class="attr">values</code></td><td><code class="type">Array</code></td><td>La règle s'applique si la valeur de la cellule (convertie en chaîne) est <strong>incluse</strong> dans ce tableau de valeurs (chaînes, nombres, booléens).</td></tr>
+                         <tr><td><code class="attr">regex</code></td><td><code class="type">string</code></td><td>La règle s'applique si la valeur de la cellule (chaîne) <strong>correspond</strong> à cette expression régulière (fournie comme chaîne, ex: `"^start"`, `"[0-9]+$"`). Les flags (ex: `'i'` pour insensible à la casse) peuvent être passés via la propriété `flags`.</td></tr>
+                         <tr><td><code class="attr">flags</code></td><td><code class="type">string</code></td><td>(Optionnel) Flags à utiliser avec la condition `regex` (ex: `'i'`, `'gi'`).</td></tr>
+                         <tr><td><code class="attr">condition</code></td><td><code class="type">string</code></td><td>Utilise une condition prédéfinie pour comparer la valeur de la cellule. Doit être utilisée avec `compareValue` (sauf pour 'empty'/'notEmpty').<br>Valeurs possibles : `'equals'`, `'notEquals'`, `'contains'`, `'startsWith'`, `'endsWith'`, `'greater'`, `'less'`, `'greaterOrEqual'`, `'lessOrEqual'`, `'empty'`, `'notEmpty'`.</td></tr>
+                         <tr><td><code class="attr">compareValue</code></td><td><code class="type">any</code></td><td>La valeur à utiliser pour la comparaison lorsque `condition` est définie (sauf pour 'empty'/'notEmpty'). La comparaison numérique (`greater`, `less`, etc.) ne fonctionne que si la valeur de la cellule et `compareValue` peuvent être converties en nombres valides.</td></tr>
+                         <tr><td><code class="attr">test</code></td><td><code class="type">function</code></td><td><strong>(JS uniquement)</strong> Une fonction personnalisée `(cellValue) => boolean`. La règle s'applique si la fonction retourne `true`. Reçoit la valeur brute de la cellule (non nécessairement une chaîne). Permet des logiques de condition complexes. Non utilisable dans l'attribut HTML.</td></tr>
+                         <tr><td colspan="3"><strong>Actions (si la condition est remplie)</strong></td></tr>
+                         <tr><td><code class="attr">addClass</code></td><td><code class="type">string | Array&lt;string&gt;</code></td><td><strong>(Action)</strong> Une ou plusieurs classes CSS à <strong>ajouter</strong> à l'élément `<tr>`.</td></tr>
+                         <tr><td><code class="attr">removeClass</code></td><td><code class="type">string | Array&lt;string&gt;</code></td><td><strong>(Action)</strong> Une ou plusieurs classes CSS à <strong>retirer</strong> de l'élément `<tr>`.</td></tr>
                      </tbody>
                  </table>
                  <div class="warning-block">
-                     <strong>Priorité des Conditions :</strong> Le code vérifie les conditions dans un ordre spécifique (value, values, regex, test, condition). La première condition valide dans une règle déclenche les actions `addClass`/`removeClass`. Assurez-vous qu'une règle ne contient qu'un seul type de condition pour éviter les ambiguïtés.
+                     <strong>Priorité des Conditions :</strong> Le plugin évalue les conditions dans un ordre spécifique (`value`, `values`, `regex`, `test`, `condition`). La première condition valide dans une règle déclenche les actions `addClass`/`removeClass`. Assurez-vous qu'une règle ne contient qu'un seul type de condition pour éviter les ambiguïtés.
+                     <br><strong>Cumul des Règles :</strong> Si plusieurs règles pour la même colonne correspondent à la valeur d'une cellule, les actions (`addClass`/`removeClass`) de <strong>toutes</strong> ces règles seront appliquées à la ligne. Concevez vos règles en conséquence (par exemple, en utilisant `removeClass` pour nettoyer les classes ajoutées par d'autres règles potentiellement conflictuelles).
                  </div>
             </section>
 
@@ -188,44 +246,51 @@
                     <li><strong>Initialisation (`init`, `setupLineToggleColumns`):</strong>
                         <ul>
                             <li>Identifie les `<th>` avec l'attribut `lineToggleAttribute`.</li>
-                            <li>Pour chaque colonne trouvée :
-                                <ul>
-                                    <li>Récupère les règles définies dans l'attribut HTML (si JSON valide).</li>
-                                    <li>Récupère les règles définies dans la configuration JS (`config.rules[columnId]`).</li>
-                                    <li>Fusionne les deux listes de règles.</li>
-                                    <li>Si `applyOnInit` est `true`, appelle `applyRulesToColumn` pour traiter toutes les lignes existantes pour cette colonne.</li>
-                                </ul>
-                            </li>
-                            <li>Ajoute des écouteurs pour `cell:change` et `row:added`.</li>
+                            <li>Pour chaque colonne trouvée, appelle `getRulesForColumn` pour fusionner les règles JS et HTML.</li>
+                            <li>Si `applyOnInit` est `true`, appelle `applyRulesToColumn` pour traiter toutes les lignes existantes pour cette colonne.</li>
+                            <li>Ajoute des écouteurs pour `cell:change` (si `applyOnChange`) et `row:added` (si `applyOnInit`).</li>
                         </ul>
                     </li>
-                    <li><strong>Application des Règles à une Colonne (`applyRulesToColumn`):</strong> Itère sur toutes les lignes du tableau et appelle `applyRulesToRow` pour chaque ligne, en passant les règles de la colonne.</li>
-                    <li><strong>Application des Règles à une Ligne (`applyRulesToRow`):</strong>
+                    <li><strong>Application Initiale/Refresh (`applyRulesToColumn`):</strong> Itère sur toutes les lignes (`this.table.getAllRows()`) et appelle `applyRulesToRow` pour chaque ligne avec les règles de la colonne.</li>
+                    <li><strong>Application à une Ligne (`applyRulesToRow`):</strong>
                         <ul>
-                            <li>Récupère la cellule correspondante dans la ligne (`row.cells[columnIndex]`).</li>
+                            <li>Récupère la cellule `<td>` correspondante dans la ligne.</li>
                             <li>Obtient la valeur de la cellule (priorité à `data-value`, sinon `textContent`).</li>
                             <li>Itère sur chaque règle définie pour la colonne.</li>
-                            <li>Pour chaque règle, vérifie si elle s'applique à la valeur de la cellule en utilisant `ruleApplies()`.</li>
-                            <li>Si `ruleApplies()` retourne `true`, exécute les actions `addClass` et `removeClass` sur l'élément `<tr>` de la ligne.</li>
+                            <li>Pour chaque règle, vérifie si elle s'applique à la valeur via `ruleApplies()`.</li>
+                            <li>Si `true`, applique les actions `addClass` et `removeClass` sur l'élément `<tr>` de la ligne.</li>
                         </ul>
                     </li>
-                    <li><strong>Vérification d'une Règle (`ruleApplies`):</strong> Teste la condition de la règle (value, values, regex, test, condition) par rapport à la valeur de la cellule et retourne `true` ou `false`.</li>
+                    <li><strong>Vérification d'une Règle (`ruleApplies`):</strong> Teste la condition de la règle (`value`, `values`, `regex`, `test`, `condition`) par rapport à la valeur de la cellule et retourne `true` ou `false`. Gère les comparaisons de chaînes et numériques (pour les conditions prédéfinies). Utilise un cache pour les regex compilées (`getCompiledRegex`).</li>
                     <li><strong>Gestion des Changements (`handleCellChange`):</strong>
                         <ul>
-                            <li>Si `applyOnChange` est `true`.</li>
-                            <li>Identifie la cellule et la colonne modifiées à partir de l'événement.</li>
-                            <li>Vérifie si la colonne modifiée est surveillée par LineToggle.</li>
-                            <li>Si oui, récupère les règles pour cette colonne et appelle `applyRulesToRow` pour la ligne concernée.</li>
+                            <li>Déclenché par l'événement `cell:change`.</li>
+                            <li>Vérifie si `applyOnChange` est `true`.</li>
+                            <li>Identifie la colonne modifiée.</li>
+                            <li>Si la colonne est surveillée (a `th-linetoggle`), récupère ses règles et appelle `applyRulesToRow` pour la ligne concernée.</li>
                         </ul>
                     </li>
                     <li><strong>Gestion des Nouvelles Lignes (`handleRowAdded`):</strong>
                         <ul>
-                             <li>Si `applyOnInit` est `true`.</li>
-                             <li>Pour chaque colonne surveillée par LineToggle, appelle `applyRulesToRow` pour la nouvelle ligne ajoutée.</li>
+                             <li>Déclenché par l'événement `row:added`.</li>
+                             <li>Si `applyOnInit` est `true`, parcourt toutes les colonnes surveillées et appelle `applyRulesToRow` pour la nouvelle ligne ajoutée.</li>
                         </ul>
                     </li>
-                     <li><strong>Rafraîchissement (`refresh`):</strong> Si `applyOnInit` est `true`, ré-exécute `setupLineToggleColumns()` pour ré-appliquer toutes les règles à toutes les lignes.</li>
+                     <li><strong>Rafraîchissement (`refresh`):</strong> Si `applyOnInit` est `true`, ré-exécute `setupLineToggleColumns()` pour ré-analyser et ré-appliquer toutes les règles à toutes les lignes.</li>
+                     <li><strong>Nettoyage (`destroy`):</strong> Supprime les écouteurs d'événements (`cell:change`, `row:added`) ajoutés par le plugin.</li>
                 </ul>
+            </section>
+
+             <section id="plugin-linetoggle-api">
+                <h2>API Publique</h2>
+                <p>
+                    Le plugin LineToggle n'expose pas de méthodes publiques spécifiques dans cette version. Son comportement est entièrement contrôlé par la configuration et les événements internes de TableFlow.
+                </p>
+                 <p>Pour forcer une ré-évaluation des règles sur l'ensemble du tableau (par exemple, si les règles elles-mêmes ont changé), vous pouvez appeler la méthode `refresh()` du plugin :</p>
+                 <pre><code class="language-javascript">// Après initialisation de TableFlow et attente de ready()
+const lineTogglePlugin = myTableFlowInstance.getPlugin('lineToggle');
+lineTogglePlugin?.refresh();
+</code></pre>
             </section>
 
             <section id="plugin-linetoggle-events">
@@ -233,8 +298,8 @@
                 <ul>
                     <li><strong>Écoutés :</strong>
                         <ul>
-                            <li><code>cell:change</code> : Pour ré-évaluer les règles sur une ligne lorsque la valeur d'une cellule surveillée change (si `applyOnChange` est `true`).</li>
-                            <li><code>row:added</code> : Pour appliquer les règles aux nouvelles lignes ajoutées (si `applyOnInit` est `true`).</li>
+                            <li><code>cell:change</code> (sur la table) : Pour ré-évaluer les règles sur une ligne lorsque la valeur d'une cellule surveillée change (si `applyOnChange` est `true`).</li>
+                            <li><code>row:added</code> (sur la table) : Pour appliquer les règles aux nouvelles lignes ajoutées (si `applyOnInit` est `true`).</li>
                         </ul>
                     </li>
                     <li><strong>Déclenchés :</strong> Aucun événement spécifique déclenché par ce plugin. Il modifie directement les classes des `<tr>`.</li>
@@ -243,7 +308,7 @@
 
             <section id="plugin-linetoggle-example">
                 <h2>Exemple Complet</h2>
-                <p>Cet exemple applique différents styles aux lignes en fonction du statut et de la priorité.</p>
+                <p>Cet exemple applique différents styles aux lignes d'un tableau de tâches en fonction du statut et de la priorité. Le plugin 'Choice' est également utilisé pour permettre de modifier les valeurs et de voir `applyOnChange` en action.</p>
 
                 <strong>HTML (`index.html`):</strong>
                 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
@@ -251,26 +316,38 @@
 &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
     &lt;title&gt;Exemple LineToggle Plugin&lt;/title&gt;
-    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
-        body { padding: 2rem; }
+    &lt;link rel="stylesheet" href="../src/tableFlow.css"&gt;
+    &lt;link rel="stylesheet" href="documentation.css"&gt;
+    &lt;style&gt;
+        body { padding: 2rem; font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        thead th { background-color: #f2f2f2; }
         tr.modified td { background-color: #fffbeb; }
+
         /* Styles pour les classes ajoutées par LineToggle */
-        tr.status-termine td { background-color: #f0fdf4; text-decoration: line-through; color: #6b7280; }
-        tr.status-erreur td { background-color: #fef2f2; font-weight: bold; color: #b91c1c; }
+        tr.status-termine td { background-color: #f0fdf4 !important; text-decoration: line-through; color: #6b7280; }
+        tr.status-erreur td { background-color: #fef2f2 !important; font-weight: bold; color: #b91c1c; }
         tr.priorite-haute { border-left: 4px solid #dc2626; } /* Rouge */
         tr.priorite-basse { opacity: 0.7; }
-    </style>
+        /* Style pour Choice (simple) utilisé dans l'exemple */
+        td.choice-cell { cursor: pointer; }
+    &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
     &lt;h1&gt;TableFlow - Exemple Plugin LineToggle&lt;/h1&gt;
+    &lt;p&gt;Cliquez sur les cellules Statut ou Priorité pour changer leur valeur et voir le style de la ligne s'adapter.&lt;/p&gt;
 
-    &lt;table id="taskTable"&gt;
+    &lt;table id="taskTableLT"&gt;
         &lt;thead&gt;
             &lt;tr&gt;
                 &lt;th id="taskDesc"&gt;Tâche&lt;/th&gt;
-                &lt;th id="taskStatus" th-linetoggle&gt;Statut&lt;/th&gt;
+                &lt;!-- Colonne Statut: règles via JS --&gt;
+                &lt;th id="taskStatus" th-linetoggle th-choice&gt;Statut&lt;/th&gt;
+                &lt;!-- Colonne Priorité: règles via HTML et JS --&gt;
                 &lt;th id="taskPriority"
-                    th-linetoggle='[{"value": "Haute", "addClass": "priorite-haute"}]'&gt;
+                    th-linetoggle='[{"value": "Haute", "addClass": "priorite-haute"}]'
+                    th-choice="toggle"&gt;
                     Priorité
                 &lt;/th&gt;
             &lt;/tr&gt;
@@ -299,30 +376,30 @@
         &lt;/tbody&gt;
     &lt;/table&gt;
 
-    &lt;!-- Pour tester applyOnChange, on ajoute le plugin Choice --&gt;
+    &lt;!-- Script d'initialisation --&gt;
     &lt;script type="module"&gt;
-        import TableFlow from '../src/tableFlow.js'; // Ajustez
+        import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
 
         const taskTable = new TableFlow({
-            tableId: 'taskTable',
+            tableId: 'taskTableLT',
             pluginsPath: '../plugins', // Ajustez
             debug: true,
             plugins: {
                 names: ['LineToggle', 'Choice'], // Activer LineToggle et Choice
                 linetoggle: {
                     rules: {
-                        'taskStatus': [ // Règles pour la colonne Statut
-                            { value: 'Terminé', addClass: 'status-termine' },
-                            { value: 'Erreur', addClass: 'status-erreur' },
-                            // Retirer les classes si ce n'est ni Terminé ni Erreur
+                        'taskStatus': [ // Règles JS pour la colonne Statut
+                            { value: 'Terminé', addClass: 'status-termine', removeClass: 'status-erreur' },
+                            { value: 'Erreur', addClass: 'status-erreur', removeClass: 'status-termine' },
+                            // Règles pour nettoyer si ni Terminé ni Erreur
                             { condition: 'notEquals', compareValue: 'Terminé', removeClass: 'status-termine' },
                             { condition: 'notEquals', compareValue: 'Erreur', removeClass: 'status-erreur' }
                         ],
-                        'taskPriority': [ // Règle additionnelle pour Priorité (fusionnée avec celle de l'HTML)
-                            { value: 'Basse', addClass: 'priorite-basse' },
-                            // Retirer les classes si ni Haute ni Basse
-                            { condition: 'notEquals', compareValue: 'Haute', removeClass: 'priorite-haute' },
-                            { condition: 'notEquals', compareValue: 'Basse', removeClass: 'priorite-basse' }
+                        'taskPriority': [ // Règles JS pour Priorité (s'ajoutent à la règle HTML pour 'Haute')
+                            { value: 'Basse', addClass: 'priorite-basse', removeClass: 'priorite-haute' },
+                            { value: 'Moyenne', removeClass: ['priorite-haute', 'priorite-basse'] },
+                             // Nettoyage si pas Basse (la règle HTML gère déjà le nettoyage de 'priorite-haute')
+                             { condition: 'notEquals', compareValue: 'Basse', removeClass: 'priorite-basse' }
                         ]
                     }
                     // applyOnInit et applyOnChange sont true par défaut
@@ -330,11 +407,11 @@
                 choice: { // Configurer Choice pour pouvoir changer les valeurs
                     columns: {
                         'taskStatus': {
-                            type: 'toggle',
+                            type: 'toggle', // Utiliser toggle pour cet exemple
                             values: ['En attente', 'En cours', 'Terminé', 'Erreur']
                         },
                         'taskPriority': {
-                            type: 'toggle',
+                            // Le type 'toggle' est déjà forcé par l'attribut th-choice="toggle"
                             values: ['Basse', 'Moyenne', 'Haute']
                         }
                     }
@@ -350,28 +427,28 @@
                 <ol>
                     <li>Au chargement (`applyOnInit: true`) :
                         <ul>
-                            <li>La ligne t1 (Priorité Haute) obtient la classe `priorite-haute` (bordure rouge).</li>
-                            <li>La ligne t2 (Statut Terminé, Priorité Basse) obtient les classes `status-termine` (barré, fond vert pâle) et `priorite-basse` (opacité réduite).</li>
-                            <li>La ligne t3 (Statut Erreur, Priorité Haute) obtient les classes `status-erreur` (fond rouge pâle, gras) et `priorite-haute`.</li>
-                            <li>La ligne t4 n'obtient aucune classe spéciale initialement.</li>
+                            <li>Ligne t1 (Prio Haute): obtient `priorite-haute` (bordure rouge) via règle HTML.</li>
+                            <li>Ligne t2 (Statut Terminé, Prio Basse): obtient `status-termine` (barré/vert pâle) via règle JS et `priorite-basse` (opacité) via règle JS.</li>
+                            <li>Ligne t3 (Statut Erreur, Prio Haute): obtient `status-erreur` (gras/fond rouge) via règle JS et `priorite-haute` via règle HTML.</li>
+                            <li>Ligne t4 (Statut En attente, Prio Moyenne): obtient aucune classe spéciale initialement (les règles de nettoyage s'appliquent).</li>
                         </ul>
                     </li>
-                    <li>Le plugin Choice est activé sur les colonnes Statut et Priorité.</li>
+                    <li>Le plugin Choice est activé en mode `toggle` sur les colonnes Statut et Priorité.</li>
                     <li>Si vous cliquez sur le statut de la ligne t1 ("En cours") et le changez en "Terminé" :
                         <ul>
                             <li>L'événement `cell:change` est déclenché par Choice.</li>
                             <li>LineToggle écoute cet événement (`applyOnChange: true`).</li>
-                            <li>Il applique les règles pour `taskStatus`: la classe `status-termine` est ajoutée.</li>
+                            <li>Il applique les règles JS pour `taskStatus`: la classe `status-termine` est ajoutée.</li>
                             <li>La ligne t1 aura maintenant le style barré/fond vert pâle ET la bordure rouge.</li>
                         </ul>
                     </li>
                     <li>Si vous changez ensuite le statut de t1 en "En attente" :
                         <ul>
-                           <li>LineToggle applique les règles : `status-termine` est retirée.</li>
+                           <li>LineToggle applique les règles : `status-termine` est retirée (via la règle `notEquals`).</li>
                            <li>La ligne t1 n'a plus que la bordure rouge.</li>
                         </ul>
                     </li>
-                     <li>De même, changer la priorité modifiera les classes `priorite-haute` ou `priorite-basse`.</li>
+                     <li>De même, cliquer sur la priorité change la classe `priorite-haute` (HTML) ou `priorite-basse` (JS) et nettoie les autres classes de priorité.</li>
                 </ol>
             </section>
 

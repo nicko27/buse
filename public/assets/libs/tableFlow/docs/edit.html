@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Plugin Edit - TableFlow</title>
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="../src/tableFlow.css">
+    <style>
+        /* Styles spécifiques à cette page */
+        body { padding: 2rem; }
+        .content { margin-left: 0; } /* Pas de nav latérale */
+         h1 { margin-bottom: 2rem; }
+         /* Style pour la cohérence */
+         tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
+
+         /* Styles pour Edit (normalement dans tableFlow.css) */
+         td.td-edit { cursor: pointer; }
+         .edit-input {
+             width: 100%;
+             padding: var(--tf-input-padding, 4px 6px);
+             border: 1px solid var(--tf-primary-color, #4f46e5); /* Bordure visible pendant édition */
+             border-radius: var(--tf-border-radius, 4px);
+             font: inherit; /* Hériter police/taille */
+             box-sizing: border-box; /* Inclure padding/bordure dans la taille */
+             outline: none;
+         }
+         .edit-input:focus {
+             box-shadow: 0 0 0 2px var(--tf-focus-ring-color, rgba(79, 70, 229, 0.25)); /* Effet focus */
+         }
+         td.readonly { /* Classe ajoutée par l'option readonly */
+             cursor: not-allowed !important;
+             background-color: var(--tf-header-bg, #f8f9fa) !important; /* Fond gris clair */
+             color: var(--tf-text-muted-color, #6c757d);
+             font-style: italic;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Documentation Plugin Edit</h1>
+
+            <section id="plugin-edit-intro">
+                <h2>Objectif</h2>
+                <p>
+                    Le plugin <strong>Edit</strong> est un composant fondamental de TableFlow qui permet l'<strong>édition en ligne</strong> du contenu des cellules (`&lt;td&gt;`). Lorsqu'une cellule est marquée comme éditable, un double-clic sur celle-ci remplace son contenu par un champ de saisie (`&lt;input type="text"&gt;` par défaut).
+                </p>
+                <p>
+                    L'utilisateur peut alors modifier la valeur. La sauvegarde s'effectue généralement en appuyant sur la touche `Entrée` ou en cliquant en dehors du champ (événement `blur`). La touche `Echap` annule les modifications.
+                </p>
+                <p>
+                    Ce plugin est crucial car il fournit également un <strong>système de hooks</strong> (points d'accroche) qui permet à d'autres plugins (comme <a href="validation.html">Validation</a>, <a href="highlight.html">Highlight</a>, <a href="texteditor.html">TextEditor</a>) de s'intégrer au processus d'édition pour ajouter des fonctionnalités (validation avant sauvegarde, surlignage pendant l'édition, actions sur le texte, etc.).
+                </p>
+            </section>
+
+            <section id="plugin-edit-activation">
+                <h2>Activation et Configuration HTML</h2>
+                <p>
+                    Pour rendre une colonne éditable, ajoutez l'attribut <code class="attr">th-edit</code> (configurable via `editAttribute` en JS) à l'élément <code>&lt;th&gt;</code> correspondant. Aucune valeur n'est nécessaire pour cet attribut.
+                </p>
+                <p>
+                    Pour marquer une cellule spécifique (`&lt;td&gt;`) comme non éditable (même si la colonne l'est), ajoutez-lui la classe CSS définie par l'option `readOnlyClass` (par défaut: `readonly`).
+                </p>
+                <pre><code class="language-html">&lt;table id="maTableEdit"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th id="colNom" th-edit&gt;Nom (Éditable)&lt;/th&gt;
+      &lt;th id="colVille" th-edit&gt;Ville (Éditable)&lt;/th&gt;
+      &lt;th id="colFixe"&gt;Info Fixe (Non éditable)&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr id="user1"&gt;
+        &lt;td id="colNom_user1"&gt;Alice&lt;/td&gt;
+        &lt;td id="colVille_user1"&gt;Paris&lt;/td&gt;
+        &lt;td id="colFixe_user1"&gt;Fixe A&lt;/td&gt;
+    &lt;/tr&gt;
+     &lt;tr id="user2"&gt;
+        &lt;td id="colNom_user2"&gt;Bob&lt;/td&gt;
+        &lt;!-- Cette cellule spécifique ne sera pas éditable --&gt;
+        &lt;td id="colVille_user2" class="readonly"&gt;Londres (Non éditable)&lt;/td&gt;
+        &lt;td id="colFixe_user2"&gt;Fixe B&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+                <p>
+                    L'activation du plugin se fait ensuite via la configuration JavaScript (`plugins.names: ['Edit', ...]`).
+                </p>
+            </section>
+
+            <section id="plugin-edit-config-js">
+                <h2>Configuration JavaScript</h2>
+                <p>
+                    La configuration du plugin Edit lui-même est simple. Elle se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.edit</code>.
+                </p>
+                <pre><code class="language-javascript">// Exemple d'initialisation de TableFlow
+import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
+
+const tableEd = new TableFlow({
+    tableId: 'maTableEdit',
+    pluginsPath: '../plugins', // Ajustez
+    debug: true,
+    plugins: {
+        names: ['Edit'], // Activer le plugin Edit
+        edit: { // Configuration spécifique pour 'Edit'
+            // --- Options Générales ---
+            editAttribute: 'th-editable', // Changer l'attribut HTML si besoin
+            cellClass: 'editable-cell', // Changer la classe des <td> éditables
+            readOnlyClass: 'locked-cell', // Changer la classe des <td> non éditables
+            inputClass: 'my-edit-input', // Changer la classe de l'input
+            modifiedClass: 'row-changed', // Changer la classe des <tr> modifiées
+            // debug: true // Activer logs spécifiques
+        }
+    }
+});
+</code></pre>
+
+                <h3>Tableau Complet des Options de Configuration JS (`plugins.edit`)</h3>
+                <div class="info-block">
+                    Ce tableau liste toutes les options configurables pour le plugin Edit via l'objet `plugins.edit`.
+                </div>
+                <table class="documentation-table">
+                    <thead>
+                        <tr><th>Option (dans `plugins.edit`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code class="attr">editAttribute</code></td><td class="type">string</td><td><code class="default">'th-edit'</code></td><td>Nom de l'attribut HTML sur `<th>` pour activer l'édition sur une colonne.</td></tr>
+                        <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-edit'</code></td><td>Classe CSS ajoutée aux cellules `<td>` qui sont éditables (via l'attribut sur le `<th>`).</td></tr>
+                        <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS à ajouter à un `<td>` spécifique pour l'empêcher d'être édité, même si sa colonne est marquée comme éditable.</td></tr>
+                        <tr><td><code class="attr">inputClass</code></td><td class="type">string</td><td><code class="default">'edit-input'</code></td><td>Classe CSS ajoutée à l'élément `<input>` créé lors de l'édition.</td></tr>
+                        <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour marquer les lignes (`<tr>`) modifiées lorsque la valeur d'une cellule change par rapport à sa valeur initiale.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Edit. Hérite du `debug` global si non défini.</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+             <section id="plugin-edit-hooks">
+                 <h2>Système de Hooks</h2>
+                 <p>
+                     Le plugin Edit expose un système de hooks permettant à d'autres plugins de s'intégrer et de modifier le processus d'édition. Les plugins peuvent s'enregistrer pour écouter ces hooks en utilisant les méthodes `addHook` et `removeHook` de l'instance du plugin Edit.
+                 </p>
+                 <pre><code class="language-javascript">// Dans la méthode init() d'un autre plugin (ex: Validation)
+init(tableHandler) {
+    this.table = tableHandler;
+    this.editPlugin = this.table.getPlugin('Edit'); // Récupérer l'instance Edit
+
+    if (this.editPlugin &amp;&amp; typeof this.editPlugin.addHook === 'function') {
+        // S'enregistrer au hook 'beforeSave' avec un namespace
+        this.editPlugin.addHook('beforeSave', this.myValidationCallback.bind(this), 'MyValidationNamespace');
+        // S'enregistrer à 'afterEdit'
+        this.editPlugin.addHook('afterEdit', this.mySetupCallback.bind(this), 'MyValidationNamespace');
+    }
+}
+
+// Dans la méthode destroy() de l'autre plugin
+destroy() {
+    if (this.editPlugin &amp;&amp; typeof this.editPlugin.removeHook === 'function') {
+        // Se désenregistrer en utilisant le namespace
+        this.editPlugin.removeHook('beforeSave', 'MyValidationNamespace');
+        this.editPlugin.removeHook('afterEdit', 'MyValidationNamespace');
+    }
+    // ...
+}
+</code></pre>
+                 <h3>Hooks Disponibles</h3>
+                 <table class="documentation-table">
+                     <thead>
+                         <tr><th>Nom du Hook</th><th>Arguments du Callback</th><th>Description</th><th>Retour Attendu</th></tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td><code>beforeEdit</code></td>
+                             <td><code>(cell, currentValue)</code></td>
+                             <td>Déclenché <strong>avant</strong> que le champ d'édition ne soit créé. Permet d'annuler l'édition.</td>
+                             <td><span class="type">boolean | void</span><br>Retourner `false` annule l'édition.</td>
+                         </tr>
+                         <tr>
+                             <td><code>afterEdit</code></td>
+                             <td><code>(cell, inputElement, currentValue)</code></td>
+                             <td>Déclenché <strong>après</strong> que l'élément `<input>` a été créé et inséré. Permet de modifier l'input (ex: ajouter attributs de validation) ou d'attacher des listeners supplémentaires.</td>
+                             <td><span class="type">void</span></td>
+                         </tr>
+                         <tr>
+                             <td><code>beforeSave</code></td>
+                             <td><code>(cell, newValue, oldValue)</code></td>
+                             <td>Déclenché <strong>avant</strong> que la nouvelle valeur (`newValue`) ne soit sauvegardée dans `data-value`. Permet de valider la donnée.</td>
+                             <td><span class="type">boolean | void</span><br>Retourner `false` annule la sauvegarde (laisse l'input ouvert).</td>
+                         </tr>
+                         <tr>
+                             <td><code>afterSave</code></td>
+                             <td><code>(cell, newValue, oldValue)</code></td>
+                             <td>Déclenché <strong>après</strong> que la nouvelle valeur a été sauvegardée avec succès et que l'input a été retiré.</td>
+                             <td><span class="type">void</span></td>
+                         </tr>
+                         <tr>
+                             <td><code>onKeydown</code></td>
+                             <td><code>(event, cell, inputElement)</code></td>
+                             <td>Déclenché lors d'un événement `keydown` sur l'input d'édition. Permet d'intercepter des touches ou d'ajouter des raccourcis.</td>
+                             <td><span class="type">boolean | void</span><br>Retourner `false` empêche le traitement par défaut de `Entrée` et `Echap` par le plugin Edit.</td>
+                         </tr>
+                         <tr>
+                             <td><code>onRender</code></td>
+                             <td><code>(cell, value)</code></td>
+                             <td>Déclenché lors de l'affichage initial de la cellule et après l'annulation ou la sauvegarde d'une édition. Permet de personnaliser le rendu du contenu de la cellule (ex: surlignage).</td>
+                             <td><span class="type">boolean | void</span><br>Retourner `false` indique que le rendu a été géré par le hook, empêchant le plugin Edit d'insérer la valeur textuelle brute.</td>
+                         </tr>
+                     </tbody>
+                 </table>
+                 <h3>API des Hooks</h3>
+                 <p>L'instance du plugin Edit (`editPlugin` dans les exemples) expose les méthodes suivantes pour gérer les hooks :</p>
+                 <table class="documentation-table">
+                      <thead>
+                          <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td><code>addHook(hookName, callback, namespace?)</code></td>
+                              <td>
+                                  <code class="attr">hookName</code> <span class="type">(string)</span><br>
+                                  <code class="attr">callback</code> <span class="type">(function)</span><br>
+                                  <code class="attr">namespace</code> <span class="type">(string, optionnel)</span>
+                              </td>
+                              <td>Ajoute une fonction `callback` à exécuter lorsque le hook `hookName` est déclenché. Le `namespace` est optionnel mais recommandé pour faciliter la suppression via `removeHook`.</td>
+                              <td class="type">this (EditPlugin instance)</td>
+                          </tr>
+                          <tr>
+                              <td><code>removeHook(hookName, callbackOrNamespace)</code></td>
+                              <td>
+                                  <code class="attr">hookName</code> <span class="type">(string)</span><br>
+                                  <code class="attr">callbackOrNamespace</code> <span class="type">(function | string)</span>
+                              </td>
+                              <td>Supprime un ou plusieurs callbacks d'un hook. Si `callbackOrNamespace` est une fonction, seul ce callback exact est retiré. Si c'est une chaîne (namespace), tous les callbacks enregistrés avec ce namespace pour ce hook sont retirés.</td>
+                              <td class="type">this (EditPlugin instance)</td>
+                          </tr>
+                          <tr>
+                              <td><code>executeHook(hookName, ...args)</code></td>
+                              <td>
+                                  <code class="attr">hookName</code> <span class="type">(string)</span><br>
+                                  <code class="attr">...args</code> <span class="type">(any)</span>
+                              </td>
+                              <td>(Utilisé en interne par EditPlugin) Exécute tous les callbacks enregistrés pour `hookName`, en leur passant les arguments `...args`. Retourne `false` si un callback a retourné `false`, `true` sinon.</td>
+                              <td class="type">boolean</td>
+                          </tr>
+                      </tbody>
+                  </table>
+             </section>
+
+
+            <section id="plugin-edit-how-it-works">
+                <h2>Fonctionnement Interne</h2>
+                <ul>
+                    <li><strong>Initialisation (`init`, `setupEditCells`):</strong> Identifie les `<th>` avec `editAttribute`. Pour chaque cellule `<td>` correspondante, ajoute `cellClass`, `data-plugin="edit"`, et attache un écouteur `dblclick` qui appelle `startEditing`. Initialise `data-value` et `data-initial-value`. Appelle le hook `onRender`.</li>
+                    <li><strong>Double-clic (`_handleDblClick` -> `startEditing`):</strong> Vérifie si la cellule est éditable (pas `readonly`, pas déjà en édition). Appelle le hook `beforeEdit`. Si non annulé, appelle `createEditField`.</li>
+                    <li><strong>Création de l'Input (`createEditField`):</strong> Crée un `<input>`, le place dans le wrapper de la cellule, lui donne le focus et sélectionne son contenu. Attache les listeners `blur` (appelle `finishEditing`) et `keydown` (appelle `handleKeydown`). Appelle le hook `afterEdit`.</li>
+                    <li><strong>Frappe Clavier (`handleKeydown`):</strong> Appelle le hook `onKeydown`. Si non géré par un hook, traite `Entrée` (appelle `input.blur()`) et `Echap` (appelle `cancelEditing()`).</li>
+                    <li><strong>Fin de l'Édition (`finishEditing` via `blur` ou `Entrée`):</strong> Récupère `newValue` et `oldValue`. Appelle le hook `beforeSave`. Si non annulé :
+                        <ul>
+                            <li>Met à jour `data-value`.</li>
+                            <li>Appelle le hook `onRender` (ou `updateCellDisplay` si `onRender` ne gère pas) pour afficher la nouvelle valeur.</li>
+                            <li>Nettoie les listeners de l'input (`removeInputListeners`).</li>
+                            <li>Met à jour la classe `modifiedClass` sur la ligne si `newValue !== initialValue`.</li>
+                            <li>Déclenche l'événement `cell:change` (`dispatchChangeEvent`).</li>
+                            <li>Appelle le hook `afterSave`.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Annulation (`cancelEditing` via `Echap`):</strong> Nettoie les listeners de l'input. Appelle le hook `onRender` (ou `updateCellDisplay`) pour restaurer la valeur précédente (`data-value`). Efface les indicateurs d'erreur potentiels (via ValidationPlugin).</li>
+                    <li><strong>Affichage (`updateCellDisplay`):</strong> Méthode par défaut pour mettre à jour le contenu du wrapper de la cellule (utilise le sanitizer si disponible).</li>
+                    <li><strong>Gestion des Sauvegardes (`_handleCellSaved`, `_handleRowSaved`):</strong> Met à jour `data-initial-value` après une sauvegarde externe (via `markRowAsSaved`) et rafraîchit l'affichage via `onRender`.</li>
+                    <li><strong>Nouvelles Lignes (`_handleRowAdded`):</strong> Appelle `setupEditCells(newRow)` pour initialiser la nouvelle ligne.</li>
+                    <li><strong>Nettoyage (`destroy`):</strong> Supprime les écouteurs d'événements (`dblclick`, `cell:saved`, etc.) et vide les hooks.</li>
+                </ul>
+            </section>
+
+            <section id="plugin-edit-events">
+                <h2>Événements</h2>
+                <ul>
+                    <li><strong>Écoutés :</strong>
+                        <ul>
+                            <li><code>dblclick</code> (sur les `<td>` éditables) : Pour démarrer l'édition.</li>
+                            <li><code>blur</code>, <code>keydown</code> (sur l'`<input>` d'édition) : Pour terminer/annuler l'édition.</li>
+                            <li><code>cell:saved</code> (sur la table) : Pour mettre à jour `data-initial-value` après sauvegarde.</li>
+                            <li><code>row:saved</code> (sur la table) : Pour mettre à jour `data-initial-value` des cellules éditables de la ligne.</li>
+                            <li><code>row:added</code> (sur la table) : Pour initialiser les nouvelles lignes.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Déclenchés :</strong>
+                        <ul>
+                            <li><code>cell:change</code> (sur la table) : Après une sauvegarde réussie si la valeur a changé. Contient `{ detail: { cell, value, oldValue, initialValue, isModified, source: 'edit', ... } }`.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="plugin-edit-example">
+                <h2>Exemple Complet</h2>
+                <p>Cet exemple montre une table simple où deux colonnes sont éditables. Un message est loggué en console lorsqu'une cellule est sauvegardée.</p>
+
+                <strong>HTML (`index.html`):</strong>
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Exemple Edit Plugin&lt;/title&gt;
+    &lt;link rel="stylesheet" href="../src/tableFlow.css"&gt;
+    &lt;link rel="stylesheet" href="documentation.css"&gt;
+    &lt;style&gt;
+        body { padding: 2rem; font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        thead th { background-color: #f2f2f2; }
+        tr.modified td { background-color: #fffbeb; }
+        td.td-edit { cursor: pointer; }
+        .edit-input { width: 100%; padding: 4px 6px; border: 1px solid #4f46e5; border-radius: 4px; font: inherit; box-sizing: border-box; outline: none; }
+        .edit-input:focus { box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25); }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;TableFlow - Exemple Plugin Edit&lt;/h1&gt;
+    &lt;p&gt;Double-cliquez sur une cellule "Nom" ou "Ville" pour l'éditer. Appuyez sur Entrée ou cliquez ailleurs pour sauvegarder, Echap pour annuler.&lt;/p&gt;
+
+    &lt;table id="editTableExample"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th id="editNom" th-edit&gt;Nom&lt;/th&gt;
+                &lt;th id="editVille" th-edit&gt;Ville&lt;/th&gt;
+                &lt;th id="editPays"&gt;Pays (Non éditable)&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr id="e_r1"&gt;
+                &lt;td id="editNom_e_r1"&gt;Alice&lt;/td&gt;
+                &lt;td id="editVille_e_r1"&gt;Paris&lt;/td&gt;
+                &lt;td id="editPays_e_r1"&gt;France&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr id="e_r2"&gt;
+                &lt;td id="editNom_e_r2"&gt;Bob&lt;/td&gt;
+                &lt;td id="editVille_e_r2"&gt;Londres&lt;/td&gt;
+                &lt;td id="editPays_e_r2"&gt;UK&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;script type="module"&gt;
+        import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
+
+        const editTable = new TableFlow({
+            tableId: 'editTableExample',
+            pluginsPath: '../plugins', // Ajustez
+            debug: true,
+            plugins: {
+                names: ['Edit'] // Activer seulement le plugin Edit
+                // Pas de configuration spécifique nécessaire pour cet exemple simple
+            }
+        });
+
+        // Écouter l'événement cell:change pour voir les sauvegardes
+        editTable.ready().then(instance => {
+            instance.tableInstance.element.addEventListener('cell:change', (e) => {
+                if (e.detail.source === 'edit') { // Vérifier si le changement vient du plugin Edit
+                     console.log(`Cellule sauvegardée: ID=${e.detail.cellId}, Nouvelle Valeur='${e.detail.value}', Modifié?=${e.detail.isModified}`);
+                     // Ici, vous pourriez déclencher un appel API pour sauvegarder en base de données
+                }
+            });
+        });
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+                <strong>Fonctionnement de l'exemple :</strong>
+                <ol>
+                    <li>La table s'affiche. Les colonnes "Nom" et "Ville" sont éditables.</li>
+                    <li>Double-cliquez sur "Alice" : le texte est remplacé par un champ input contenant "Alice".</li>
+                    <li>Modifiez le texte en "Alice Merveille" et appuyez sur `Entrée`.</li>
+                    <li>La cellule affiche maintenant "Alice Merveille". La ligne devient jaune pâle (classe `modified`).</li>
+                    <li>La console affiche un message indiquant que la cellule a été sauvegardée, la nouvelle valeur et que la ligne est modifiée.</li>
+                    <li>Double-cliquez sur "Paris", modifiez en "Paris Centre", puis appuyez sur `Echap`.</li>
+                    <li>L'édition est annulée, la cellule affiche de nouveau "Paris". La ligne reste jaune si "Alice Merveille" est toujours différent de la valeur initiale "Alice".</li>
+                </ol>
+            </section>
+
+        </div>
+    </div>
+</body>
+</html>

@@ -1,13 +1,37 @@
+/* docs/documentation.css */
+/* Feuille de style pour les pages de documentation de TableFlow */
+
+/* -------------------------------------------------------------------------- */
+/* Variables CSS Globales (Thème de la Documentation)                         */
+/* -------------------------------------------------------------------------- */
 :root {
-    --primary-color: #4f46e5; /* Indigo */
-    --secondary-color: #10b981; /* Emerald */
-    --text-color: #1f2937;
-    --bg-color: #ffffff;
-    --code-bg: #f3f4f6;
-    --border-color: #e5e7eb;
-    --nav-width: 280px; /* Largeur ajustée pour plus de contenu */
+    /* Couleurs principales pour la documentation */
+    --doc-primary-color: #4f46e5; /* Indigo (utilisé pour titres, liens nav) */
+    --doc-secondary-color: #10b981; /* Emerald (utilisé pour h3) */
+    --doc-text-color: #1f2937;    /* Gray-800 (texte principal) */
+    --doc-bg-color: #ffffff;        /* Blanc (fond général) */
+    --doc-code-bg: #f3f4f6;         /* Gray-100 (fond blocs de code) */
+    --doc-border-color: #e5e7eb;    /* Gray-200 (bordures légères) */
+
+    /* Couleurs pour les blocs d'information */
+    --doc-info-bg: #eef2ff;         /* indigo-100 */
+    --doc-info-border: var(--doc-primary-color);
+    --doc-info-text: #3730a3;       /* indigo-800 */
+    --doc-warning-bg: #fffbeb;      /* yellow-100 */
+    --doc-warning-border: #facc15;  /* yellow-400 */
+    --doc-warning-text: #713f12;    /* yellow-900 */
+    --doc-error-bg: #fee2e2;        /* red-100 */
+    --doc-error-border: #ef4444;    /* red-500 */
+    --doc-error-text: #991b1b;      /* red-900 */
+
+    /* Dimensions */
+    --doc-nav-width: 280px; /* Largeur de la navigation latérale */
+    --doc-content-max-width: 1400px; /* Largeur max du contenu */
 }
 
+/* -------------------------------------------------------------------------- */
+/* Styles de Base de la Page de Documentation                                 */
+/* -------------------------------------------------------------------------- */
 * {
     margin: 0;
     padding: 0;
@@ -17,541 +41,393 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
-    color: var(--text-color);
-    background: var(--bg-color);
-    padding: 2rem;
+    color: var(--doc-text-color);
+    background: var(--doc-bg-color);
+    padding: 2rem; /* Marge autour du contenu global */
 }
 
 .container {
-    max-width: 1400px; /* Augmenté pour plus d'espace */
-    margin: 0 auto;
+    max-width: var(--doc-content-max-width);
+    margin: 0 auto; /* Centrer le contenu */
 }
 
+/* Typographie */
 h1, h2, h3, h4 {
     margin: 1.5rem 0 1rem;
-    color: var(--primary-color);
+    color: var(--doc-primary-color);
+    font-weight: 600; /* Police un peu plus grasse */
 }
 
 h1 {
     font-size: 2.8rem;
-    border-bottom: 2px solid var(--primary-color);
+    border-bottom: 2px solid var(--doc-primary-color);
     padding-bottom: 0.5rem;
     margin-top: 0;
 }
 
 h2 {
     font-size: 2rem;
-    margin-top: 3rem;
-    border-bottom: 1px solid var(--border-color);
+    margin-top: 3rem; /* Plus d'espace avant les sections principales */
+    border-bottom: 1px solid var(--doc-border-color);
     padding-bottom: 0.4rem;
 }
 
 h3 {
     font-size: 1.5rem;
     margin-top: 2.5rem;
-    color: var(--secondary-color);
+    color: var(--doc-secondary-color); /* Couleur secondaire pour h3 */
 }
  h4 {
     font-size: 1.2rem;
     margin-top: 2rem;
-    color: var(--text-color);
+    color: var(--doc-text-color); /* Retour à la couleur de texte normale */
     font-weight: 600;
 }
-
 
 p, ul, ol {
     margin-bottom: 1rem;
 }
 
 ul, ol {
-    padding-left: 2rem;
+    padding-left: 2rem; /* Indentation standard pour les listes */
 }
 
-code {
-    background: var(--code-bg);
+a {
+    color: var(--doc-primary-color);
+    text-decoration: none; /* Pas de soulignement par défaut */
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Blocs de code */
+code { /* Code inline */
+    background: var(--doc-code-bg);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
+    color: #b91d73; /* Couleur distincte pour le code inline */
 }
 
-pre {
-    background: var(--code-bg);
+pre { /* Blocs de code préformatés */
+    background: var(--doc-code-bg);
     padding: 1rem;
-    border-radius: 8px;
-    overflow-x: auto;
+    border-radius: 8px; /* Coins arrondis plus prononcés */
+    overflow-x: auto; /* Permet le défilement horizontal si le code est trop long */
     margin: 1rem 0;
     font-size: 0.9em;
+    border: 1px solid var(--doc-border-color); /* Légère bordure */
 }
 
-pre code {
+pre code { /* Code à l'intérieur de <pre> */
     background: none;
     padding: 0;
+    border-radius: 0;
+    color: inherit; /* Hérite la couleur de <pre> */
+    font-family: 'Courier New', Courier, monospace; /* Assurer la police mono */
 }
 
+/* Tableaux de Documentation */
 table.documentation-table { /* Classe spécifique pour les tables de doc */
     width: 100%;
     border-collapse: collapse;
     margin: 1.5rem 0;
+    font-size: 0.95em; /* Légèrement plus grand pour la lisibilité */
 }
 
 table.documentation-table th,
 table.documentation-table td {
-    padding: 0.8rem 1rem; /* Padding augmenté */
+    padding: 0.8rem 1rem; /* Padding généreux */
     text-align: left;
-    border: 1px solid var(--border-color);
-    vertical-align: top; /* Meilleur alignement vertical */
+    border: 1px solid var(--doc-border-color);
+    vertical-align: top; /* Aligner en haut pour les descriptions longues */
 }
 
 table.documentation-table th {
-    background: #f9fafb; /* Fond légèrement différent pour th */
+    background: #f9fafb; /* Fond légèrement différent pour th (Gray-50) */
     font-weight: 600;
 }
 
-.example {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin: 1.5rem 0;
-    background-color: #ffffff; /* Fond blanc pour exemples */
-}
-
-.example-preview {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.example-code {
-    padding: 1rem;
-    background: var(--code-bg);
-    border-radius: 0 0 8px 8px;
-}
-
-.nav {
-    position: fixed;
-    top: 1rem; /* Réduit l'espace en haut */
-    bottom: 1rem;
-    left: 1rem;
-    width: var(--nav-width);
-    overflow-y: auto;
-    padding: 1.5rem; /* Padding augmenté */
-    background: var(--bg-color);
-    border-right: 1px solid var(--border-color);
-    font-size: 0.9em;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-    border-radius: 8px; /* Bords arrondis */
-}
-
-.nav h3 {
-    margin-top: 0;
-    font-size: 1.2em; /* Taille augmentée */
-    margin-bottom: 1rem;
-}
-
-.nav ul {
-    list-style: none;
-    padding: 0;
-}
- .nav > ul > li { /* Seulement le premier niveau */
-     margin-bottom: 0.8rem;
-     font-weight: 500;
- }
-
- .nav ul ul { /* Sous-menu pour les plugins */
-     padding-left: 1rem;
-     margin-top: 0.3rem;
-     font-weight: normal;
- }
- .nav ul ul li {
-     margin-bottom: 0.3rem;
- }
-
-
-.nav a {
-    color: var(--primary-color);
-    text-decoration: none;
-    display: block;
-    padding: 0.3rem 0; /* Padding augmenté */
-    border-radius: 4px;
-    padding-left: 0.5rem;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.nav a:hover, .nav a.active { /* Style actif ajouté */
-    text-decoration: none;
-    background-color: #eef2ff; /* Fond léger indigo */
-    color: #3730a3; /* Indigo foncé */
-}
-
-.content {
-    margin-left: calc(var(--nav-width) + 3rem); /* Marge augmentée */
-}
-
-.info-block, .warning-block, .error-block {
-    padding: 1rem 1.5rem;
-    margin: 1.5rem 0;
-    border-radius: 4px;
-    border-left-width: 5px; /* Bordure plus épaisse */
-    border-left-style: solid;
-}
-
-.info-block {
-    background-color: #eef2ff; /* indigo-100 */
-    border-color: var(--primary-color);    /* indigo-600 */
-    color: #3730a3;       /* indigo-800 */
-}
-
-.warning-block {
-    background-color: #fffbeb; /* yellow-100 */
-    border-color: #facc15; /* yellow-400 */
-    color: #713f12;       /* yellow-900 */
-}
-
-.error-block {
-    background-color: #fee2e2; /* red-100 */
-    border-color: #ef4444; /* red-500 */
-    color: #991b1b;       /* red-900 */
-}
-
-
-/* Classe pour les attributs dans les tables */
-.attr {
+/* Classes utilitaires pour les tableaux de documentation */
+.attr { /* Attributs HTML ou clés JSON */
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
     color: #c0392b; /* Rouge */
+    font-weight: 500;
 }
-.type {
+.type { /* Types de données (string, boolean, etc.) */
     font-style: italic;
     color: #7f8c8d; /* Gris */
 }
-.default {
+.default { /* Valeurs par défaut */
      font-family: 'Courier New', Courier, monospace;
      color: #27ae60; /* Vert */
      font-size: 0.9em;
 }
-.value {
+.value { /* Valeurs d'exemple ou clés spécifiques */
     font-family: 'Courier New', Courier, monospace;
     color: #2980b9; /* Bleu */
     font-size: 0.9em;
 }
 
 
-@media (max-width: 1024px) { /* Ajusté le breakpoint */
+/* Blocs d'information, d'avertissement, d'erreur */
+.info-block, .warning-block, .error-block {
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    border-radius: var(--tf-border-radius, 4px); /* Utilise variable TableFlow si définie */
+    border-left-width: 5px;
+    border-left-style: solid;
+}
+
+.info-block {
+    background-color: var(--doc-info-bg);
+    border-color: var(--doc-info-border);
+    color: var(--doc-info-text);
+}
+.info-block strong { /* Rendre le gras plus visible */
+    color: var(--doc-primary-color);
+}
+
+.warning-block {
+    background-color: var(--doc-warning-bg);
+    border-color: var(--doc-warning-border);
+    color: var(--doc-warning-text);
+}
+.warning-block strong {
+     color: #b45309; /* yellow-700 */
+}
+
+
+.error-block {
+    background-color: var(--doc-error-bg);
+    border-color: var(--doc-error-border);
+    color: var(--doc-error-text);
+}
+.error-block strong {
+    color: #b91c1c; /* red-800 */
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Navigation Latérale                                                        */
+/* -------------------------------------------------------------------------- */
+.nav {
+    position: fixed;
+    top: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    width: var(--doc-nav-width);
+    overflow-y: auto; /* Scroll si le contenu dépasse */
+    padding: 1.5rem;
+    background: var(--doc-bg-color);
+    border-right: 1px solid var(--doc-border-color);
+    font-size: 0.9em;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Ombre légère */
+    border-radius: 8px; /* Coins arrondis */
+}
+
+.nav h3 {
+    margin-top: 0;
+    font-size: 1.2em;
+    margin-bottom: 1rem;
+    color: var(--doc-primary-color); /* Couleur du titre de la nav */
+}
+
+.nav ul {
+    list-style: none;
+    padding: 0;
+}
+ .nav > ul > li { /* Styles pour les éléments de premier niveau */
+     margin-bottom: 0.8rem;
+     font-weight: 500; /* Légèrement plus gras */
+ }
+
+ .nav ul ul { /* Styles pour les sous-menus (plugins, exemples) */
+     padding-left: 1rem; /* Indentation */
+     margin-top: 0.3rem;
+     font-weight: normal; /* Police normale pour les sous-éléments */
+     border-left: 1px solid #eee; /* Ligne verticale légère */
+ }
+ .nav ul ul li {
+     margin-bottom: 0.3rem;
+ }
+
+/* Styles des liens de navigation */
+.nav a {
+    color: var(--doc-primary-color);
+    text-decoration: none;
+    display: block; /* Prend toute la largeur */
+    padding: 0.3rem 0.5rem; /* Padding interne */
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.nav a:hover,
+.nav a.active { /* Style pour le lien actif ou survolé */
+    text-decoration: none;
+    background-color: #eef2ff; /* Fond léger indigo (indigo-50) */
+    color: #3730a3; /* Indigo foncé (indigo-800) */
+    font-weight: 600; /* Mettre en gras le lien actif */
+}
+/* Style spécifique pour le lien parent actif quand un enfant est actif */
+.nav > ul > li > a.active {
+     font-weight: bold; /* Encore plus gras pour le parent */
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Contenu Principal                                                          */
+/* -------------------------------------------------------------------------- */
+.content {
+    /* Laisser de la place pour la navigation fixe à gauche */
+    margin-left: calc(var(--doc-nav-width) + 3rem); /* Largeur nav + marge */
+}
+
+/* -------------------------------------------------------------------------- */
+/* Blocs d'Exemple                                                            */
+/* -------------------------------------------------------------------------- */
+.example {
+    border: 1px solid var(--doc-border-color);
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    background-color: #ffffff; /* Fond blanc distinct */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Ombre très légère */
+}
+
+.example-preview {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--doc-border-color);
+    /* Styles pour la prévisualisation de la table dans l'exemple */
+}
+.example-preview h3, .example-preview h4 {
+    margin-top: 0; /* Pas de marge haute pour les titres dans preview */
+    color: var(--doc-text-color); /* Couleur normale pour les titres d'exemple */
+}
+
+
+.example-code {
+    padding: 0; /* Pas de padding sur le conteneur */
+    background: var(--doc-code-bg);
+    border-radius: 0 0 8px 8px; /* Arrondi seulement en bas */
+}
+.example-code pre {
+    margin: 0; /* Pas de marge pour le <pre> dans l'exemple */
+    border: none; /* Pas de bordure */
+    border-radius: 0;
+    background: none; /* Fond déjà sur .example-code */
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Styles Spécifiques à TableFlow (pour les exemples dans la documentation)   */
+/* -------------------------------------------------------------------------- */
+/*
+ * NOTE IMPORTANTE:
+ * Les styles suivants sont destinés à faire fonctionner correctement les exemples
+ * DANS CETTE PAGE de documentation. Idéalement, ces styles devraient provenir
+ * du fichier CSS principal de la bibliothèque (`src/tableFlow.css`) ou d'un
+ * fichier de thème personnalisé chargé par l'utilisateur.
+ * Ils sont inclus ici pour l'exhaustivité des exemples.
+*/
+
+/* Styles de base copiés/adaptés de tableFlow.css */
+table[id^="exempleTable"] { /* Cible les tables des exemples */
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.9em;
+}
+table[id^="exempleTable"] th,
+table[id^="exempleTable"] td {
+    padding: var(--tf-cell-padding, 0.6rem 0.8rem);
+    text-align: left;
+    border: 1px solid var(--tf-border-color, #e5e7eb);
+    vertical-align: middle;
+}
+table[id^="exempleTable"] thead th {
+    background-color: var(--tf-header-bg, #f9fafb);
+    font-weight: 600;
+    position: relative;
+}
+/* Wrappers */
+.head-wrapper, .cell-wrapper { display: flex; align-items: center; min-height: 1.5em; width: 100%; box-sizing: border-box; }
+/* Ligne modifiée */
+tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
+
+/* Styles spécifiques aux plugins (pour les exemples) */
+/* Sort */
+th.sortable { cursor: pointer; }
+.sort-indicator { margin-left: auto; padding-left: 5px; opacity: var(--tf-sort-icon-opacity, 0.5); transition: opacity 0.2s ease; font-size: 0.9em; }
+th.sortable:hover .sort-indicator { opacity: var(--tf-sort-icon-hover-opacity, 1); }
+th.sortable .head-wrapper { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+/* Edit & Validation */
+td.td-edit { cursor: pointer; }
+.edit-input { width: 100%; padding: var(--tf-input-padding, 4px 6px); border: 1px solid var(--tf-primary-color); border-radius: var(--tf-border-radius, 4px); font: inherit; box-sizing: border-box; outline: none; }
+.edit-input:focus { box-shadow: 0 0 0 2px var(--tf-focus-ring-color); }
+.validation-error { color: var(--tf-error-text-color, #991b1b); font-size: 0.8em; margin-top: 4px; display: none; }
+td.invalid { position: relative; background-color: var(--tf-invalid-bg, #fee2e2) !important; outline: 1px solid var(--tf-invalid-border, #fca5a5); outline-offset: -1px; }
+td.invalid .validation-error { display: block; }
+/* Actions */
+td.td-actions .cell-wrapper { justify-content: space-around; padding: 0 5px; gap: 8px; }
+td.td-actions [data-action] { cursor: pointer; opacity: 0.8; transition: opacity 0.2s ease, color 0.2s ease; color: var(--tf-action-icon-color); }
+td.td-actions [data-action]:hover { opacity: 1; color: var(--tf-action-icon-hover-color); }
+/* Choice */
+td.choice-cell { position: relative; cursor: pointer; }
+/* Color */
+.tf-color-wrapper { display: flex; align-items: center; gap: 5px; }
+.tf-color-preview { width: var(--tf-color-preview-size, 20px); height: var(--tf-color-preview-size, 20px); border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); cursor: pointer; box-sizing: border-box; }
+.tf-color-input { width: var(--tf-color-input-width, 80px); text-align: center; border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); padding: 3px 5px; font-size: inherit; box-sizing: border-box; }
+/* Highlight */
+.tf-highlight-span { border-radius: 3px; padding: 0.1em 0; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+/* LineToggle (classes exemple) */
+tr.dim { opacity: 0.6; }
+tr.error-row td { background-color: var(--tf-invalid-bg, #fee2e2) !important; }
+/* ColumnReorder */
+th.reorderable-column { position: relative; cursor: grab; }
+.column-header-container { display: flex; align-items: center; width: 100%; position: relative; }
+.column-drag-handle { cursor: grab; color: var(--tf-reorder-handle-color, #999); transition: color 0.2s ease; padding: 0 5px; touch-action: none; flex-shrink: 0; }
+.column-drag-handle:hover { color: var(--tf-reorder-handle-hover-color, #333); }
+th.column-dragging { opacity: 0.5; cursor: grabbing !important; }
+/* Selection */
+td.selected { background-color: var(--tf-selection-bg, rgba(79, 70, 229, 0.1)) !important; outline: 1px solid var(--tf-selection-border, rgba(79, 70, 229, 0.4)) !important; outline-offset: -1px; position: relative; z-index: 1; }
+tr.row-selected td { background-color: var(--tf-selection-row-col-bg, rgba(79, 70, 229, 0.05)) !important; }
+td.col-selected { background-color: var(--tf-selection-row-col-bg, rgba(79, 70, 229, 0.05)) !important; }
+
+
+/* -------------------------------------------------------------------------- */
+/* Responsive Design pour la Documentation                                    */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 1024px) { /* Point de rupture où la nav disparaît */
     .nav {
-        display: none;
+        display: none; /* Masquer la navigation latérale sur écrans moyens/petits */
     }
     .content {
-        margin-left: 0;
+        margin-left: 0; /* Le contenu prend toute la largeur */
     }
 }
-@media (max-width: 600px) {
+@media (max-width: 600px) { /* Ajustements pour petits écrans */
     body {
-        padding: 1rem;
+        padding: 1rem; /* Réduire la marge générale */
+        font-size: 15px; /* Ajuster taille de police de base */
     }
     h1 { font-size: 2rem; }
     h2 { font-size: 1.6rem; }
-    h3 { font-size: 1.2rem; }
+    h3 { font-size: 1.3rem; }
+    h4 { font-size: 1.1rem; }
     .container {
-         padding: 1rem;
+         padding: 0; /* Pas de padding supplémentaire sur le container */
     }
-    .example-preview, .example-code {
-         padding: 1rem;
+    .example-preview, .example-code pre {
+         padding: 1rem; /* Réduire padding des exemples */
     }
-}
-
-/* --- Styles spécifiques à la bibliothèque TableFlow (copiés de tableFlow.css) --- */
-/* Base table styles - Utilisez l'ID ou une classe spécifique pour cibler la table gérée par TableFlow */
-table[data-tableflow-id] { /* Exemple: ajouter cet attribut via JS si besoin */
-    width: 100%; /* Ajusté pour prendre toute la largeur disponible */
-    border-collapse: collapse;
-    margin: 1em 0;
-    font-size: 0.9em; /* Taille de police légèrement réduite pour la densité */
-}
-
-table[data-tableflow-id] th,
-table[data-tableflow-id] td {
-    padding: 0.6rem 0.8rem; /* Padding ajusté */
-    text-align: left;
-    border: 1px solid var(--border-color);
-    vertical-align: middle; /* Centrage vertical */
-}
-
-table[data-tableflow-id] thead th {
-    background-color: #f9fafb; /* Gris très clair */
-    font-weight: 600; /* Police un peu plus grasse */
-    position: relative; /* Pour le positionnement des icônes de tri */
-}
-
-/* Cell wrappers (si activés) */
-.head-wrapper,
-.cell-wrapper {
-    display: flex;
-    align-items: center;
-    min-height: 24px; /* Hauteur minimale pour l'alignement */
-}
-
-/* Sort indicators (Plugin Sort) */
-th.sortable {
-    cursor: pointer;
-    padding-right: 25px; /* Espace pour l'icône */
-}
-
-th.sortable .head-wrapper {
-    justify-content: space-between; /* Pousse l'icône à droite */
-}
-
-.sort-indicator {
-    margin-left: 5px;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-    font-size: 0.9em;
-}
-
-th.sortable:hover .sort-indicator {
-    opacity: 1;
-}
-
-/* Modified rows (Classe standard) */
-tr.modified td { /* Appliquer sur les TD pour une meilleure visibilité */
-    background-color: #fffbeb; /* Jaune très pâle */
-}
-tr.modified td:first-child { /* Optionnel: Marqueur visuel */
-    border-left: 3px solid #facc15;
-}
-
-
-/* Styles pour le plugin Color */
-.tf-color-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* Aligner à gauche par défaut */
-    gap: 5px; /* Espace entre preview et input */
-    padding: 0; /* Le padding est sur le TD */
-}
-
-.tf-color-wrapper .color-preview { /* Style pour l'aperçu ajouté par ColorFlow */
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.tf-color-wrapper .color-input {
-    width: 80px;
-    text-align: center;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 3px 5px;
-    font-size: inherit; /* Hériter la taille de police */
-}
-
-/* Styles pour le plugin Actions */
-td.td-actions .cell-wrapper{
-    justify-content: space-around; /* Centre les icônes */
-    padding: 0 5px;
-}
-td.td-actions .cell-wrapper i { /* Style pour les icônes d'action */
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-td.td-actions .cell-wrapper i:hover {
-    opacity: 1;
-}
-
-/* Styles pour le plugin Edit */
-td.td-edit {
-    cursor: pointer; /* Indique qu'on peut cliquer */
-}
-td.td-edit .cell-wrapper {
-    min-height: 24px; /* Assure une hauteur minimale même si vide */
-}
-.edit-input {
-    width: 100%;
-    padding: 4px 6px;
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    font-size: inherit;
-    font-family: inherit;
-    box-sizing: border-box; /* Important */
-}
-.validation-error {
-    color: #dc3545; /* Rouge */
-    font-size: 0.8em;
-    margin-top: 4px;
-    display: none; /* Caché par défaut */
-}
-td.invalid {
-    position: relative; /* Pour positionner l'erreur */
-    background-color: #fee2e2 !important; /* Rouge léger pour indiquer l'erreur */
-}
-td.invalid .validation-error {
-    display: block; /* Afficher l'erreur */
-}
-
-
-/* Styles pour les plugins Choice / Select (dropdown) */
-.choice-cell, .select-cell {
-    position: relative; /* Pour positionner le dropdown */
-    cursor: pointer;
-}
-.choice-dropdown, .select-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
-    display: none; /* Caché par défaut */
-    min-width: 180px; /* Largeur minimale */
-    max-height: 200px; /* Hauteur max avec scroll */
-    overflow-y: auto;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    margin-top: 2px; /* Petit espace */
-}
-.choice-dropdown.active, .select-dropdown.active {
-    display: block; /* Afficher quand actif */
-}
-.choice-search, .select-search {
-    width: 100%;
-    padding: 8px;
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    outline: none;
-    box-sizing: border-box;
-    font-size: 0.95em;
-}
-.choice-option, .select-option {
-    padding: 8px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.choice-option:hover, .select-option:hover {
-    background-color: #eef2ff; /* Fond léger au survol */
-}
-.options-container .no-results {
-    padding: 8px 12px;
-    color: #6b7280; /* Gris */
-    font-style: italic;
-    text-align: center;
-}
-
-
-/* Styles pour le plugin FilterAndPaginate (Classes par défaut) */
-.pagination-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    flex-wrap: wrap; /* Permettre le retour à la ligne sur petits écrans */
-    font-size: 0.9em;
-}
-.pagination {
-    display: flex;
-    list-style: none;
-    padding: 0;
-    margin: 0.5rem 0; /* Marge verticale */
-}
-.page-size-container {
-    display: flex;
-    align-items: center;
-    margin: 0.5rem 0; /* Marge verticale */
-    gap: 0.5rem; /* Espace entre label et select */
-}
-.pagination-info {
-    margin: 0.5rem 0; /* Marge verticale */
-    color: #6b7280; /* Gris */
-}
-/* Styles pour les boutons et select (basés sur les classes par défaut) */
-.btn.btn-glass.btn-glass-blue { /* Adaptez si vous changez btnClass */
-   /* Vos styles de boutons ici ou utilisez les classes de votre framework (Bootstrap, Tailwind...) */
-   padding: 0.3rem 0.6rem;
-   border: 1px solid var(--primary-color);
-   background-color: transparent;
-   color: var(--primary-color);
-   border-radius: 4px;
-   cursor: pointer;
-   transition: background-color 0.2s ease, color 0.2s ease;
-}
-.btn.btn-glass.btn-glass-blue:hover:not(:disabled) {
-    background-color: #eef2ff;
-    color: #3730a3;
-}
-.btn.btn-glass.btn-glass-blue.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-.btn.btn-glass.btn-glass-blue.disabled,
-.btn.btn-glass.btn-glass-blue:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: #adb5bd;
-    color: #6c757d;
-}
-.form-select { /* Adaptez si vous changez selectClass */
-    padding: 0.3rem 0.6rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: white;
-}
-
-/* Styles pour le plugin Selection */
-td.selected {
-    background-color: rgba(79, 70, 229, 0.1) !important; /* Indigo léger */
-    outline: 1px solid rgba(79, 70, 229, 0.4) !important; /* Bordure indigo */
-    outline-offset: -1px; /* Pour que la bordure soit intérieure */
-    position: relative;
-    z-index: 1;
-}
-/* Classes pour la mise en évidence des lignes/colonnes lors de la sélection */
-tr.row-selected td {
-    background-color: rgba(79, 70, 229, 0.05) !important; /* Très léger */
-}
-td.col-selected {
-    background-color: rgba(79, 70, 229, 0.05) !important; /* Très léger */
-}
-td.multiple-selected { /* Quand plusieurs cellules sont sélectionnées */
-     background-color: rgba(79, 70, 229, 0.15) !important; /* Un peu plus foncé */
-}
-/* Menu contextuel (Plugin Selection) */
-.selection-context-menu {
-    position: absolute;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    padding: 5px 0;
-    z-index: 1000;
-    min-width: 150px;
-}
-.selection-context-menu ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-}
-.selection-context-menu li {
-    padding: 8px 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9em;
-}
-.selection-context-menu li:hover {
-    background-color: #f5f5f5;
-}
-.selection-context-menu li i { /* Style des icônes dans le menu */
-    color: var(--primary-color);
-    opacity: 0.8;
-    width: 16px; /* Alignement */
-    text-align: center;
-}
-
-/* Pour éviter la sélection de texte pendant le drag (Plugin Selection) */
-.table-drag-selecting {
-    user-select: none;
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+ */
+    table.documentation-table th,
+    table.documentation-table td {
+        padding: 0.6rem 0.8rem; /* Réduire padding des tables de doc */
+    }
+    /* Forcer les tables des exemples à scroller horizontalement si nécessaire */
+    .example-preview {
+        overflow-x: auto;
+    }
 }

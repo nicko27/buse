@@ -1,321 +1,309 @@
-import { DOMSanitizer } from '../src/domSanitizer.js';
-
 /**
  * Plugin Choice pour TableFlow
- * Permet de gérer des sélections de valeurs avec deux modes :
- * - toggle : basculement direct entre les options par clic
- * - searchable : recherche et sélection dans une liste déroulante
- * 
- * @version 3.0.0
+ * Permet de gérer des sélections de valeurs dans les cellules avec deux modes :
+ * - toggle : basculement direct entre les options par clic.
+ * - searchable : recherche et sélection dans une liste déroulante.
+ *
+ * @class ChoicePlugin
+ * @version 2.0.3 - Intégration TableInstance, sanitizer, nettoyage destroy
  */
 export default class ChoicePlugin {
+    /**
+     * Crée une instance de ChoicePlugin.
+     * @param {object} [config={}] - Configuration du plugin.
+     */
     constructor(config = {}) {
         this.name = 'choice';
-        this.version = '3.0.0';
-        this.type = 'edit';
+        this.version = '2.0.3';
+        this.type = 'edit'; // Ce plugin modifie la valeur des cellules
+        /** @type {TableInstance|null} Référence à l'instance TableInstance */
         this.table = null;
-        this.dependencies = [];
-        
-        // État actif
+        /** @type {string[]} Dépendances (ex: ['Edit'] si on interagit fortement) */
+        this.dependencies = []; // Pas de dépendance forte identifiée pour le moment
+        /** @type {HTMLElement|null} Référence au dropdown 'searchable' actuellement ouvert */
         this.activeDropdown = null;
-        this.activeSearchInput = null;
-        
-        // Configuration par défaut
-        this.defaultConfig = {
-            // Attributs HTML
+
+        // Configuration par défaut pour le mode searchable
+        this.defaultSearchableConfig = {
+            minWidth: '200px',
+            dropdownClass: 'tf-choice-dropdown', // Préfixé pour éviter conflits
+            optionClass: 'tf-choice-option',
+            searchClass: 'tf-choice-search',
+            placeholder: 'Rechercher...',
+            noResultsText: 'Aucun résultat'
+        };
+
+        // Fusion de la configuration par défaut du plugin et celle fournie
+        this.config = {
             choiceAttribute: 'th-choice',
             cellClass: 'choice-cell',
-            readOnlyClass: 'readonly',
+            readOnlyClass: 'readonly', // Classe pour cellules non modifiables (peut être surchargée par readOnlyValues)
             modifiedClass: 'modified',
-            
-            // Interface
-            dropdownClass: 'choice-dropdown',
-            optionClass: 'choice-option',
-            searchClass: 'choice-search',
-            toggleClass: 'choice-toggle',
-            readOnlyBadgeClass: 'choice-readonly-badge',
-            
-            // Comportement
-            closeOnSelect: true,
-            closeOnClickOutside: true,
-            allowCustomValue: false,
-            searchable: true,
-            minSearchLength: 0,
-            maxDropdownHeight: '300px',
-            dropdownWidth: 'auto',
-            
-            // Textes
-            placeholder: 'Rechercher...',
-            noResultsText: 'Aucun résultat',
-            customValueText: 'Utiliser "{value}"',
-            loadingText: 'Chargement...',
-            
-            // API
-            asyncLoad: false,
-            asyncUrl: null,
-            asyncParams: {},
-            asyncTransform: null,
-            
-            // Animation
-            animationDuration: 200,
-            
-            // Debug
-            debug: false
-        };
-        
-        // Configuration pour les dropdowns searchable
-        this.searchableConfig = {
-            minWidth: '200px',
-            dropdownClass: 'choice-dropdown',
-            optionClass: 'choice-option',
-            searchClass: 'choice-search',
-            placeholder: 'Rechercher...',
-            noResultsText: 'Aucun résultat',
-            ...config.searchable
+            debug: false,
+            columns: {}, // Configuration spécifique par colonne { columnId: { type, values, readOnlyValues, searchable } }
+            ...config
         };
 
-        // Configuration finale
-        this.config = {
-            ...this.defaultConfig,
-            ...config,
-            columns: config.columns || {}
-        };
+        // Configuration du logger (sera pleinement fonctionnel après init)
+        this.debug = this.config.debug === true ?
+            (...args) => this.table?.logger?.debug(`[ChoicePlugin ${this.table?.tableId}]`, ...args) ?? console.debug('[ChoicePlugin]', ...args) :
+            () => { };
+        this.logger = this.table?.logger || console;
 
-        // Logger
-        this.debug = this.config.debug ?
-            (...args) => console.log('[ChoicePlugin]', ...args) :
-            () => {};
+        // Ajouter les styles CSS nécessaires pour le dropdown searchable une seule fois
+        // Note: Idéalement, ces styles devraient être dans un fichier CSS séparé.
+        this._injectSearchableStylesOnce();
 
-        // Gestion des événements
-        this._processedEvents = new Map();
-        this._cleanupInterval = null;
-        this._maxProcessedEvents = 100;
-        this._eventLifetime = 5000;
-        
-        // Bind des méthodes
+        // Lier les méthodes pour préserver le contexte 'this'
         this.handleClick = this.handleClick.bind(this);
-        this.handleKeyDown = this.handleKeyDown.bind(this);
-        this.handleOutsideClick = this.handleOutsideClick.bind(this);
-        this.handleWindowResize = this.handleWindowResize.bind(this);
-        this.handleCellSaved = this.handleCellSaved.bind(this);
-        this.handleRowSaved = this.handleRowSaved.bind(this);
-        this.handleRowAdded = this.handleRowAdded.bind(this);
-        
-        // Cache pour les données asynchrones
-        this.dataCache = new Map();
-        this.loadingPromises = new Map();
-    }
-
-    init(tableHandler) {
-        if (!tableHandler) {
-            throw new Error('TableHandler instance is required');
-        }
-        
-        this.table = tableHandler;
-        this.debug('Initializing choice plugin');
-
-        this.setupChoiceCells();
-        this.setupEventListeners();
-        this.startCleanupInterval();
-        this.addStyles();
+        this.handleToggleClick = this.handleToggleClick.bind(this);
+        this.handleSearchableClick = this.handleSearchableClick.bind(this);
+        this._closeDropdownOnClickOutside = this._closeDropdownOnClickOutside.bind(this);
+        this._handleCellSaved = this._handleCellSaved.bind(this);
+        this._handleRowSaved = this._handleRowSaved.bind(this);
+        this._handleRowAdded = this._handleRowAdded.bind(this);
     }
 
     /**
-     * Ajoute les styles CSS nécessaires
+     * Initialise le plugin pour une instance de table.
+     * @param {TableInstance} tableHandler - L'instance TableInstance gérant la table.
+     * @throws {Error} Si tableHandler ou tableHandler.element n'est pas valide.
      */
-    addStyles() {
-        if (document.getElementById('choice-plugin-styles')) return;
-        
+    init(tableHandler) {
+        if (!tableHandler || !tableHandler.element) {
+            throw new Error('ChoicePlugin: Instance TableHandler ou tableHandler.element invalide.');
+        }
+        this.table = tableHandler;
+        this.logger = this.table.logger || this.logger; // Assigner le logger définitif
+        this.debug('Initialisation du plugin Choice avec la configuration:', this.config);
+
+        this.setupChoiceCells(); // Configurer les cellules existantes
+        this.setupEventListeners(); // Attacher les écouteurs
+
+        this.debug('Plugin Choice initialisé.');
+    }
+
+    /**
+     * Récupère et normalise la configuration pour une colonne spécifique.
+     * Gère la conversion de l'ancienne syntaxe (tableau simple) et la fusion
+     * avec les options par défaut du mode searchable.
+     * @param {string} columnId - L'ID de la colonne (<th>).
+     * @returns {object|null} La configuration normalisée de la colonne ou null si non trouvée/invalide.
+     */
+    getColumnConfig(columnId) {
+        const columnConfigRaw = this.config.columns[columnId];
+        if (!columnConfigRaw) {
+            this.debug(`Aucune configuration JS trouvée pour la colonne '${columnId}'.`);
+            return null;
+        }
+
+        let normalizedConfig = {};
+
+        // Gérer l'ancienne syntaxe (tableau simple = mode toggle)
+        if (Array.isArray(columnConfigRaw)) {
+            this.debug(`Conversion de l'ancienne syntaxe (tableau) pour la colonne '${columnId}'.`);
+            normalizedConfig = {
+                type: 'toggle',
+                values: columnConfigRaw,
+                readOnlyValues: [],
+                searchable: { ...this.defaultSearchableConfig }
+            };
+        } else if (typeof columnConfigRaw === 'object' && columnConfigRaw !== null) {
+            normalizedConfig = {
+                type: columnConfigRaw.type || 'toggle', // 'toggle' par défaut
+                values: columnConfigRaw.values || [],
+                readOnlyValues: columnConfigRaw.readOnlyValues || [],
+                // Fusionner la config searchable fournie avec les défauts
+                searchable: {
+                    ...this.defaultSearchableConfig,
+                    ...(columnConfigRaw.searchable || {})
+                }
+            };
+        } else {
+            this.logger.error(`Configuration invalide pour la colonne '${columnId}'. Attendu un objet ou un tableau.`);
+            return null;
+        }
+
+        // Normaliser les 'values' pour avoir toujours la structure { value, label, class? }
+        normalizedConfig.values = normalizedConfig.values.map(choice => {
+            if (typeof choice === 'object' && choice !== null && choice.value !== undefined) {
+                // Assurer que 'label' existe, utilise 'value' si manquant
+                return { ...choice, label: choice.label ?? String(choice.value) };
+            } else {
+                // Si c'est une chaîne ou un nombre, le convertir en objet
+                const val = String(choice); // Assurer que c'est une chaîne
+                return { value: val, label: val };
+            }
+        });
+
+        // Normaliser les 'readOnlyValues' pour avoir la structure { value, class? }
+        normalizedConfig.readOnlyValues = normalizedConfig.readOnlyValues.map(roValue => {
+             if (typeof roValue === 'object' && roValue !== null && roValue.value !== undefined) {
+                 // Assurer que value est une chaîne pour la comparaison future
+                 return { value: String(roValue.value), class: roValue.class };
+             } else {
+                 // Si c'est une chaîne ou un nombre, le convertir
+                 return { value: String(roValue) };
+             }
+         });
+
+
+        // Logique de dépréciation/migration pour 'readOnly: true' dans 'values'
+        const readOnlyFromValues = [];
+        normalizedConfig.values = normalizedConfig.values.filter(choice => {
+            if (choice.readOnly === true) {
+                this.logger.warn(`[ChoicePlugin ${this.table?.tableId}] La propriété 'readOnly: true' dans 'values' pour la colonne '${columnId}' est obsolète. Utilisez 'readOnlyValues'. Valeur: ${choice.value}`);
+                readOnlyFromValues.push({
+                    value: choice.value,
+                    // Utilise la classe fournie ou la classe par défaut du plugin
+                    class: choice.readOnlyClass || choice.class || this.config.readOnlyClass
+                });
+                return false; // Exclure de la liste des valeurs sélectionnables
+            }
+            return true;
+        });
+        // Ajouter les valeurs readOnly extraites à readOnlyValues
+        if (readOnlyFromValues.length > 0) {
+            normalizedConfig.readOnlyValues = [
+                ...normalizedConfig.readOnlyValues,
+                ...readOnlyFromValues
+            ];
+            // Éliminer les doublons potentiels dans readOnlyValues basés sur 'value'
+            const uniqueROValues = new Map();
+            normalizedConfig.readOnlyValues.forEach(item => uniqueROValues.set(item.value, item));
+            normalizedConfig.readOnlyValues = Array.from(uniqueROValues.values());
+        }
+
+
+        this.debug(`Configuration normalisée pour la colonne '${columnId}':`, normalizedConfig);
+        return normalizedConfig;
+    }
+
+    /**
+     * Injecte les styles CSS nécessaires pour le dropdown searchable, une seule fois par page.
+     * Note: Il est préférable de mettre ces styles dans un fichier CSS séparé.
+     * @private
+     */
+    _injectSearchableStylesOnce() {
+        const styleId = 'tableflow-choice-plugin-styles';
+        if (document.getElementById(styleId)) return;
+
+        this.debug("Injection des styles CSS pour ChoicePlugin (dropdown searchable)...");
         const style = document.createElement('style');
-        style.id = 'choice-plugin-styles';
+        style.id = styleId;
+        // Styles utilisant les variables CSS globales et les classes par défaut/configurables
         style.textContent = `
-            .${this.config.cellClass} {
-                cursor: pointer;
-                position: relative;
-                user-select: none;
+            /* Styles pour ChoicePlugin - Idéalement dans tableFlow.css */
+            .${this.config.cellClass} { cursor: pointer; position: relative; }
+            .${this.defaultSearchableConfig.dropdownClass} {
+                position: absolute; top: calc(100% + 2px); left: 0;
+                z-index: 1000; display: none;
+                min-width: ${this.defaultSearchableConfig.minWidth};
+                max-height: 200px; overflow-y: auto;
+                background: var(--tf-choice-dropdown-bg, var(--tf-bg-color, white));
+                border: 1px solid var(--tf-border-color, #ddd);
+                border-radius: var(--tf-border-radius, 4px);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
-            
-            .${this.config.cellClass}:hover {
-                background-color: rgba(0, 0, 0, 0.02);
+            .${this.defaultSearchableConfig.dropdownClass}.active { display: block; }
+            .${this.defaultSearchableConfig.searchClass} {
+                width: 100%; padding: 8px; border: none;
+                border-bottom: 1px solid var(--tf-border-color, #ddd);
+                outline: none; box-sizing: border-box; font-size: 0.95em;
             }
-            
-            .${this.config.cellClass} .cell-wrapper {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
+            .${this.defaultSearchableConfig.dropdownClass} .options-container { /* Conteneur options */ }
+            .${this.defaultSearchableConfig.optionClass} {
+                padding: 8px 12px; cursor: pointer; white-space: nowrap; font-size: 0.95em;
             }
-            
-            .${this.config.dropdownClass} {
-                position: absolute;
-                z-index: 1000;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                overflow: auto;
-                display: none;
-                animation: choiceDropdownShow ${this.config.animationDuration}ms ease-out;
+            .${this.defaultSearchableConfig.optionClass}:hover {
+                background-color: var(--tf-choice-option-hover-bg, #f5f5f5);
             }
-            
-            .${this.config.dropdownClass}.active {
-                display: block;
+            .${this.defaultSearchableConfig.dropdownClass} .no-results {
+                padding: 8px 12px; color: var(--tf-text-muted-color, #999);
+                font-style: italic; text-align: center;
             }
-            
-            .${this.config.searchClass} {
-                width: 100%;
-                padding: 8px 12px;
-                border: none;
-                border-bottom: 1px solid #eee;
-                outline: none;
-                font-size: 14px;
-                box-sizing: border-box;
-            }
-            
-            .${this.config.searchClass}:focus {
-                border-bottom-color: #007bff;
-            }
-            
-            .${this.config.optionClass} {
-                padding: 8px 12px;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: background-color 0.15s;
-            }
-            
-            .${this.config.optionClass}:hover {
-                background-color: #f5f5f5;
-            }
-            
-            .${this.config.optionClass}.selected {
-                background-color: #e3f2fd;
-                font-weight: 500;
-            }
-            
-            .${this.config.optionClass}.disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-            
-            .${this.config.optionClass}.custom-value {
-                border-top: 1px solid #eee;
-                font-style: italic;
-            }
-            
-            .choice-option-content {
-                flex: 1;
-            }
-            
-            .choice-option-icon {
-                width: 20px;
-                text-align: center;
-            }
-            
-            .choice-option-badge {
-                font-size: 0.75em;
-                padding: 2px 6px;
-                border-radius: 10px;
-                background: #e0e0e0;
-            }
-            
-            .${this.config.readOnlyBadgeClass} {
-                font-size: 0.75em;
-                padding: 2px 6px;
-                border-radius: 10px;
-                background: #ffebee;
-                color: #c62828;
-                margin-left: 4px;
-            }
-            
-            .choice-no-results {
-                padding: 12px;
-                text-align: center;
-                color: #666;
-                font-style: italic;
-            }
-            
-            .choice-loading {
-                padding: 12px;
-                text-align: center;
-                color: #666;
-            }
-            
-            .choice-loading::after {
-                content: '';
-                display: inline-block;
-                width: 16px;
-                height: 16px;
-                margin-left: 8px;
-                border: 2px solid #ddd;
-                border-top-color: #333;
-                border-radius: 50%;
-                animation: choiceSpinner 0.6s linear infinite;
-            }
-            
-            @keyframes choiceDropdownShow {
-                from {
-                    opacity: 0;
-                    transform: translateY(-10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-            
-            @keyframes choiceSpinner {
-                to {
-                    transform: rotate(360deg);
-                }
+            /* Classe Readonly */
+            .${this.config.readOnlyClass}, .readonly-locked { /* Classe de config + ancienne classe */
+                 font-style: italic; color: var(--tf-text-muted-color, #6c757d);
+                 cursor: not-allowed !important;
+                 background-color: var(--tf-header-bg, #f8f9fa) !important;
             }
         `;
-        
         document.head.appendChild(style);
     }
 
     /**
-     * Configure les cellules de choix
+     * Configure les cellules <td> pour les colonnes de type 'choice'.
+     * @param {HTMLTableRowElement} [specificRow=null] - Si fourni, configure uniquement cette ligne.
      */
-    setupChoiceCells() {
-        if (!this.table?.table) return;
+    setupChoiceCells(specificRow = null) {
+        if (!this.table?.element) return;
+        this.debug(`Configuration des cellules 'choice' pour ${specificRow ? `la ligne ${specificRow.id}` : 'toutes les lignes'}...`);
 
-        const headerCells = this.table.table.querySelectorAll('th');
-        const choiceColumns = Array.from(headerCells)
-            .filter(header => header.hasAttribute(this.config.choiceAttribute))
-            .map(header => {
+        const headerCells = this.table.element.querySelectorAll('thead th');
+        const choiceColumns = [];
+
+        // Identifier les colonnes 'choice' et leur configuration valide
+        headerCells.forEach((header, index) => {
+            if (header.hasAttribute(this.config.choiceAttribute)) {
                 const columnId = header.id;
+                if (!columnId) {
+                     this.logger.warn(`En-tête choice index ${index} sans ID. Configuration JS requise.`);
+                     return;
+                }
                 const columnConfig = this.getColumnConfig(columnId);
-                const headerType = header.getAttribute(this.config.choiceAttribute);
+                if (columnConfig && columnConfig.values?.length > 0) {
+                    const htmlType = header.getAttribute(this.config.choiceAttribute);
+                    const finalType = (htmlType === 'searchable' || htmlType === 'toggle') ? htmlType : columnConfig.type;
+                    choiceColumns.push({ id: columnId, index, type: finalType, config: columnConfig });
+                } else {
+                     this.logger.warn(`Configuration invalide ou valeurs manquantes pour colonne choice '${columnId}'.`);
+                }
+            }
+        });
 
-                return {
-                    id: columnId,
-                    index: Array.from(headerCells).indexOf(header),
-                    type: headerType || (columnConfig ? columnConfig.type : 'toggle'),
-                    config: columnConfig
-                };
-            });
+        if (choiceColumns.length === 0) {
+            this.debug("Aucune colonne 'choice' valide à configurer.");
+            return;
+        }
+        this.debug(`Colonnes 'choice' valides trouvées:`, choiceColumns.map(c => ({id: c.id, type: c.type})));
 
-        if (!choiceColumns.length) return;
-
-        const rows = this.table.table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
+        // Configurer les cellules <td> correspondantes
+        const rowsToProcess = specificRow ? [specificRow] : this.table.getAllRows(); // Utilise méthode de l'instance
+        rowsToProcess.forEach(row => {
             choiceColumns.forEach(({ id: columnId, index, type, config }) => {
                 const cell = row.cells[index];
-                if (!cell) return;
-
-                if (cell.getAttribute('data-plugin') && cell.getAttribute('data-plugin') !== 'choice') {
+                if (!cell) {
+                    this.logger.warn(`Cellule manquante à l'index ${index} pour la ligne ${row.id}`);
                     return;
                 }
-
-                this.setupChoiceCell(cell, columnId, type, config);
+                const existingPlugin = cell.getAttribute('data-plugin');
+                if (existingPlugin && existingPlugin !== 'choice') {
+                    this.debug(`Cellule ${cell.id} déjà gérée par '${existingPlugin}', saut.`);
+                    return;
+                }
+                // Vérifier si déjà initialisé pour éviter doublons de listeners/setup
+                if (!cell.hasAttribute('data-choice-initialized')) {
+                    this.setupChoiceCell(cell, columnId, type, config);
+                    cell.setAttribute('data-choice-initialized', 'true');
+                } else {
+                     this.debug(`Cellule ${cell.id} déjà initialisée pour Choice.`);
+                     // Mettre à jour l'affichage au cas où le label aurait changé
+                     this.updateCellDisplayFromValue(cell, columnId, config);
+                     // Réappliquer le style readonly
+                     this.applyReadOnlyStyle(cell, columnId, cell.getAttribute('data-value'), config);
+                }
             });
         });
+        this.debug("Configuration des cellules 'choice' terminée.");
     }
 
     /**
-     * Configure une cellule de choix
+     * Configure une cellule <td> individuelle.
+     * @param {HTMLTableCellElement} cell - La cellule <td>.
+     * @param {string} columnId - L'ID de la colonne.
+     * @param {'toggle'|'searchable'} type - Le type d'interaction.
+     * @param {object} columnConfig - La configuration normalisée de la colonne.
      */
     setupChoiceCell(cell, columnId, type, columnConfig) {
         cell.classList.add(this.config.cellClass);
@@ -323,958 +311,390 @@ export default class ChoicePlugin {
         cell.setAttribute('data-choice-type', type);
         cell.setAttribute('data-choice-column', columnId);
 
-        // Récupérer la valeur actuelle
-        let currentValue = cell.getAttribute('data-value');
-        if (currentValue === null) {
-            currentValue = cell.textContent.trim();
-            cell.setAttribute('data-value', currentValue);
-        }
-
-        // Définir la valeur initiale si elle n'existe pas
+        // Récupérer/Initialiser les valeurs data-*
+        let currentValue = cell.hasAttribute('data-value') ? cell.getAttribute('data-value') : cell.textContent?.trim() ?? '';
+        cell.setAttribute('data-value', currentValue);
         if (!cell.hasAttribute('data-initial-value')) {
             cell.setAttribute('data-initial-value', currentValue);
         }
 
-        // Configurer le wrapper
-        this.updateCellDisplay(cell, currentValue, columnConfig);
+        // Mettre à jour l'affichage initial
+        this.updateCellDisplayFromValue(cell, columnId, columnConfig);
+        // Appliquer le style readonly initial
+        this.applyReadOnlyStyle(cell, columnId, currentValue, columnConfig);
     }
 
     /**
-     * Met à jour l'affichage d'une cellule
+     * Met à jour le label affiché dans une cellule en fonction de sa valeur `data-value`.
+     * @param {HTMLTableCellElement} cell
+     * @param {string} columnId
+     * @param {object} columnConfig
      */
-    updateCellDisplay(cell, value, columnConfig) {
-        const wrapper = cell.querySelector('.cell-wrapper') || document.createElement('div');
-        wrapper.className = 'cell-wrapper';
-        
-        // Trouver l'option correspondante
-        const option = this.findOption(value, columnConfig);
-        const label = option ? (option.label || option.value) : value;
-        
-        // Vérifier si readonly
-        const isReadOnly = this.isReadOnly(cell.getAttribute('data-choice-column'), value, cell);
-        
-        // Créer le contenu
-        let content = `<span class="choice-value">${DOMSanitizer.escapeHTML(label)}</span>`;
-        
-        if (isReadOnly) {
-            content += `<span class="${this.config.readOnlyBadgeClass}">🔒</span>`;
+    updateCellDisplayFromValue(cell, columnId, columnConfig) {
+        const currentValue = cell.getAttribute('data-value');
+        const currentChoice = columnConfig.values.find(c => c.value === currentValue);
+        const currentLabel = currentChoice ? currentChoice.label : currentValue; // Fallback sur la valeur
+        this.updateCellDisplay(cell, currentLabel);
+    }
+
+
+    /**
+     * Met à jour le contenu affiché d'une cellule (le label).
+     * Utilise le sanitizer si disponible pour permettre le HTML simple.
+     * @param {HTMLTableCellElement} cell - La cellule à mettre à jour.
+     * @param {string} label - Le label à afficher.
+     */
+    updateCellDisplay(cell, label) {
+        const wrapperClass = this.table?.config?.wrapCellClass || 'cell-wrapper';
+        let wrapper = cell.querySelector(`.${wrapperClass}`);
+        if (!wrapper) {
+             this.debug(`Wrapper .${wrapperClass} manquant pour ${cell.id}, création...`);
+             wrapper = document.createElement('div');
+             wrapper.className = wrapperClass;
+             cell.textContent = '';
+             cell.appendChild(wrapper);
         }
-        
-        if (option?.icon) {
-            content = `<span class="choice-icon">${option.icon}</span> ${content}`;
-        }
-        
-        wrapper.innerHTML = content;
-        
-        if (!wrapper.parentNode) {
-            cell.textContent = '';
-            cell.appendChild(wrapper);
+
+        // Utiliser le sanitizer pour insérer le label
+        if (this.table?.sanitizer && typeof this.table.sanitizer.setHTML === 'function') {
+             // Permet d'utiliser du HTML simple dans les labels (ex: <i class="..."></i> Statut)
+             const mightBeIcon = typeof label === 'string' && label.trim().startsWith('<');
+             this.table.sanitizer.setHTML(wrapper, label, { isTrustedIcon: mightBeIcon });
+        } else {
+             wrapper.textContent = label; // Fallback sécurisé
         }
     }
 
     /**
-     * Configure les écouteurs d'événements
+     * Attache les écouteurs d'événements globaux pour le plugin.
      */
     setupEventListeners() {
-        if (!this.table?.table) return;
+        if (!this.table?.element) return;
+        this.debug('Configuration des écouteurs d\'événements pour Choice...');
 
-        // Gestionnaire de clic
-        this.table.table.addEventListener('click', this.handleClick);
-        
-        // Gestionnaire de clavier
-        this.table.table.addEventListener('keydown', this.handleKeyDown);
+        // Nettoyer les anciens listeners avant d'ajouter (sécurité pour refresh)
+        this.table.element.removeEventListener('click', this.handleClick);
+        document.removeEventListener('click', this._closeDropdownOnClickOutside, true);
+        this.table.element.removeEventListener('cell:saved', this._handleCellSaved);
+        this.table.element.removeEventListener('row:saved', this._handleRowSaved);
+        this.table.element.removeEventListener('row:added', this._handleRowAdded);
 
-        // Fermer le dropdown quand on clique ailleurs
-        document.addEventListener('click', this.handleOutsideClick);
-        
-        // Gérer le redimensionnement de la fenêtre
-        window.addEventListener('resize', this.handleWindowResize);
+        // Ajouter les nouveaux listeners
+        this.table.element.addEventListener('click', this.handleClick);
+        document.addEventListener('click', this._closeDropdownOnClickOutside, true); // Capture phase
+        this.table.element.addEventListener('cell:saved', this._handleCellSaved);
+        this.table.element.addEventListener('row:saved', this._handleRowSaved);
+        this.table.element.addEventListener('row:added', this._handleRowAdded);
 
-        // Écouter les événements de sauvegarde
-        this.table.table.addEventListener('cell:saved', this.handleCellSaved);
-        this.table.table.addEventListener('row:saved', this.handleRowSaved);
-        this.table.table.addEventListener('row:added', this.handleRowAdded);
+        this.debug('Écouteurs d\'événements Choice configurés.');
     }
 
-    /**
-     * Gestionnaire de clic
-     */
+    /** Handler pour 'cell:saved'. @param {CustomEvent} event @private */
+    _handleCellSaved(event) {
+        const cell = event.detail?.cell;
+        if (!cell || !this.isManagedCell(cell)) return;
+        const currentValue = cell.getAttribute('data-value');
+        cell.setAttribute('data-initial-value', currentValue);
+        this.debug(`Valeur initiale mise à jour pour ${cell.id}: ${currentValue}`);
+        const columnId = cell.getAttribute('data-choice-column');
+        const columnConfig = columnId ? this.getColumnConfig(columnId) : null;
+        if (columnConfig) {
+            this.updateCellDisplayFromValue(cell, columnId, columnConfig); // Mettre à jour le label
+            this.applyReadOnlyStyle(cell, columnId, currentValue, columnConfig); // Réappliquer style readonly
+        }
+    }
+
+    /** Handler pour 'row:saved'. @param {CustomEvent} event @private */
+    _handleRowSaved(event) {
+        const row = event.detail?.row;
+        if (!row) return;
+        this.debug(`Gestion row:saved pour cellules Choice ligne ${row.id}`);
+        Array.from(row.cells).forEach(cell => {
+            if (this.isManagedCell(cell)) {
+                const currentValue = cell.getAttribute('data-value');
+                cell.setAttribute('data-initial-value', currentValue);
+                // L'affichage est géré par _handleCellSaved
+            }
+        });
+    }
+
+    /** Handler pour 'row:added'. @param {CustomEvent} event @private */
+    _handleRowAdded(event) {
+        const row = event.detail?.row;
+        if (!row) return;
+        this.debug(`Gestion row:added pour nouvelle ligne Choice ${row.id}`);
+        this.setupChoiceCells(row); // Configure uniquement la nouvelle ligne
+    }
+
+
+    /** Handler principal pour les clics sur les cellules gérées. @param {MouseEvent} event */
     handleClick(event) {
-        const cell = event.target.closest('td');
+        const cell = /** @type {HTMLElement} */ (event.target)?.closest('td');
         if (!cell || !this.isManagedCell(cell)) return;
 
-        // Ne pas traiter si readonly
-        if (cell.classList.contains(this.config.readOnlyClass)) return;
+        // Vérifier si readonly
+        const columnId = cell.getAttribute('data-choice-column');
+        const currentValue = cell.getAttribute('data-value');
+        if (this.isReadOnly(columnId, currentValue, cell)) {
+             this.debug(`Clic ignoré sur cellule readonly ${cell.id}`);
+             return;
+        }
 
         const type = cell.getAttribute('data-choice-type') || 'toggle';
+        this.debug(`Clic détecté sur cellule ${cell.id} (type: ${type})`);
 
         if (type === 'toggle') {
             this.handleToggleClick(cell);
         } else if (type === 'searchable') {
-            this.handleSearchableClick(cell);
+            if (this.activeDropdown && this.activeDropdown.parentElement === cell) {
+                this.closeAllDropdowns();
+            } else {
+                this.handleSearchableClick(cell);
+            }
         }
     }
 
-    /**
-     * Gestionnaire de touches clavier
-     */
-    handleKeyDown(event) {
-        if (!this.activeDropdown) return;
-
-        switch (event.key) {
-            case 'Escape':
-                this.closeAllDropdowns();
-                event.preventDefault();
-                break;
-                
-            case 'ArrowDown':
-                this.navigateOptions('down');
-                event.preventDefault();
-                break;
-                
-            case 'ArrowUp':
-                this.navigateOptions('up');
-                event.preventDefault();
-                break;
-                
-            case 'Enter':
-                this.selectHighlightedOption();
-                event.preventDefault();
-                break;
-                
-            case 'Tab':
-                this.closeAllDropdowns();
-                break;
-        }
-    }
-
-    /**
-     * Gestion du clic en mode toggle
-     */
+    /** Gère le clic pour le mode 'toggle'. @param {HTMLTableCellElement} cell */
     handleToggleClick(cell) {
         const columnId = cell.getAttribute('data-choice-column');
-        const columnConfig = this.getColumnConfig(columnId);
-        if (!columnConfig) return;
+        const columnConfig = columnId ? this.getColumnConfig(columnId) : null;
+        if (!columnConfig || !columnConfig.values?.length) return;
 
-        const choices = columnConfig.values;
-        if (!choices || !choices.length) return;
+        const availableChoices = columnConfig.values.filter(choice => !this.isReadOnly(columnId, choice.value));
+        if (!availableChoices.length) {
+             this.debug(`Aucun choix modifiable disponible pour ${cell.id}`);
+             return;
+        }
 
-        // Filtrer les choix non-readonly
-        const availableChoices = choices.filter(choice => {
-            const value = typeof choice === 'object' ? choice.value : choice;
-            return !this.isReadOnly(columnId, value);
-        });
-
-        if (!availableChoices.length) return;
-
-        // Obtenir la valeur actuelle
         const currentValue = cell.getAttribute('data-value');
+        const currentIndex = availableChoices.findIndex(choice => choice.value === currentValue);
+        const nextIndex = (currentIndex + 1) % availableChoices.length;
+        const nextChoice = availableChoices[nextIndex];
 
-        // Trouver l'index du choix actuel
-        const currentIndex = availableChoices.findIndex(choice =>
-            (typeof choice === 'object' ? choice.value : choice) === currentValue
-        );
-
-        // Obtenir le prochain choix
-        const nextChoice = availableChoices[(currentIndex + 1) % availableChoices.length];
-        const nextValue = typeof nextChoice === 'object' ? nextChoice.value : nextChoice;
-        const nextLabel = typeof nextChoice === 'object' ? nextChoice.label : nextChoice;
-
-        this.updateCellValue(cell, nextValue, nextLabel, columnId);
+        this.debug(`Toggle ${cell.id}: '${currentValue}' -> '${nextChoice.value}'`);
+        this.updateCellValue(cell, nextChoice.value, nextChoice.label, columnId);
     }
 
-    /**
-     * Gestion du clic en mode searchable
-     */
-    async handleSearchableClick(cell) {
+    /** Gère le clic pour le mode 'searchable'. @param {HTMLTableCellElement} cell */
+    handleSearchableClick(cell) {
         const columnId = cell.getAttribute('data-choice-column');
-        const columnConfig = this.getColumnConfig(columnId);
-        if (!columnConfig) return;
+        const columnConfig = columnId ? this.getColumnConfig(columnId) : null;
+        if (!columnConfig || !columnConfig.values?.length) return;
 
-        // Fermer les autres dropdowns
-        this.closeAllDropdowns();
-
-        // Créer et afficher le dropdown
-        const dropdown = await this.createSearchableDropdown(cell, columnConfig, columnId);
+        this.closeAllDropdowns(); // Fermer les autres
+        this.debug(`Ouverture dropdown searchable pour ${cell.id}`);
+        const dropdown = this.createSearchableDropdown(cell, columnConfig);
         cell.appendChild(dropdown);
-        
-        // Positionner le dropdown
-        this.positionDropdown(dropdown, cell);
-        
         dropdown.classList.add('active');
         this.activeDropdown = dropdown;
-
-        // Focus sur la recherche
-        const searchInput = dropdown.querySelector(`.${this.config.searchClass}`);
-        if (searchInput) {
-            searchInput.focus();
-            this.activeSearchInput = searchInput;
-        }
+        dropdown.querySelector(`.${columnConfig.searchable.searchClass}`)?.focus();
     }
 
-    /**
-     * Crée un dropdown searchable
-     */
-    async createSearchableDropdown(cell, columnConfig, columnId) {
+    /** Crée l'élément DOM pour le dropdown 'searchable'. @param {HTMLTableCellElement} cell @param {object} columnConfig @returns {HTMLDivElement} */
+    createSearchableDropdown(cell, columnConfig) {
+        const searchableConfig = columnConfig.searchable;
+        const choices = columnConfig.values;
+        const columnId = cell.getAttribute('data-choice-column');
+
         const dropdown = document.createElement('div');
-        dropdown.className = this.config.dropdownClass;
-        
-        // Appliquer les styles de configuration
-        dropdown.style.minWidth = this.searchableConfig.minWidth;
-        dropdown.style.maxHeight = this.config.maxDropdownHeight;
-        dropdown.style.width = this.config.dropdownWidth;
+        dropdown.className = searchableConfig.dropdownClass;
+        dropdown.style.minWidth = searchableConfig.minWidth;
+        dropdown.addEventListener('click', (e) => e.stopPropagation()); // Empêche fermeture
 
-        // Créer le contenu
-        let content = '';
-        
-        // Barre de recherche
-        if (this.config.searchable) {
-            content += `
-                <input type="text" 
-                       class="${this.config.searchClass}" 
-                       placeholder="${this.config.placeholder}"
-                       autocomplete="off">
-            `;
-        }
-        
-        // Conteneur pour les options
-        content += '<div class="options-container"></div>';
-        
-        dropdown.innerHTML = content;
+        // Input de recherche
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = searchableConfig.searchClass;
+        searchInput.placeholder = searchableConfig.placeholder;
+        searchInput.setAttribute('aria-label', 'Filtrer les options');
+        dropdown.appendChild(searchInput);
 
-        // Charger les options
-        const optionsContainer = dropdown.querySelector('.options-container');
-        
-        if (columnConfig.asyncLoad && columnConfig.asyncUrl) {
-            await this.loadAsyncOptions(optionsContainer, columnConfig, cell, columnId);
-        } else {
-            this.renderOptions(optionsContainer, columnConfig.values || [], cell, columnId);
-        }
+        // Conteneur des options
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'options-container';
+        dropdown.appendChild(optionsContainer);
 
-        // Gestionnaire de recherche
-        if (this.config.searchable) {
-            const searchInput = dropdown.querySelector(`.${this.config.searchClass}`);
-            let searchTimeout;
-            
-            searchInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(async () => {
-                    const searchText = searchInput.value.toLowerCase();
-                    
-                    if (columnConfig.asyncLoad && columnConfig.asyncUrl) {
-                        await this.loadAsyncOptions(optionsContainer, columnConfig, cell, columnId, searchText);
-                    } else {
-                        const filteredChoices = (columnConfig.values || []).filter(choice => {
-                            const label = typeof choice === 'object' ? choice.label : choice;
-                            return label.toLowerCase().includes(searchText);
-                        });
-                        
-                        this.renderOptions(optionsContainer, filteredChoices, cell, columnId, searchText);
-                    }
-                }, 300);
-            });
-        }
+        // Rendu initial
+        this.renderSearchableOptions(optionsContainer, choices, cell, columnConfig);
+
+        // Filtrage
+        searchInput.addEventListener('input', () => {
+            const searchText = searchInput.value.toLowerCase();
+            const filteredChoices = choices.filter(choice => choice.label.toLowerCase().includes(searchText));
+            this.renderSearchableOptions(optionsContainer, filteredChoices, cell, columnConfig);
+        });
 
         return dropdown;
     }
 
-    /**
-     * Charge les options de manière asynchrone
-     */
-    async loadAsyncOptions(container, columnConfig, cell, columnId, searchText = '') {
-        const cacheKey = `${columnId}:${searchText}`;
-        
-        // Vérifier le cache
-        if (this.dataCache.has(cacheKey)) {
-            const cachedData = this.dataCache.get(cacheKey);
-            this.renderOptions(container, cachedData, cell, columnId, searchText);
-            return;
-        }
-        
-        // Vérifier si déjà en cours de chargement
-        if (this.loadingPromises.has(cacheKey)) {
-            const data = await this.loadingPromises.get(cacheKey);
-            this.renderOptions(container, data, cell, columnId, searchText);
-            return;
-        }
-        
-        // Afficher l'indicateur de chargement
-        container.innerHTML = `<div class="choice-loading">${this.config.loadingText}</div>`;
-        
-        // Construire les paramètres
-        const params = {
-            ...columnConfig.asyncParams,
-            search: searchText
-        };
-        
-        // Créer la promesse de chargement
-        const loadingPromise = fetch(columnConfig.asyncUrl + '?' + new URLSearchParams(params))
-            .then(response => response.json())
-            .then(data => {
-                // Transformer les données si nécessaire
-                if (columnConfig.asyncTransform) {
-                    data = columnConfig.asyncTransform(data);
-                }
-                
-                // Mettre en cache
-                this.dataCache.set(cacheKey, data);
-                
-                return data;
-            })
-            .finally(() => {
-                this.loadingPromises.delete(cacheKey);
-            });
-        
-        this.loadingPromises.set(cacheKey, loadingPromise);
-        
-        try {
-            const data = await loadingPromise;
-            this.renderOptions(container, data, cell, columnId, searchText);
-        } catch (error) {
-            console.error('Erreur lors du chargement des options:', error);
-            container.innerHTML = `<div class="choice-no-results">Erreur de chargement</div>`;
-        }
-    }
-
-    /**
-     * Affiche les options
-     */
-    renderOptions(container, choices, cell, columnId, searchText = '') {
+    /** Remplit le conteneur d'options du dropdown. @param {HTMLDivElement} container @param {Array<object>} choices @param {HTMLTableCellElement} cell @param {object} columnConfig */
+    renderSearchableOptions(container, choices, cell, columnConfig) {
         container.innerHTML = '';
-        
-        const currentValue = cell.getAttribute('data-value');
+        const searchableConfig = columnConfig.searchable;
+        const columnId = cell.getAttribute('data-choice-column');
 
-        if (!choices.length) {
-            container.innerHTML = `
-                <div class="choice-no-results">${this.config.noResultsText}</div>
-            `;
-            
-            // Option pour valeur personnalisée
-            if (this.config.allowCustomValue && searchText) {
-                const customOption = document.createElement('div');
-                customOption.className = `${this.config.optionClass} custom-value`;
-                customOption.innerHTML = `
-                    <span class="choice-option-content">
-                        ${this.config.customValueText.replace('{value}', searchText)}
-                    </span>
-                `;
-                customOption.addEventListener('click', () => {
-                    this.updateCellValue(cell, searchText, searchText, columnId);
-                    this.closeAllDropdowns();
-                });
-                container.appendChild(customOption);
-            }
-            
+        const availableChoices = choices.filter(choice => !this.isReadOnly(columnId, choice.value));
+
+        if (availableChoices.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results';
+            noResults.textContent = searchableConfig.noResultsText;
+            container.appendChild(noResults);
             return;
         }
 
-        choices.forEach(choice => {
-            const value = typeof choice === 'object' ? choice.value : choice;
-            const label = typeof choice === 'object' ? choice.label : choice;
-            const icon = typeof choice === 'object' ? choice.icon : null;
-            const badge = typeof choice === 'object' ? choice.badge : null;
-
-            // Vérifier si readonly
-            if (this.isReadOnly(columnId, value)) {
-                return;
-            }
-
+        availableChoices.forEach(choice => {
             const optionElement = document.createElement('div');
-            optionElement.className = this.config.optionClass;
-            optionElement.setAttribute('data-value', value);
-            
-            // Marquer comme sélectionné si c'est la valeur courante
-            if (value === currentValue) {
-                optionElement.classList.add('selected');
+            optionElement.className = searchableConfig.optionClass;
+            optionElement.setAttribute('role', 'option');
+            // Utiliser sanitizer pour le label
+            if (this.table?.sanitizer) {
+                this.table.sanitizer.setHTML(optionElement, choice.label, { isTrustedIcon: true });
+            } else {
+                optionElement.textContent = choice.label;
             }
-            
-            // Marquer comme désactivé si nécessaire
-            if (choice.disabled) {
-                optionElement.classList.add('disabled');
-            }
-            
-            // Construire le contenu
-            let content = '';
-            
-            if (icon) {
-                content += `<span class="choice-option-icon">${icon}</span>`;
-            }
-            
-            content += `<span class="choice-option-content">${DOMSanitizer.escapeHTML(label)}</span>`;
-            
-            if (badge) {
-                content += `<span class="choice-option-badge">${DOMSanitizer.escapeHTML(badge)}</span>`;
-            }
-            
-            optionElement.innerHTML = content;
-            
-            // Gestionnaire de clic
-            if (!choice.disabled) {
-                optionElement.addEventListener('click', () => {
-                    this.updateCellValue(cell, value, label, columnId);
-                    if (this.config.closeOnSelect) {
-                        this.closeAllDropdowns();
-                    }
-                });
-            }
+            optionElement.setAttribute('data-choice-value', choice.value);
 
+            optionElement.addEventListener('click', () => {
+                this.debug(`Option searchable sélectionnée: ${choice.label} (valeur: ${choice.value}) pour ${cell.id}`);
+                this.updateCellValue(cell, choice.value, choice.label, columnId);
+                this.closeAllDropdowns();
+            });
             container.appendChild(optionElement);
         });
     }
 
-    /**
-     * Navigation au clavier dans les options
-     */
-    navigateOptions(direction) {
-        if (!this.activeDropdown) return;
-        
-        const options = Array.from(this.activeDropdown.querySelectorAll(`.${this.config.optionClass}:not(.disabled)`));
-        if (!options.length) return;
-        
-        let currentIndex = options.findIndex(option => option.classList.contains('highlighted'));
-        
-        if (currentIndex !== -1) {
-            options[currentIndex].classList.remove('highlighted');
-        }
-        
-        if (direction === 'down') {
-            currentIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-        } else {
-            currentIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-        }
-        
-        options[currentIndex].classList.add('highlighted');
-        options[currentIndex].scrollIntoView({ block: 'nearest' });
-    }
-
-    /**
-     * Sélectionne l'option surlignée
-     */
-    selectHighlightedOption() {
-        if (!this.activeDropdown) return;
-        
-        const highlightedOption = this.activeDropdown.querySelector(`.${this.config.optionClass}.highlighted`);
-        if (highlightedOption && !highlightedOption.classList.contains('disabled')) {
-            highlightedOption.click();
-        }
-    }
-
-    /**
-     * Positionne le dropdown
-     */
-    positionDropdown(dropdown, cell) {
-        const cellRect = cell.getBoundingClientRect();
-        const dropdownRect = dropdown.getBoundingClientRect();
-        
-        // Position par défaut : sous la cellule
-        let top = cellRect.bottom;
-        let left = cellRect.left;
-        
-        // Vérifier si le dropdown dépasse en bas
-        if (top + dropdownRect.height > window.innerHeight) {
-            // Positionner au-dessus si possible
-            if (cellRect.top - dropdownRect.height > 0) {
-                top = cellRect.top - dropdownRect.height;
-            }
-        }
-        
-        // Vérifier si le dropdown dépasse à droite
-        if (left + dropdownRect.width > window.innerWidth) {
-            left = window.innerWidth - dropdownRect.width - 10;
-        }
-        
-        dropdown.style.position = 'fixed';
-        dropdown.style.top = `${top}px`;
-        dropdown.style.left = `${left}px`;
-    }
-
-    /**
-     * Met à jour la valeur d'une cellule
-     */
+    /** Met à jour valeur/affichage et déclenche événement. @param {HTMLTableCellElement} cell @param {string} value @param {string} label @param {string|null} columnId */
     updateCellValue(cell, value, label, columnId) {
         const oldValue = cell.getAttribute('data-value');
-        
-        // Mettre à jour les attributs
+        if (value === oldValue) return;
+
+        this.debug(`Mise à jour ${cell.id}: valeur='${value}', label='${label}'`);
         cell.setAttribute('data-value', value);
-        
-        // Mettre à jour l'affichage
-        const columnConfig = this.getColumnConfig(columnId);
-        this.updateCellDisplay(cell, value, columnConfig);
-        
-        // S'assurer que data-initial-value existe
-        if (!cell.hasAttribute('data-initial-value')) {
-            cell.setAttribute('data-initial-value', value);
-        }
-
-        // Marquer comme modifié si nécessaire
-        const initialValue = cell.getAttribute('data-initial-value');
-        const isModified = value !== initialValue;
-        const row = cell.closest('tr');
-
-        if (isModified && row) {
-            row.classList.add(this.config.modifiedClass);
-        } else if (row && !isModified) {
-            row.classList.remove(this.config.modifiedClass);
-        }
-
-        // Créer un événement unique
-        const eventId = this.generateEventId();
-        const changeEvent = new CustomEvent('cell:change', {
-            detail: {
-                cell,
-                value,
-                oldValue,
-                columnId,
-                rowId: row?.id,
-                source: 'choice',
-                tableId: this.table.table.id,
-                isModified,
-                eventId
-            },
-            bubbles: true
-        });
-
-        this.table.table.dispatchEvent(changeEvent);
+        this.updateCellDisplay(cell, label);
+        const columnConfig = columnId ? this.getColumnConfig(columnId) : null;
+        if (columnConfig) this.applyReadOnlyStyle(cell, columnId, value, columnConfig);
+        this.dispatchChangeEvent(cell, value, oldValue, columnId);
     }
 
-    /**
-     * Gestion des clics en dehors
-     */
-    handleOutsideClick(event) {
-        if (!this.config.closeOnClickOutside) return;
-        
-        const target = event.target;
-        
-        // Vérifier si le clic est dans un dropdown
-        if (target.closest(`.${this.config.dropdownClass}`)) return;
-        
-        // Vérifier si le clic est sur une cellule choice
-        if (target.closest(`.${this.config.cellClass}`)) return;
-        
-        this.closeAllDropdowns();
+     /** Applique/Retire les classes readonly. @param {HTMLTableCellElement} cell @param {string|null} columnId @param {string|null} currentValue @param {object|null} columnConfig */
+     applyReadOnlyStyle(cell, columnId, currentValue, columnConfig) {
+         if (!columnConfig?.readOnlyValues) return;
+         const readOnlyClass = this.config.readOnlyClass;
+
+         // Retirer toutes les classes readonly possibles pour cette colonne
+         columnConfig.readOnlyValues.forEach(roConfig => {
+             if (roConfig.class) cell.classList.remove(roConfig.class);
+         });
+         cell.classList.remove(readOnlyClass);
+
+         // Vérifier si la valeur actuelle est readonly
+         const readOnlyInfo = columnConfig.readOnlyValues.find(roConfig => roConfig.value === currentValue);
+         if (readOnlyInfo) {
+             const classToAdd = readOnlyInfo.class || readOnlyClass;
+             if (classToAdd) {
+                 cell.classList.add(classToAdd);
+                 this.debug(`Classe readonly '${classToAdd}' ajoutée à ${cell.id}`);
+             }
+         }
+     }
+
+    /** Vérifie si une valeur est readonly. @param {string|null} columnId @param {string|null} value @param {HTMLTableCellElement|null} [cell] @returns {boolean} */
+    isReadOnly(columnId, value, cell = null) {
+        const columnConfig = columnId ? this.getColumnConfig(columnId) : null;
+        if (!columnConfig?.readOnlyValues?.length) return false;
+        const isRO = columnConfig.readOnlyValues.some(config => config.value === value);
+        // Appliquer le style si la cellule est fournie
+        if (cell) this.applyReadOnlyStyle(cell, columnId, value, columnConfig);
+        return isRO;
     }
 
-    /**
-     * Gestion du redimensionnement
-     */
-    handleWindowResize() {
+    /** Ferme tous les dropdowns ouverts. */
+    closeAllDropdowns() {
         if (this.activeDropdown) {
-            const cell = this.activeDropdown.parentElement;
-            if (cell) {
-                this.positionDropdown(this.activeDropdown, cell);
-            }
-        }
-    }
-
-    /**
-     * Récupère la configuration d'une colonne
-     */
-    getColumnConfig(columnId) {
-        const columnConfig = this.config.columns[columnId];
-        if (!columnConfig) return null;
-
-        // Convertir l'ancien format si nécessaire
-        if (Array.isArray(columnConfig)) {
-            return {
-                type: 'toggle',
-                values: columnConfig
-            };
-        }
-
-        // Gérer les valeurs readonly
-        if (columnConfig.values) {
-            const readOnlyValues = [];
-            const values = columnConfig.values.map(value => {
-                if (typeof value === 'object' && value.readOnly) {
-                    readOnlyValues.push({
-                        value: value.value,
-                        class: value.readOnlyClass || value.class || 'readonly-locked'
-                    });
-                    const { readOnly, readOnlyClass, ...cleanValue } = value;
-                    return cleanValue;
-                }
-                return value;
-            });
-
-            return {
-                ...columnConfig,
-                type: columnConfig.type || 'toggle',
-                values: values,
-                readOnlyValues: [...(columnConfig.readOnlyValues || []), ...readOnlyValues],
-                searchable: {
-                    ...this.searchableConfig,
-                    ...(columnConfig.searchable || {})
-                }
-            };
-        }
-
-        return {
-            type: columnConfig.type || 'toggle',
-            values: columnConfig.values || [],
-            readOnlyValues: columnConfig.readOnlyValues || [],
-            searchable: {
-                ...this.searchableConfig,
-                ...(columnConfig.searchable || {})
-            }
-        };
-    }
-
-    /**
-     * Trouve une option par sa valeur
-     */
-    findOption(value, columnConfig) {
-        if (!columnConfig || !columnConfig.values) return null;
-        
-        return columnConfig.values.find(option => {
-            if (typeof option === 'object') {
-                return option.value === value;
-            }
-            return option === value;
-        });
-    }
-
-/**
-    * Vérifie si une valeur est en lecture seule
-    */
-isReadOnly(columnId, value, cell) {
-    const columnConfig = this.getColumnConfig(columnId);
-    if (!columnConfig) return false;
-
-    // Vérifier dans readOnlyValues
-    if (columnConfig.readOnlyValues?.length) {
-        const readOnlyConfig = columnConfig.readOnlyValues.find(config => config.value === value);
-        if (readOnlyConfig) {
-            if (cell && readOnlyConfig.class) {
-                cell.classList.add(readOnlyConfig.class);
-            }
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Ferme tous les dropdowns
- */
-closeAllDropdowns() {
-    if (this.activeDropdown) {
-        this.activeDropdown.classList.remove('active');
-        
-        // Supprimer après l'animation
-        setTimeout(() => {
-            if (this.activeDropdown && this.activeDropdown.parentNode) {
-                this.activeDropdown.parentNode.removeChild(this.activeDropdown);
-            }
+            this.debug("Fermeture du dropdown actif.");
+            this.activeDropdown.remove();
             this.activeDropdown = null;
-            this.activeSearchInput = null;
-        }, this.config.animationDuration);
-    }
-}
-
-/**
- * Vérifie si une cellule est gérée par ce plugin
- */
-isManagedCell(cell) {
-    return cell?.classList.contains(this.config.cellClass);
-}
-
-/**
- * Génère un ID unique pour un événement
- */
-generateEventId() {
-    return `choice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-/**
- * Démarre le nettoyage automatique des événements
- */
-startCleanupInterval() {
-    if (this._cleanupInterval) {
-        clearInterval(this._cleanupInterval);
-    }
-    
-    this._cleanupInterval = setInterval(() => {
-        const now = Date.now();
-        const expiredEvents = [];
-        
-        for (const [eventId, timestamp] of this._processedEvents.entries()) {
-            if (now - timestamp > this._eventLifetime) {
-                expiredEvents.push(eventId);
-            }
         }
-        
-        expiredEvents.forEach(eventId => {
-            this._processedEvents.delete(eventId);
+        document.querySelectorAll(`.${this.defaultSearchableConfig.dropdownClass}.active`).forEach(dd => {
+             this.debug("Fermeture d'un dropdown orphelin trouvé.");
+             dd.remove();
         });
-        
-        if (this._processedEvents.size > this._maxProcessedEvents) {
-            const entries = Array.from(this._processedEvents.entries());
-            entries.sort((a, b) => b[1] - a[1]);
-            entries.slice(this._maxProcessedEvents).forEach(([eventId]) => {
-                this._processedEvents.delete(eventId);
-            });
+    }
+
+    /** Handler pour fermer dropdown si clic extérieur. @param {MouseEvent} event @private */
+    _closeDropdownOnClickOutside(event) {
+        // Si un dropdown est actif ET que le clic n'est PAS sur une cellule choice de notre table
+        const clickedCell = /** @type {HTMLElement} */ (event.target)?.closest('td');
+        const isClickOnManagedCell = clickedCell && this.isManagedCell(clickedCell) && clickedCell.closest('table') === this.table?.element;
+
+        if (this.activeDropdown && !isClickOnManagedCell) {
+             // Vérifier aussi si le clic n'est pas DANS le dropdown lui-même
+             if (!this.activeDropdown.contains(/** @type {Node} */ (event.target))) {
+                this.debug("Clic détecté en dehors de la cellule/dropdown actif, fermeture.");
+                this.closeAllDropdowns();
+             }
         }
-    }, 1000);
-}
-
-/**
- * Gestionnaires d'événements de la table
- */
-handleCellSaved(event) {
-    const cell = event.detail.cell;
-    if (!cell || !this.isManagedCell(cell)) return;
-
-    const currentValue = cell.getAttribute('data-value');
-    cell.setAttribute('data-initial-value', currentValue);
-
-    // Mettre à jour l'affichage si nécessaire
-    const columnId = cell.getAttribute('data-choice-column');
-    const columnConfig = this.getColumnConfig(columnId);
-    if (columnConfig) {
-        this.updateCellDisplay(cell, currentValue, columnConfig);
     }
-}
 
-handleRowSaved(event) {
-    const row = event.detail.row;
-    if (!row) return;
-
-    Array.from(row.cells).forEach(cell => {
-        if (!this.isManagedCell(cell)) return;
-
-        const currentValue = cell.getAttribute('data-value');
-        cell.setAttribute('data-initial-value', currentValue);
-    });
-
-    row.classList.remove(this.config.modifiedClass);
-}
-
-handleRowAdded() {
-    this.debug('row:added event received');
-    this.setupChoiceCells();
-}
-
-/**
- * API Publique
- */
-
-/**
- * Obtient la valeur actuelle d'une cellule
- */
-getValue(cell) {
-    if (!this.isManagedCell(cell)) return null;
-    return cell.getAttribute('data-value');
-}
-
-/**
- * Définit la valeur d'une cellule
- */
-setValue(cell, value) {
-    if (!this.isManagedCell(cell)) return false;
-    
-    const columnId = cell.getAttribute('data-choice-column');
-    const columnConfig = this.getColumnConfig(columnId);
-    
-    if (!columnConfig) return false;
-    
-    // Trouver l'option correspondante
-    const option = this.findOption(value, columnConfig);
-    const label = option ? (option.label || option.value) : value;
-    
-    this.updateCellValue(cell, value, label, columnId);
-    return true;
-}
-
-/**
- * Obtient toutes les options disponibles pour une colonne
- */
-getOptions(columnId) {
-    const columnConfig = this.getColumnConfig(columnId);
-    return columnConfig ? columnConfig.values : [];
-}
-
-/**
- * Ajoute une option à une colonne
- */
-addOption(columnId, option) {
-    const columnConfig = this.getColumnConfig(columnId);
-    if (!columnConfig) return false;
-    
-    if (!columnConfig.values) {
-        columnConfig.values = [];
+    /** Vérifie si une cellule est gérée par ce plugin. @param {HTMLTableCellElement | null} cell @returns {boolean} */
+    isManagedCell(cell) {
+        return cell?.classList.contains(this.config.cellClass) && cell.getAttribute('data-plugin') === 'choice';
     }
-    
-    columnConfig.values.push(option);
-    return true;
-}
 
-/**
- * Supprime une option d'une colonne
- */
-removeOption(columnId, value) {
-    const columnConfig = this.getColumnConfig(columnId);
-    if (!columnConfig || !columnConfig.values) return false;
-    
-    const index = columnConfig.values.findIndex(option => {
-        if (typeof option === 'object') {
-            return option.value === value;
+     /** Déclenche l'événement 'cell:change'. @param {HTMLTableCellElement} cell @param {string} newValue @param {string|null} oldValue @param {string|null} columnId @private */
+     dispatchChangeEvent(cell, newValue, oldValue, columnId) {
+         const row = cell.closest('tr');
+         const initialValue = cell.getAttribute('data-initial-value');
+         const isModified = newValue !== initialValue;
+
+         const changeEvent = new CustomEvent('cell:change', {
+             detail: {
+                 cell: cell, cellId: cell.id, columnId: columnId, rowId: row?.id,
+                 value: newValue, oldValue: oldValue, initialValue: initialValue, isModified: isModified,
+                 source: 'choice', tableId: this.table?.tableId
+             },
+             bubbles: true
+         });
+         this.debug(`Dispatching cell:change pour ${cell.id}`, changeEvent.detail);
+         this.table?.element?.dispatchEvent(changeEvent);
+
+         // Mettre à jour la classe 'modified' sur la ligne
+         if (row) {
+             let rowShouldBeModified = isModified;
+             if (!isModified) { // Si revient à l'initial, vérifier les autres
+                 rowShouldBeModified = Array.from(row.cells).some(c =>
+                     c.getAttribute('data-value') !== c.getAttribute('data-initial-value')
+                 );
+             }
+             row.classList.toggle(this.config.modifiedClass, rowShouldBeModified);
+             this.debug(`Classe '${this.config.modifiedClass}' sur la ligne ${row.id}: ${rowShouldBeModified}`);
+         }
+     }
+
+    /** Rafraîchit l'état du plugin. */
+    refresh() {
+        this.debug('Rafraîchissement du plugin Choice...');
+        this.closeAllDropdowns();
+        // Réinitialiser l'attribut pour forcer la reconfiguration
+        this.table?.element?.querySelectorAll(`td.${this.config.cellClass}[data-choice-initialized]`)
+            .forEach(cell => cell.removeAttribute('data-choice-initialized'));
+        this.setupChoiceCells(); // Reconfigure toutes les cellules
+        this.debug('Rafraîchissement Choice terminé.');
+    }
+
+    /** Nettoie les ressources (écouteurs). */
+    destroy() {
+        this.debug('Destruction du plugin Choice...');
+        if (this.table?.element) {
+            this.table.element.removeEventListener('click', this.handleClick);
+            this.table.element.removeEventListener('cell:saved', this._handleCellSaved);
+            this.table.element.removeEventListener('row:saved', this._handleRowSaved);
+            this.table.element.removeEventListener('row:added', this._handleRowAdded);
         }
-        return option === value;
-    });
-    
-    if (index !== -1) {
-        columnConfig.values.splice(index, 1);
-        return true;
+        document.removeEventListener('click', this._closeDropdownOnClickOutside, true);
+        this.closeAllDropdowns();
+        this.table = null;
+        this.debug('Plugin Choice détruit.');
     }
-    
-    return false;
-}
-
-/**
- * Met à jour les options d'une colonne
- */
-updateOptions(columnId, options) {
-    const columnConfig = this.getColumnConfig(columnId);
-    if (!columnConfig) return false;
-    
-    columnConfig.values = options;
-    
-    // Rafraîchir l'affichage des cellules
-    const cells = this.table.table.querySelectorAll(`[data-choice-column="${columnId}"]`);
-    cells.forEach(cell => {
-        const value = cell.getAttribute('data-value');
-        this.updateCellDisplay(cell, value, columnConfig);
-    });
-    
-    return true;
-}
-
-/**
- * Active/désactive une cellule
- */
-setEnabled(cell, enabled) {
-    if (!this.isManagedCell(cell)) return false;
-    
-    if (enabled) {
-        cell.classList.remove(this.config.readOnlyClass);
-        cell.style.pointerEvents = '';
-    } else {
-        cell.classList.add(this.config.readOnlyClass);
-        cell.style.pointerEvents = 'none';
-    }
-    
-    return true;
-}
-
-/**
- * Rafraîchit l'affichage de toutes les cellules
- */
-refresh() {
-    this.setupChoiceCells();
-}
-
-/**
- * Détruit le plugin
- */
-destroy() {
-    // Fermer les dropdowns actifs
-    this.closeAllDropdowns();
-    
-    // Arrêter le nettoyage des événements
-    if (this._cleanupInterval) {
-        clearInterval(this._cleanupInterval);
-    }
-    
-    // Supprimer les gestionnaires d'événements
-    if (this.table?.table) {
-        this.table.table.removeEventListener('click', this.handleClick);
-        this.table.table.removeEventListener('keydown', this.handleKeyDown);
-        this.table.table.removeEventListener('cell:saved', this.handleCellSaved);
-        this.table.table.removeEventListener('row:saved', this.handleRowSaved);
-        this.table.table.removeEventListener('row:added', this.handleRowAdded);
-    }
-    
-    document.removeEventListener('click', this.handleOutsideClick);
-    window.removeEventListener('resize', this.handleWindowResize);
-    
-    // Nettoyer les caches
-    this._processedEvents.clear();
-    this.dataCache.clear();
-    this.loadingPromises.clear();
-    
-    // Supprimer les styles
-    const style = document.getElementById('choice-plugin-styles');
-    if (style) {
-        style.remove();
-    }
-}
-
-/**
- * Exporte la configuration actuelle
- */
-exportConfig() {
-    return {
-        ...this.config,
-        columns: { ...this.config.columns }
-    };
-}
-
-/**
- * Importe une configuration
- */
-importConfig(config) {
-    this.config = {
-        ...this.config,
-        ...config
-    };
-    
-    if (config.columns) {
-        this.config.columns = { ...config.columns };
-    }
-    
-    this.refresh();
-}
-
-/**
- * Obtient des statistiques d'utilisation
- */
-getStats() {
-    const stats = {
-        totalChoiceCells: 0,
-        toggleCells: 0,
-        searchableCells: 0,
-        readOnlyCells: 0,
-        modifiedCells: 0,
-        asyncColumns: 0
-    };
-    
-    const cells = this.table.table.querySelectorAll(`.${this.config.cellClass}`);
-    stats.totalChoiceCells = cells.length;
-    
-    cells.forEach(cell => {
-        const type = cell.getAttribute('data-choice-type');
-        if (type === 'toggle') stats.toggleCells++;
-        if (type === 'searchable') stats.searchableCells++;
-        
-        if (cell.classList.contains(this.config.readOnlyClass)) {
-            stats.readOnlyCells++;
-        }
-        
-        const value = cell.getAttribute('data-value');
-        const initialValue = cell.getAttribute('data-initial-value');
-        if (value !== initialValue) {
-            stats.modifiedCells++;
-        }
-    });
-    
-    // Compter les colonnes asynchrones
-    Object.values(this.config.columns).forEach(columnConfig => {
-        if (columnConfig.asyncLoad && columnConfig.asyncUrl) {
-            stats.asyncColumns++;
-        }
-    });
-    
-    return stats;
-}
 }

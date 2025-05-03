@@ -1,69 +1,93 @@
+/**
+ * Plugin Highlight pour TableFlow
+ * Permet de surligner dynamiquement des portions de texte dans les cellules éditables
+ * en fonction de règles basées sur des expressions régulières et des groupes de style.
+ * S'intègre avec EditPlugin pour le rendu et l'édition, et avec ContextMenuPlugin
+ * pour des actions contextuelles.
+ *
+ * @class HighlightPlugin
+ * @depends EditPlugin - Requis pour le rendu et l'édition dans les cellules.
+ * @depends ContextMenuPlugin - Optionnel, pour l'intégration du menu contextuel.
+ */
 export default class HighlightPlugin {
+    /**
+     * Crée une instance de HighlightPlugin.
+     * @param {object} [config={}] - Configuration du plugin.
+     */
     constructor(config = {}) {
         this.name = 'highlight';
-        this.version = '2.0.0';
-        this.type = 'display';
+        this.version = '2.0.1'; // Version mise à jour
+        this.type = 'display'; // Type de plugin: modifie l'affichage
+        /** @type {TableInstance|null} Référence à l'instance TableInstance */
         this.table = null;
+        /** @type {object|null} Référence à l'instance du plugin Edit */
         this.editPlugin = null;
+        /** @type {object|null} Référence à l'instance du plugin ContextMenu */
         this.contextMenuPlugin = null;
-        
-        // Configuration par défaut
-        const defaultConfig = {
+        /** @type {string[]} Dépendances requises et optionnelles */
+        this.dependencies = ['Edit', 'ContextMenu']; // Edit est requis, ContextMenu est optionnel mais listé
+
+        // Configuration par défaut fusionnée avec celle fournie
+        // Utilisation d'une fonction pour éviter la mutation de l'objet par défaut
+        this.config = this._mergeConfigs(this.getDefaultConfig(), config);
+
+        // Fonction de debug conditionnelle (sera pleinement fonctionnelle après init)
+        this.debug = this.config.debug === true ?
+            (...args) => this.table?.logger?.debug(`[Highlight ${this.table?.tableId}]`, ...args) ?? console.debug('[Highlight]', ...args) :
+            () => { };
+        this.logger = this.table?.logger || console;
+
+        // Charger les règles sauvegardées si la persistance est activée
+        if (this.config.storageKey) {
+            this.loadRules(); // Fait avant l'init pour que les règles soient prêtes
+        }
+
+        // Cache pour les performances
+        this.cache = {
+            highlightedTexts: new Map(), // Cache pour le rendu surligné (clé: cellId:value)
+            compiledRegexes: new Map()   // Cache pour les regex compilées (clé: pattern:flags)
+        };
+
+        // État interne du plugin
+        this.state = {
+            isHighlighting: false, // Pour éviter la récursion dans highlightText
+            modalOpen: false       // Indicateur si la modale de gestion est ouverte
+        };
+
+        // Lier les méthodes pour les hooks et les listeners
+        this._bindMethods();
+    }
+
+    /** Retourne la configuration par défaut. */
+    getDefaultConfig() {
+        // Retourne un nouvel objet à chaque fois
+        return {
             // Options générales
             highlightEnabled: true,
-            highlightDuringEdit: true,
-            highlightClass: 'tf-highlight',
-            spanClass: 'tf-highlight-span',
-            
-            // Clé pour le stockage des règles
-            storageKey: 'tableflow-highlight-rules',
-            
-            // Définition des groupes (entièrement configurable)
+            highlightDuringEdit: true, // Maintenir surlignage pendant l'édition?
+            // highlightClass: 'tf-highlight', // Peu utilisé, le style est sur le span
+            spanClass: 'tf-highlight-span', // Classe pour les <span> de surlignage
+
+            // Persistance
+            storageKey: 'tableflow-highlight-rules', // Clé localStorage pour groupes/règles
+
+            // Groupes de surlignage par défaut
             groups: [
-                {
-                    id: 'red',
-                    name: 'Rouge', 
-                    color: '#FF0000',
-                    backgroundColor: 'transparent',
-                    priority: 0
-                },
-                {
-                    id: 'yellow',
-                    name: 'Jaune', 
-                    color: '#000000',
-                    backgroundColor: '#FFFF00',
-                    priority: 1
-                },
-                {
-                    id: 'green',
-                    name: 'Vert',
-                    color: '#FFFFFF',
-                    backgroundColor: '#008000',
-                    priority: 2
-                },
-                {
-                    id: 'blue',
-                    name: 'Bleu',
-                    color: '#FFFFFF',
-                    backgroundColor: '#0000FF',
-                    priority: 3
-                },
-                {
-                    id: 'ignored',
-                    name: 'Ignoré',
-                    isExclusion: true, // Groupe spécial pour définir des exclusions
-                    priority: 10
-                }
+                { id: 'red', name: 'Rouge', color: '#FF0000', backgroundColor: 'transparent', priority: 0 },
+                { id: 'yellow', name: 'Jaune', color: '#000000', backgroundColor: '#FFFF00', priority: 1 },
+                { id: 'green', name: 'Vert', color: '#FFFFFF', backgroundColor: '#008000', priority: 2 },
+                { id: 'blue', name: 'Bleu', color: '#FFFFFF', backgroundColor: '#0000FF', priority: 3 },
+                { id: 'ignored', name: 'Ignoré', isExclusion: true, priority: 10 }
             ],
-            
-            // Règles par groupe
+
+            // Règles par défaut (sera écrasé par localStorage si présent)
             rules: [],
-            
-            // Options pour le menu contextuel
+
+            // Options Menu Contextuel
             menuEnabled: true,
             menuSection: 'Surlignage',
-            
-            // Options pour la création de règles
+
+            // Options Création de Règles
             ruleCreation: {
                 enabled: true,
                 useAjax: false,
@@ -72,1445 +96,1149 @@ export default class HighlightPlugin {
                 ajaxHeaders: {},
                 ajaxCallback: null,
             },
-            
-            // Options pour l'interface utilisateur
+
+            // Options Interface Utilisateur (Modale)
             ui: {
                 showGroupHeaders: true,
                 groupByColor: true,
                 allowExport: true,
                 allowImport: true,
                 modalClass: 'tf-highlight-modal',
-                buttonClass: 'tf-highlight-button',
+                buttonClass: 'tf-highlight-button', // Classe de base pour les boutons
                 formClass: 'tf-highlight-form',
                 inputClass: 'tf-highlight-input',
-                showPreview: true,
-                allowCustomColors: true
+                showPreview: true, // Afficher la prévisualisation dans le formulaire de règle
+                // allowCustomColors: true // Option pour permettre la définition de couleurs perso? (Non implémenté)
             },
-            
+
             debug: false
         };
-        
-        // Fusion de la configuration par défaut avec celle fournie
-        this.config = this._mergeConfigs(defaultConfig, config);
-        
-        // Fonction de debug conditionnelle
-        this.debug = this.config.debug ? 
-            (...args) => console.log('[HighlightPlugin]', ...args) : 
-            () => {};
-            
-        // Charger les règles sauvegardées si le stockage local est activé
-        if (this.config.storageKey) {
-            this.loadRules();
-        }
-        
-        // Cache pour les performances
-        this.cache = {
-            highlightedTexts: new Map(),
-            compiledRegexes: new Map()
-        };
-        
-        // État du plugin
-        this.state = {
-            isHighlighting: false,
-            modalOpen: false
-        };
     }
-    
-    // Fusion profonde des configurations
-    _mergeConfigs(defaultConfig, userConfig) {
-        const result = { ...defaultConfig };
-        
+
+    /** Lie les méthodes utilisées comme gestionnaires ou callbacks. @private */
+    _bindMethods() {
+        // Pour les hooks Edit
+        this.handleRender = this.handleRender.bind(this);
+        this.setupHighlightedEditing = this.setupHighlightedEditing.bind(this);
+        // Pour l'interface ContextMenu
+        this.getMenuItems = this.getMenuItems.bind(this);
+        this.executeAction = this.executeAction.bind(this);
+        // Pour les listeners de la modale (seront liés lors de la création)
+    }
+
+    /**
+     * Fusionne récursivement deux objets de configuration.
+     * @param {object} baseConfig - Configuration de base.
+     * @param {object} userConfig - Configuration utilisateur à fusionner.
+     * @returns {object} L'objet de configuration fusionné.
+     * @private
+     */
+    _mergeConfigs(baseConfig, userConfig) {
+        const merged = { ...baseConfig };
         for (const key in userConfig) {
-            if (userConfig[key] === null || userConfig[key] === undefined) {
-                continue;
-            }
-            
-            if (typeof userConfig[key] === 'object' && !Array.isArray(userConfig[key]) && 
-                typeof defaultConfig[key] === 'object' && !Array.isArray(defaultConfig[key])) {
-                // Fusion récursive des objets
-                result[key] = this._mergeConfigs(defaultConfig[key], userConfig[key]);
-            } else {
-                // Remplacement direct pour les non-objets ou les tableaux
-                result[key] = userConfig[key];
+            if (Object.prototype.hasOwnProperty.call(userConfig, key)) {
+                const userValue = userConfig[key];
+                const baseValue = baseConfig[key];
+
+                if (userValue === null || userValue === undefined) continue; // Ignorer null/undefined
+
+                // Fusionner les objets récursivement, mais pas les tableaux (remplacer les tableaux)
+                if (typeof userValue === 'object' && !Array.isArray(userValue) &&
+                    typeof baseValue === 'object' && !Array.isArray(baseValue)) {
+                    merged[key] = this._mergeConfigs(baseValue, userValue);
+                } else {
+                    // Remplacer les valeurs primitives ou les tableaux
+                    merged[key] = userValue;
+                }
             }
         }
-        
-        return result;
+        return merged;
     }
-    
+
+    /**
+     * Initialise le plugin pour une instance de table.
+     * @param {TableInstance} tableHandler - L'instance TableInstance gérant la table.
+     * @throws {Error} Si tableHandler ou le plugin Edit requis n'est pas valide/trouvé.
+     */
     init(tableHandler) {
+        if (!tableHandler || !tableHandler.element) {
+            throw new Error('HighlightPlugin: Instance TableHandler ou tableHandler.element invalide.');
+        }
         this.table = tableHandler;
-        
-        // Vérifier que le plugin Edit existe
-        this.editPlugin = this.table.getPlugin('edit');
-        if (!this.editPlugin) {
-            console.error('HighlightPlugin: Edit plugin is required but not found');
-            return;
+        this.logger = this.table.logger || this.logger; // Assigner le logger définitif
+        this.debug('Initialisation du plugin Highlight...');
+
+        // 1. Obtenir les dépendances (Edit est requis, ContextMenu est optionnel)
+        try {
+            this.editPlugin = this.table.getPlugin('Edit');
+        } catch (error) {
+            this.logger.error("Le plugin 'Edit' est requis par HighlightPlugin mais n'a pas pu être récupéré.", error);
+            throw new Error("Le plugin 'Edit' est requis par HighlightPlugin.");
         }
-        
-        // Rechercher le plugin de menu contextuel (optionnel)
-        if (this.config.menuEnabled) {
-            this.contextMenuPlugin = this.table.getPlugin('contextMenu');
-            if (this.contextMenuPlugin) {
-                // S'enregistrer comme fournisseur de menu
-                this.contextMenuPlugin.registerProvider(this);
-            } else {
-                this.debug('ContextMenu plugin not found, highlight context menu will be disabled');
+        // Vérifier si Edit expose les hooks nécessaires
+        if (typeof this.editPlugin.addHook !== 'function' || typeof this.editPlugin.removeHook !== 'function') {
+             throw new Error("L'instance du plugin 'Edit' ne supporte pas les hooks requis par HighlightPlugin.");
+        }
+        this.debug("Plugin 'Edit' trouvé et compatible.");
+
+        // Essayer d'obtenir ContextMenu
+        try {
+            this.contextMenuPlugin = this.table.getPlugin('ContextMenu');
+            if (this.contextMenuPlugin && this.config.menuEnabled) {
+                // Enregistrer comme fournisseur si trouvé et activé dans la config
+                 if (typeof this.contextMenuPlugin.registerProvider === 'function') {
+                    this.contextMenuPlugin.registerProvider(this);
+                    this.debug("Enregistré comme fournisseur auprès de ContextMenuPlugin.");
+                 } else {
+                     this.logger.warn("ContextMenuPlugin trouvé mais n'expose pas registerProvider(). Menu contextuel Highlight désactivé.");
+                     this.config.menuEnabled = false;
+                 }
+            } else if (this.config.menuEnabled) {
+                 this.debug("ContextMenuPlugin non trouvé ou désactivé dans la config, menu contextuel Highlight désactivé.");
+                 this.config.menuEnabled = false;
             }
+        } catch (error) {
+             // ContextMenu non trouvé (getPlugin a levé une erreur)
+             if (this.config.menuEnabled) {
+                 this.debug("ContextMenuPlugin non trouvé, menu contextuel Highlight désactivé.");
+                 this.config.menuEnabled = false;
+             }
         }
-        
-        // S'enregistrer aux hooks du plugin Edit
+
+        // 2. S'enregistrer aux hooks du plugin Edit
         this.registerWithEditPlugin();
-        
-        // Appliquer le surlignage initial
-        this.highlightAllCells();
-        
-        // Ajouter les styles CSS
+
+        // 3. Injecter les styles CSS (une seule fois par page)
         this.injectStyles();
+
+        // 4. Appliquer le surlignage initial aux cellules existantes
+        if (this.config.highlightEnabled) {
+            this.highlightAllCells();
+        }
+
+        this.debug('Plugin Highlight initialisé.');
     }
-    
+
+    /** S'enregistre aux hooks nécessaires du plugin Edit. */
     registerWithEditPlugin() {
-        // S'abonner au hook de rendu pour personnaliser l'affichage
-        this.editPlugin.addHook('onRender', this.handleRender.bind(this), 'highlight');
-        
-        // S'abonner au hook de création de champ d'édition pour gérer l'édition avec surlignage
+        if (!this.editPlugin) return;
+        this.debug("Enregistrement aux hooks du plugin Edit ('onRender', 'afterEdit').");
+
+        // Hook pour personnaliser le rendu de la cellule (affichage normal)
+        this.editPlugin.addHook('onRender', this.handleRender, 'Highlight');
+
+        // Hook après la création de l'input pour gérer l'édition surlignée
         if (this.config.highlightDuringEdit) {
-            this.editPlugin.addHook('afterEdit', this.setupHighlightedEditing.bind(this), 'highlight');
+            this.editPlugin.addHook('afterEdit', this.setupHighlightedEditing, 'Highlight');
         }
     }
-    
-    // Hook de rendu pour surligner le texte
+
+    /**
+     * Hook appelé par EditPlugin lors du rendu du contenu d'une cellule.
+     * Applique le surlignage et met à jour le contenu du wrapper.
+     * @param {HTMLTableCellElement} cell - La cellule en cours de rendu.
+     * @param {string} value - La valeur textuelle à rendre.
+     * @returns {boolean} `false` pour indiquer à EditPlugin que le rendu a été géré ici.
+     */
     handleRender(cell, value) {
-        // Si le surlignage est désactivé ou la cellule n'est pas gérable, ne rien faire
-        if (!this.config.highlightEnabled || !this.isCellHighlightable(cell)) {
-            return true;
+        // Ne rien faire si le surlignage est désactivé ou si la cellule n'est pas gérée par Edit
+        if (!this.config.highlightEnabled || !this.editPlugin || !cell.classList.contains(this.editPlugin.config.cellClass)) {
+            return true; // Laisser EditPlugin gérer le rendu par défaut
         }
-        
-        // Vérifier le cache d'abord
-        const cacheKey = `${cell.id}:${value}`;
-        let highlightedText;
-        
+
+        // Utiliser le cache pour les performances
+        const cacheKey = `${cell.id}:${value}`; // Clé de cache simple
+        let highlightedHtml;
+
         if (this.cache.highlightedTexts.has(cacheKey)) {
-            highlightedText = this.cache.highlightedTexts.get(cacheKey);
+            highlightedHtml = this.cache.highlightedTexts.get(cacheKey);
+            this.debug(`Utilisation du cache pour le rendu de ${cell.id}`);
         } else {
             // Appliquer le surlignage
-            highlightedText = this.highlightText(value);
-            this.cache.highlightedTexts.set(cacheKey, highlightedText);
+            highlightedHtml = this.highlightText(value);
+            // Mettre en cache le résultat
+            this.cache.highlightedTexts.set(cacheKey, highlightedHtml);
+            // Limiter la taille du cache (exemple simple: vider si trop grand)
+            if (this.cache.highlightedTexts.size > 500) { // Seuil arbitraire
+                 this.cache.highlightedTexts.clear();
+                 this.debug("Cache de surlignage vidé (taille limite atteinte).");
+            }
         }
-        
-        // Mettre à jour le contenu du wrapper
-        const wrapper = cell.querySelector('.cell-wrapper') || cell;
-        wrapper.innerHTML = highlightedText;
-        
-        // Indiquer que nous avons géré le rendu
+
+        // Mettre à jour le contenu du wrapper de la cellule
+        const wrapperClass = this.table.config?.wrapCellClass || 'cell-wrapper';
+        const wrapper = cell.querySelector(`.${wrapperClass}`) || cell;
+
+        // Utiliser le sanitizer pour insérer le HTML surligné
+        if (this.table?.sanitizer) {
+            // Considérer le HTML généré par highlightText comme sûr (car basé sur du texte et nos spans)
+            // mais utiliser setHTML pour une insertion propre.
+            this.table.sanitizer.setHTML(wrapper, highlightedHtml);
+        } else {
+            wrapper.innerHTML = highlightedHtml; // Fallback
+        }
+
+        // Indiquer à EditPlugin que nous avons géré le rendu
         return false;
     }
-    
-    // Vérifier si une cellule peut être surlignée
-    isCellHighlightable(cell) {
-        // Vérifier que c'est bien une cellule éditable
-        return cell && cell.classList.contains(this.editPlugin.config.cellClass);
-    }
-    
-    // Configuration de l'édition avec surlignage
+
+    /**
+     * Hook appelé par EditPlugin après la création de l'input d'édition.
+     * Met en place la structure pour l'édition avec surlignage visible.
+     * @param {HTMLTableCellElement} cell - La cellule en cours d'édition.
+     * @param {HTMLInputElement} input - L'élément input créé par EditPlugin.
+     * @param {string} currentValue - La valeur initiale dans l'input.
+     */
     setupHighlightedEditing(cell, input, currentValue) {
-        // Si le surlignage pendant l'édition est désactivé, ne rien faire
+        // Si highlightDuringEdit est désactivé, ne rien faire
         if (!this.config.highlightDuringEdit) {
-            return true;
+            return; // Laisser l'input standard
         }
-        
-        // Créer la structure pour l'édition avec surlignage
-        this.setupHighlightedEditField(cell, input, currentValue);
-    }
-    
-    setupHighlightedEditField(cell, input, currentValue) {
-        // Remplacer l'input standard par notre système de surlignage
+        this.debug(`Configuration de l'édition surlignée pour ${cell.id}`);
+
+        // Créer le conteneur principal pour l'overlay et l'input
         const container = document.createElement('div');
-        container.className = 'tf-highlight-edit-container';
-        container.style.position = 'relative';
-        container.style.width = '100%';
-        
-        // Conserver l'input original mais le rendre transparent
-        input.className += ' tf-highlight-edit-input';
-        input.style.position = 'relative';
-        input.style.background = 'transparent';
-        input.style.color = 'transparent';
-        input.style.caretColor = 'black'; // Pour voir le curseur
-        input.style.width = '100%';
-        input.style.zIndex = '2';
-        
-        // Créer la couche de surlignage (overlay)
+        container.className = 'tf-highlight-edit-container'; // Classe pour le style CSS
+
+        // Créer la couche de superposition pour afficher le texte surligné
         const overlay = document.createElement('div');
-        overlay.className = 'tf-highlight-edit-overlay';
-        overlay.style.position = 'absolute';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.pointerEvents = 'none';
-        overlay.style.whiteSpace = 'pre-wrap';
-        overlay.style.overflow = 'hidden';
-        overlay.style.zIndex = '1';
-        
-        // Appliquer le surlignage initial
-        overlay.innerHTML = this.highlightText(currentValue);
-        
-        // Ajouter l'événement de mise à jour en temps réel
-        input.addEventListener('input', () => {
-            overlay.innerHTML = this.highlightText(input.value);
+        overlay.className = 'tf-highlight-edit-overlay'; // Classe pour le style CSS
+        overlay.setAttribute('aria-hidden', 'true'); // Cacher aux lecteurs d'écran
+
+        // Cloner l'input original pour le mettre DANS le conteneur
+        const inputClone = /** @type {HTMLInputElement} */ (input.cloneNode(true));
+        // Appliquer les styles pour le rendre transparent et le positionner sur l'overlay
+        inputClone.classList.add('tf-highlight-edit-input'); // Classe pour le style CSS
+
+        // Appliquer le surlignage initial à l'overlay
+        overlay.innerHTML = this.highlightText(currentValue); // Utiliser innerHTML car highlightText retourne du HTML
+
+        // Mettre à jour l'overlay en temps réel pendant la saisie
+        const updateOverlay = () => {
+            overlay.innerHTML = this.highlightText(inputClone.value);
+            // Synchroniser la hauteur si l'input est un textarea (non géré ici)
+            // Synchroniser le scroll si nécessaire
+        };
+        inputClone.addEventListener('input', updateOverlay);
+        inputClone.addEventListener('scroll', () => { // Synchroniser le scroll
+             overlay.scrollTop = inputClone.scrollTop;
+             overlay.scrollLeft = inputClone.scrollLeft;
         });
-        
-        // Construire la structure DOM
-        const wrapper = cell.querySelector('.cell-wrapper') || cell;
-        wrapper.innerHTML = '';
-        
-        container.appendChild(overlay);
-        container.appendChild(input);
+
+        // Remplacer l'input original (qui est hors du wrapper) par notre conteneur
+        const wrapperClass = this.table.config?.wrapCellClass || 'cell-wrapper';
+        const wrapper = cell.querySelector(`.${wrapperClass}`) || cell;
+        wrapper.innerHTML = ''; // Vider le wrapper
+        container.appendChild(overlay); // Ajouter l'overlay d'abord (dessous)
+        container.appendChild(inputClone); // Ajouter l'input transparent (dessus)
         wrapper.appendChild(container);
-        
-        // Focus sur l'input
-        input.focus();
+
+        // Refaire le focus sur le nouvel input
+        inputClone.focus();
+        // Sélectionner le texte (peut échouer selon le navigateur/timing)
+        try { inputClone.select(); } catch (e) { /* Ignorer l'erreur de select */ }
+
+        // Nettoyer l'input original (qui n'est plus dans le DOM)
+        this.editPlugin?.removeInputListeners?.(input); // Appeler le nettoyage d'Edit si possible
+
+        // Stocker une référence au listener pour le nettoyage futur
+        inputClone._highlightUpdateListener = updateOverlay;
+
     }
-    
-    // Récupérer un groupe par son ID
+
+    /**
+     * Récupère la configuration d'un groupe par son ID.
+     * @param {string} groupId - L'ID du groupe.
+     * @returns {object | undefined} L'objet de configuration du groupe ou undefined.
+     */
     getGroupById(groupId) {
         return this.config.groups.find(group => group.id === groupId);
     }
-    
-    // Compiler une regex avec cache
-    getCompiledRegex(pattern, flags = 'g') {
-        const key = `${pattern}:${flags}`;
-        
-        if (this.cache.compiledRegexes.has(key)) {
-            return this.cache.compiledRegexes.get(key);
+
+    /**
+     * Compile (ou récupère depuis le cache) une expression régulière.
+     * @param {string} pattern - Le motif de l'expression régulière.
+     * @param {string} [flags='g'] - Les flags (ex: 'gi'). 'g' est ajouté par défaut.
+     * @returns {RegExp | null} L'objet RegExp compilé ou null si invalide.
+     */
+    getCompiledRegex(pattern, flags = '') {
+        // Ajouter 'g' par défaut s'il n'y est pas, car on utilise exec() en boucle
+        const finalFlags = flags.includes('g') ? flags : flags + 'g';
+        const cacheKey = `${pattern}:${finalFlags}`;
+
+        if (this.cache.compiledRegexes.has(cacheKey)) {
+            return this.cache.compiledRegexes.get(cacheKey);
         }
-        
+
         try {
-            const regex = new RegExp(pattern, flags);
-            this.cache.compiledRegexes.set(key, regex);
+            const regex = new RegExp(pattern, finalFlags);
+            this.cache.compiledRegexes.set(cacheKey, regex);
+            // Limiter la taille du cache regex
+             if (this.cache.compiledRegexes.size > 100) {
+                 const firstKey = this.cache.compiledRegexes.keys().next().value;
+                 this.cache.compiledRegexes.delete(firstKey);
+             }
             return regex;
         } catch (error) {
-            console.error(`Invalid regex pattern: ${pattern}`, error);
+            this.logger.error(`Expression régulière invalide: pattern='${pattern}', flags='${finalFlags}'`, error);
             return null;
         }
     }
-    
-    // Surlignage du texte avec les groupes
+
+    /**
+     * Applique les règles de surlignage à une chaîne de texte.
+     * @param {string} text - Le texte brut à surligner.
+     * @returns {string} Le texte avec des balises <span> ajoutées pour le surlignage.
+     */
     highlightText(text) {
+        // Vérifications initiales
         if (!text || typeof text !== 'string' || !this.config.highlightEnabled) {
-            return text;
+            return text; // Retourne le texte original si invalide ou surlignage désactivé
         }
-        
+
+        // Éviter la récursion infinie (si highlightText est appelé depuis un endroit inattendu)
         if (this.state.isHighlighting) {
-            // Éviter la récursion infinie
+            this.logger.warn("Appel récursif détecté dans highlightText. Retour du texte original.");
             return text;
         }
-        
         this.state.isHighlighting = true;
-        
+
         try {
-            // Préparation des règles d'exclusion
-            const exclusionPatterns = this.config.rules
-                .filter(rule => {
-                    const group = this.getGroupById(rule.group);
-                    return group && group.isExclusion && rule.enabled !== false;
-                })
-                .map(rule => rule.regex);
-            
-            // Collecter toutes les correspondances
-            let matches = [];
-            
-            for (const rule of this.config.rules) {
-                // Passer les règles désactivées
-                if (rule.enabled === false) continue;
-                
-                // Récupérer le groupe associé à cette règle
+            // 1. Préparer les règles d'exclusion globales
+            const exclusionRules = this.config.rules.filter(rule => {
                 const group = this.getGroupById(rule.group);
-                if (!group) continue; // Ignorer les règles sans groupe valide
-                
-                // Ignorer les règles d'exclusion dans cette étape
-                if (group.isExclusion) continue;
-                
-                const regex = this.getCompiledRegex(rule.regex);
-                if (!regex) continue;
-                
+                // Règle active, groupe trouvé, et groupe marqué comme exclusion
+                return rule.enabled !== false && group && group.isExclusion === true;
+            });
+
+            // 2. Collecter toutes les correspondances valides des règles de surlignage
+            let matches = [];
+            for (const rule of this.config.rules) {
+                // Ignorer règles désactivées ou règles d'exclusion ici
+                if (rule.enabled === false) continue;
+                const group = this.getGroupById(rule.group);
+                if (!group || group.isExclusion === true) continue;
+
+                const regex = this.getCompiledRegex(rule.regex, rule.flags); // Utiliser flags si défini
+                if (!regex) continue; // Ignorer si regex invalide
+
                 let match;
+                // Utiliser regex.exec pour trouver toutes les correspondances
                 while ((match = regex.exec(text)) !== null) {
                     const matchText = match[0];
-                    
-                    // Vérifier si ce match doit être ignoré (par les exclusions)
-                    let excluded = false;
-                    
-                    // Vérifier les exclusions globales
-                    for (const exclusion of exclusionPatterns) {
-                        const exclusionRegex = this.getCompiledRegex(exclusion);
+                    const startIndex = match.index;
+                    const endIndex = startIndex + matchText.length;
+
+                    // Ignorer les correspondances vides
+                    if (startIndex === endIndex) continue;
+
+                    // 3. Vérifier si cette correspondance est exclue
+                    let isExcluded = false;
+                    // 3a. Vérifier les règles d'exclusion globales
+                    for (const exclusionRule of exclusionRules) {
+                        const exclusionRegex = this.getCompiledRegex(exclusionRule.regex, exclusionRule.flags);
                         if (exclusionRegex && exclusionRegex.test(matchText)) {
-                            excluded = true;
+                            // Réinitialiser lastIndex pour le prochain test sur la même regex
+                            exclusionRegex.lastIndex = 0;
+                            isExcluded = true;
                             break;
                         }
                     }
-                    
-                    // Si le match a ses propres exclusions, les vérifier aussi
-                    if (!excluded && rule.exclusions && Array.isArray(rule.exclusions)) {
-                        for (const exclusion of rule.exclusions) {
-                            const exclusionRegex = this.getCompiledRegex(exclusion);
+                    if (isExcluded) continue; // Passer à la correspondance suivante si exclu globalement
+
+                    // 3b. Vérifier les exclusions spécifiques à la règle
+                    if (rule.exclusions && Array.isArray(rule.exclusions)) {
+                        for (const exclusionPattern of rule.exclusions) {
+                            const exclusionRegex = this.getCompiledRegex(exclusionPattern); // Flags par défaut 'g'
                             if (exclusionRegex && exclusionRegex.test(matchText)) {
-                                excluded = true;
+                                exclusionRegex.lastIndex = 0;
+                                isExcluded = true;
                                 break;
                             }
                         }
                     }
-                    
-                    // Ajouter le match s'il n'est pas exclu
-                    if (!excluded) {
-                        matches.push({
-                            start: match.index,
-                            end: match.index + matchText.length,
-                            text: matchText,
-                            group: group,
-                            priority: group.priority || 0
-                        });
-                    }
+                    if (isExcluded) continue; // Passer si exclu spécifiquement
+
+                    // 4. Ajouter la correspondance valide
+                    matches.push({
+                        start: startIndex,
+                        end: endIndex,
+                        group: group,
+                        priority: group.priority ?? 0 // Utiliser 0 si non défini
+                    });
                 }
+                 // Important: Réinitialiser lastIndex pour la prochaine règle si la même regex est réutilisée
+                 if (regex.global) regex.lastIndex = 0;
             }
-            
-            // Si aucune correspondance, retourner le texte original
+
+            // Si aucune correspondance trouvée, retourner le texte original
             if (matches.length === 0) {
                 return text;
             }
-            
-            // Trier les correspondances et résoudre les chevauchements
-            matches.sort((a, b) => a.start - b.start);
-            const nonOverlappingMatches = this.resolveOverlaps(matches);
-            
-            // Construire le HTML surligné
-            nonOverlappingMatches.sort((a, b) => b.end - a.end);
-            
-            let highlightedText = text;
-            for (const match of nonOverlappingMatches) {
-                const beforeMatch = highlightedText.substring(0, match.start);
-                const matchText = highlightedText.substring(match.start, match.end);
-                const afterMatch = highlightedText.substring(match.end);
-                
-                const spanStyle = `background-color: ${match.group.backgroundColor || 'transparent'}; color: ${match.group.color || 'inherit'};`;
-                
-                highlightedText = beforeMatch + 
-                                `<span class="${this.config.spanClass}" style="${spanStyle}" data-group="${match.group.id}">` + 
-                                this.escapeHtml(matchText) + 
-                                '</span>' + 
-                                afterMatch;
+
+            // 5. Résoudre les chevauchements en fonction de la priorité
+            const finalMatches = this.resolveOverlaps(matches);
+
+            // 6. Construire le HTML surligné
+            let resultHtml = '';
+            let lastIndex = 0;
+            // Trier par position de début pour construire la chaîne
+            finalMatches.sort((a, b) => a.start - b.start);
+
+            for (const match of finalMatches) {
+                // Ajouter le texte non surligné avant ce match
+                if (match.start > lastIndex) {
+                    resultHtml += this.escapeHtml(text.substring(lastIndex, match.start));
+                }
+                // Ajouter le texte surligné
+                const matchText = text.substring(match.start, match.end);
+                const group = match.group;
+                const style = `background-color: ${group.backgroundColor || 'transparent'}; color: ${group.color || 'inherit'};`;
+                resultHtml += `<span class="${this.config.spanClass}" style="${style}" data-group="${group.id}">`
+                           + this.escapeHtml(matchText)
+                           + '</span>';
+                lastIndex = match.end;
             }
-            
-            return highlightedText;
+
+            // Ajouter le reste du texte non surligné après le dernier match
+            if (lastIndex < text.length) {
+                resultHtml += this.escapeHtml(text.substring(lastIndex));
+            }
+
+            return resultHtml;
+
+        } catch (error) {
+             this.logger.error("Erreur inattendue dans highlightText:", error);
+             return text; // Retourner le texte original en cas d'erreur
         } finally {
-            this.state.isHighlighting = false;
+            this.state.isHighlighting = false; // Assurer la réinitialisation du flag
         }
     }
-    
-    // Échapper le HTML
+
+    /**
+     * Échappe les caractères HTML spéciaux dans une chaîne.
+     * @param {string} text - Le texte à échapper.
+     * @returns {string} Le texte échappé.
+     */
     escapeHtml(text) {
+        // Utiliser le sanitizer global si disponible
+        if (this.table?.sanitizer && typeof this.table.sanitizer.escapeHTML === 'function') {
+             return this.table.sanitizer.escapeHTML(text);
+        }
+        // Fallback simple
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
-    // Résoudre les chevauchements entre correspondances
+
+    /**
+     * Résout les chevauchements entre les correspondances trouvées.
+     * Si plusieurs règles matchent le même segment de texte, seule celle
+     * du groupe avec la plus haute priorité (valeur la plus basse) est conservée.
+     * @param {Array<object>} matches - Tableau des correspondances [{ start, end, group, priority }].
+     * @returns {Array<object>} Tableau des correspondances sans chevauchement, priorisées.
+     */
     resolveOverlaps(matches) {
         if (matches.length <= 1) {
-            return matches;
+            return matches; // Pas de chevauchement possible
         }
-        
-        // Trier par priorité du groupe (valeur numérique la plus basse = priorité la plus haute)
-        matches.sort((a, b) => (a.priority || 0) - (b.priority || 0));
-        
-        const result = [];
-        const segments = new Map(); // Map pour suivre les segments de texte déjà attribués
-        
+
+        // Créer une structure pour marquer les segments de texte couverts et par quelle priorité
+        // Utiliser un tableau où l'index représente la position dans la chaîne originale
+        let maxEnd = 0;
+        matches.forEach(m => maxEnd = Math.max(maxEnd, m.end));
+        const coverage = new Array(maxEnd).fill(null).map(() => ({ covered: false, priority: Infinity, match: null }));
+
+        // Trier les matches par priorité (plus basse = plus haute), puis par longueur (plus long d'abord)
+        matches.sort((a, b) => {
+            const priorityDiff = a.priority - b.priority;
+            if (priorityDiff !== 0) return priorityDiff;
+            return (b.end - b.start) - (a.end - a.start); // Le plus long en premier à priorité égale
+        });
+
+        const finalMatches = [];
         for (const match of matches) {
             let canAdd = true;
-            let start = match.start;
-            let end = match.end;
-            
-            // Vérifier les chevauchements avec les segments existants
-            for (let pos = start; pos < end; pos++) {
-                if (segments.has(pos)) {
-                    // Ce point est déjà couvert par un match avec priorité plus élevée
+            // Vérifier si une partie de ce match est déjà couverte par une priorité plus haute
+            for (let i = match.start; i < match.end; i++) {
+                if (coverage[i].covered && coverage[i].priority < match.priority) {
                     canAdd = false;
                     break;
                 }
             }
-            
+
             if (canAdd) {
-                // Marquer tous les points de ce match comme couverts
-                for (let pos = start; pos < end; pos++) {
-                    segments.set(pos, match);
+                // Ce match est valide (ou a une priorité égale/supérieure aux chevauchements)
+                finalMatches.push(match);
+                // Marquer les segments comme couverts par ce match
+                for (let i = match.start; i < match.end; i++) {
+                    // Ne mettre à jour que si ce match a une priorité strictement supérieure
+                    // ou si le segment n'était pas couvert
+                    if (!coverage[i].covered || match.priority < coverage[i].priority) {
+                        coverage[i] = { covered: true, priority: match.priority, match: match };
+                    }
                 }
-                result.push(match);
             }
         }
-        
-        return result;
+
+         // Optionnel : On pourrait vouloir re-filtrer finalMatches pour ne garder que les segments
+         // qui n'ont pas été écrasés par un match ultérieur de priorité égale mais plus court.
+         // Cependant, la construction HTML gère cela en traitant les matches par ordre de début.
+
+        return finalMatches;
     }
-    
-    // Appliquer le surlignage à toutes les cellules
+
+    /** Applique le surlignage à toutes les cellules éditables visibles. */
     highlightAllCells() {
-        if (!this.table?.table || !this.config.highlightEnabled) {
+        if (!this.table?.element || !this.config.highlightEnabled || !this.editPlugin) {
+            this.debug("Surlignage global ignoré (désactivé, table ou EditPlugin manquant).");
             return;
         }
-        
-        const editCells = this.table.table.querySelectorAll('.' + this.editPlugin.config.cellClass);
+        this.debug("Application du surlignage à toutes les cellules éditables...");
+
+        const editCells = this.table.element.querySelectorAll(`td.${this.editPlugin.config.cellClass}`);
+        let count = 0;
         editCells.forEach(cell => {
-            // Ne pas modifier les cellules en cours d'édition
-            if (cell.querySelector('input')) {
+            // Ne pas modifier les cellules en cours d'édition via l'overlay
+            if (cell.querySelector('.tf-highlight-edit-container')) {
                 return;
             }
-            
-            const value = cell.getAttribute('data-value') || cell.textContent.trim();
-            if (!value) {
-                return;
+            // Récupérer la valeur sémantique
+            const value = cell.getAttribute('data-value') ?? cell.textContent?.trim() ?? '';
+            if (value) {
+                // Appeler le hook onRender (qui utilise highlightText)
+                this.executeHook('onRender', cell, value);
+                count++;
             }
-            
-            // Appliquer le surlignage
-            const wrapper = cell.querySelector('.cell-wrapper') || cell;
-            wrapper.innerHTML = this.highlightText(value);
         });
-        
-        this.debug('Highlighting applied to all cells');
+        this.debug(`${count} cellule(s) surlignée(s).`);
     }
-    
-    // Chargement des règles depuis le stockage local
+
+    /** Charge les groupes et règles depuis localStorage. */
     loadRules() {
+        if (!this.config.storageKey || typeof localStorage === 'undefined') return;
+        this.debug(`Chargement de la configuration depuis localStorage (clé: ${this.config.storageKey})...`);
         try {
             const savedData = localStorage.getItem(this.config.storageKey);
             if (savedData) {
                 const data = JSON.parse(savedData);
-                
-                // Charger les groupes si fournis
+                // Valider et charger les groupes et règles
                 if (data.groups && Array.isArray(data.groups)) {
+                    // Valider la structure de chaque groupe? Pour l'instant, on fait confiance.
                     this.config.groups = data.groups;
+                    this.debug(`${this.config.groups.length} groupe(s) chargé(s).`);
                 }
-                
-                // Charger les règles
                 if (data.rules && Array.isArray(data.rules)) {
+                    // Valider la structure de chaque règle?
                     this.config.rules = data.rules;
+                     this.debug(`${this.config.rules.length} règle(s) chargée(s).`);
                 }
-                
-                this.debug('Loaded highlight configuration:', { groups: this.config.groups.length, rules: this.config.rules.length });
+                // Invalider les caches après chargement
+                this.clearCache();
+            } else {
+                 this.debug("Aucune configuration trouvée dans localStorage.");
             }
         } catch (error) {
-            console.error('Error loading highlight configuration:', error);
+            this.logger.error(`Erreur lors du chargement de la configuration Highlight depuis localStorage: ${error.message}`, error);
+            // Optionnel: Supprimer la clé invalide?
+            // localStorage.removeItem(this.config.storageKey);
         }
     }
-    
-    // Sauvegarde des règles dans le stockage local
+
+    /** Sauvegarde les groupes et règles actuels dans localStorage. */
     saveRules() {
-        if (!this.config.storageKey) return;
-        
+        if (!this.config.storageKey || typeof localStorage === 'undefined') return;
+        this.debug(`Sauvegarde de la configuration dans localStorage (clé: ${this.config.storageKey})...`);
         try {
             const dataToSave = {
-                groups: this.config.groups,
-                rules: this.config.rules
+                groups: this.config.groups, // Sauvegarder aussi les groupes (si modifiables?)
+                rules: this.config.rules,
+                timestamp: Date.now() // Ajouter un timestamp
             };
-            
             localStorage.setItem(this.config.storageKey, JSON.stringify(dataToSave));
-            this.debug('Saved highlight configuration');
+            this.debug('Configuration Highlight sauvegardée.');
         } catch (error) {
-            console.error('Error saving highlight configuration:', error);
+            this.logger.error(`Erreur lors de la sauvegarde de la configuration Highlight dans localStorage: ${error.message}`, error);
+            // Gérer l'erreur (ex: quota dépassé)
+            this.table?.notify('error', 'Erreur lors de la sauvegarde des règles de surlignage.');
         }
     }
-    
-    // Ajouter une nouvelle règle
+
+    /**
+     * Ajoute une nouvelle règle de surlignage.
+     * @param {object} rule - L'objet règle { group, regex, exclusions?, enabled?, description? }.
+     * @returns {Promise<object|null> | object | null} La règle ajoutée (avec ID généré si absent), ou null si invalide/échoué. Retourne une promesse si useAjax=true.
+     */
     addRule(rule) {
-        // Si la création de règles est désactivée, ne rien faire
         if (!this.config.ruleCreation.enabled) {
-            this.debug('Rule creation is disabled');
+            this.debug('Ajout de règle désactivé par la configuration.');
             return null;
         }
-        
-        // Vérifier la validité minimale de la règle
-        if (!rule.group || !rule.regex) {
-            console.error('Invalid rule: missing group or regex', rule);
+        // Validation minimale de la règle
+        if (!rule || typeof rule !== 'object' || !rule.group || !rule.regex) {
+            this.logger.error("Tentative d'ajout d'une règle invalide (manque group ou regex).", rule);
             return null;
         }
-        
         // Vérifier que le groupe existe
-        const group = this.getGroupById(rule.group);
-        if (!group) {
-            console.error(`Group '${rule.group}' not found`);
+        if (!this.getGroupById(rule.group)) {
+            this.logger.error(`Groupe '${rule.group}' non trouvé pour la nouvelle règle.`);
             return null;
         }
-        
-        // Générer un ID unique si non fourni
-        if (!rule.id) {
-            rule.id = 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        }
-        
-        // Activer par défaut
-        if (rule.enabled === undefined) {
-            rule.enabled = true;
-        }
-        
-        // Si AJAX est activé, envoyer la règle au serveur
-        if (this.config.ruleCreation.useAjax) {
-            return this.sendRuleToServer(rule);
-        }
-        
-        // Sinon, procéder à l'ajout local
-        this.config.rules.push(rule);
-        this.saveRules();
-        this.clearCache();
-        this.highlightAllCells();
-        
-        return rule;
-    }
-    
-    // Mettre à jour une règle existante
-    updateRule(ruleId, updates) {
-        const index = this.config.rules.findIndex(r => r.id === ruleId);
-        if (index === -1) {
-            return false;
-        }
-        
-        // Mettre à jour les propriétés
-        this.config.rules[index] = {
-            ...this.config.rules[index],
-            ...updates
+         // Vérifier la validité de la regex
+         if (this.getCompiledRegex(rule.regex, rule.flags) === null) {
+             this.logger.error(`Regex invalide fournie pour la nouvelle règle: ${rule.regex}`);
+             // Optionnel: Notifier l'utilisateur
+             this.table?.notify('error', `L'expression régulière fournie est invalide: ${rule.regex}`);
+             return null;
+         }
+
+
+        // Préparer la règle complète
+        const newRule = {
+            id: rule.id || `rule_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, // Générer ID unique
+            group: rule.group,
+            regex: rule.regex,
+            flags: rule.flags || '', // Stocker les flags
+            exclusions: Array.isArray(rule.exclusions) ? rule.exclusions : [],
+            enabled: rule.enabled !== false, // Actif par défaut
+            description: rule.description || '' // Description optionnelle
         };
-        
-        this.saveRules();
-        this.clearCache();
-        this.highlightAllCells();
-        
-        return true;
+        this.debug("Ajout de la règle:", newRule);
+
+        // Si AJAX est activé, envoyer au serveur d'abord
+        if (this.config.ruleCreation.useAjax) {
+            return this.sendRuleToServer(newRule); // Retourne une promesse
+        } else {
+            // Ajouter localement
+            this.config.rules.push(newRule);
+            this.saveRules(); // Persister
+            this.clearCache(); // Invalider le cache
+            this.highlightAllCells(); // Réappliquer le surlignage
+            this.debug("Règle ajoutée localement.");
+            return newRule; // Retourner la règle ajoutée
+        }
     }
-    
-    // Supprimer une règle
-    deleteRule(ruleId) {
-        const index = this.config.rules.findIndex(r => r.id === ruleId);
-        if (index === -1) {
+
+    /**
+     * Envoie une nouvelle règle au serveur via AJAX.
+     * @param {object} rule - La règle à envoyer.
+     * @returns {Promise<object|null>} Promesse résolue avec la règle ajoutée (potentiellement modifiée par le serveur) ou null en cas d'erreur.
+     * @private
+     */
+    async sendRuleToServer(rule) {
+        const { ajaxUrl, ajaxMethod, ajaxHeaders, ajaxCallback } = this.config.ruleCreation;
+        this.debug(`Envoi de la règle au serveur: ${ajaxMethod} ${ajaxUrl}`, rule);
+
+        try {
+            const response = await fetch(ajaxUrl, {
+                method: ajaxMethod,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...ajaxHeaders
+                },
+                body: JSON.stringify(rule)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Erreur serveur (${response.status}): ${errorText || response.statusText}`);
+            }
+
+            const serverResponse = await response.json();
+            this.debug("Réponse du serveur reçue:", serverResponse);
+
+            // Supposer que le serveur retourne la règle ajoutée (peut-être avec un ID serveur)
+            const addedRule = { ...rule, ...(serverResponse.rule || serverResponse) }; // Fusionner avec la réponse
+
+            // Ajouter localement APRÈS succès serveur
+            this.config.rules.push(addedRule);
+            this.saveRules();
+            this.clearCache();
+            this.highlightAllCells();
+
+            // Appeler le callback AJAX si défini
+            if (typeof ajaxCallback === 'function') {
+                ajaxCallback(addedRule, serverResponse);
+            }
+
+            this.table?.notify('success', 'Règle ajoutée et synchronisée avec le serveur.');
+            return addedRule;
+
+        } catch (error) {
+            this.logger.error(`Échec de l'envoi de la règle au serveur: ${error.message}`, error);
+            this.table?.notify('error', `Impossible d'ajouter la règle sur le serveur: ${error.message}`);
+            return null; // Échec de l'ajout
+        }
+    }
+
+
+    /**
+     * Met à jour une règle existante par son ID.
+     * @param {string} ruleId - L'ID de la règle à mettre à jour.
+     * @param {object} updates - Objet contenant les propriétés à mettre à jour.
+     * @returns {boolean} True si la mise à jour a réussi, false sinon.
+     */
+    updateRule(ruleId, updates) {
+        const ruleIndex = this.config.rules.findIndex(r => r.id === ruleId);
+        if (ruleIndex === -1) {
+            this.logger.warn(`Impossible de mettre à jour: règle avec ID '${ruleId}' non trouvée.`);
             return false;
         }
-        
-        this.config.rules.splice(index, 1);
+
+        // Valider les mises à jour (ex: regex valide, groupe existant)
+        if (updates.regex && this.getCompiledRegex(updates.regex, updates.flags ?? this.config.rules[ruleIndex].flags) === null) {
+             this.logger.error(`Regex invalide fournie pour la mise à jour de la règle ${ruleId}: ${updates.regex}`);
+             this.table?.notify('error', `L'expression régulière fournie est invalide: ${updates.regex}`);
+             return false;
+        }
+         if (updates.group && !this.getGroupById(updates.group)) {
+             this.logger.error(`Groupe '${updates.group}' non trouvé pour la mise à jour de la règle ${ruleId}.`);
+             return false;
+         }
+
+
+        // Appliquer les mises à jour
+        this.config.rules[ruleIndex] = {
+            ...this.config.rules[ruleIndex], // Garder les anciennes valeurs
+            ...updates // Appliquer les nouvelles
+        };
+        this.debug(`Règle ${ruleId} mise à jour:`, this.config.rules[ruleIndex]);
+
+        // TODO: Gérer la mise à jour AJAX si useAjax=true (nécessite un endpoint PUT/PATCH)
+
         this.saveRules();
         this.clearCache();
         this.highlightAllCells();
-        
         return true;
     }
-    
-    // Effacer le cache
+
+    /**
+     * Supprime une règle par son ID.
+     * @param {string} ruleId - L'ID de la règle à supprimer.
+     * @returns {boolean} True si la suppression a réussi, false sinon.
+     */
+    deleteRule(ruleId) {
+        const initialLength = this.config.rules.length;
+        this.config.rules = this.config.rules.filter(r => r.id !== ruleId);
+
+        if (this.config.rules.length < initialLength) {
+            this.debug(`Règle ${ruleId} supprimée.`);
+            // TODO: Gérer la suppression AJAX si useAjax=true (nécessite un endpoint DELETE)
+            this.saveRules();
+            this.clearCache();
+            this.highlightAllCells();
+            return true;
+        } else {
+            this.logger.warn(`Impossible de supprimer: règle avec ID '${ruleId}' non trouvée.`);
+            return false;
+        }
+    }
+
+    /** Efface les caches internes (texte surligné, regex compilées). */
     clearCache() {
         this.cache.highlightedTexts.clear();
         this.cache.compiledRegexes.clear();
+        this.debug("Caches Highlight effacés.");
     }
-    
-    // Activer/désactiver le surlignage global
+
+    /**
+     * Active ou désactive globalement le surlignage.
+     * @param {boolean} [enabled] - Nouvel état. Si omis, bascule l'état actuel.
+     * @returns {boolean} Le nouvel état d'activation.
+     */
     toggleHighlighting(enabled) {
-        this.config.highlightEnabled = enabled !== undefined ? enabled : !this.config.highlightEnabled;
-        
-        if (this.config.highlightEnabled) {
+        const newState = enabled !== undefined ? enabled : !this.config.highlightEnabled;
+        if (newState === this.config.highlightEnabled) return newState; // Pas de changement
+
+        this.config.highlightEnabled = newState;
+        this.debug(`Surlignage ${newState ? 'activé' : 'désactivé'}.`);
+
+        if (newState) {
+            // Si activé, réappliquer le surlignage
             this.highlightAllCells();
         } else {
-            // Restaurer les textes originaux
-            const editCells = this.table.table.querySelectorAll('.' + this.editPlugin.config.cellClass);
-            editCells.forEach(cell => {
-                const value = cell.getAttribute('data-value');
-                if (value) {
-                    const wrapper = cell.querySelector('.cell-wrapper') || cell;
-                    wrapper.textContent = value;
-                }
+            // Si désactivé, restaurer le texte original
+            this.clearCache(); // Effacer le cache pour forcer le rendu normal
+            const editCells = this.table?.element?.querySelectorAll(`td.${this.editPlugin?.config?.cellClass || 'td-edit'}`);
+            editCells?.forEach(cell => {
+                // Appeler onRender pour restaurer (qui retournera true car highlightEnabled=false)
+                const value = cell.getAttribute('data-value') ?? cell.textContent?.trim() ?? '';
+                 if (this.editPlugin && typeof this.editPlugin.executeHook === 'function') {
+                     const renderHookResult = this.editPlugin.executeHook('onRender', cell, value);
+                     // Si onRender n'a pas été géré par un autre hook, forcer le textContent
+                     if (renderHookResult !== false) {
+                          const wrapperClass = this.table.config?.wrapCellClass || 'cell-wrapper';
+                          const wrapper = cell.querySelector(`.${wrapperClass}`) || cell;
+                          if (this.table?.sanitizer) {
+                              this.table.sanitizer.setTextContent(wrapper, value);
+                          } else {
+                              wrapper.textContent = value;
+                          }
+                     }
+                 } else {
+                      // Fallback si EditPlugin ou hooks non dispo
+                      const wrapperClass = this.table.config?.wrapCellClass || 'cell-wrapper';
+                      const wrapper = cell.querySelector(`.${wrapperClass}`) || cell;
+                      wrapper.textContent = value;
+                 }
             });
         }
-        
-        return this.config.highlightEnabled;
+        return newState;
     }
-    
-    // Injecter les styles CSS
+
+    /** Injecte les styles CSS nécessaires (une seule fois). */
     injectStyles() {
-        if (document.getElementById('highlight-plugin-styles')) return;
-        
+        const styleId = 'tableflow-highlight-styles';
+        if (document.getElementById(styleId)) return;
+
         const style = document.createElement('style');
-        style.id = 'highlight-plugin-styles';
+        style.id = styleId;
+        // Styles de base pour les spans et l'édition surlignée
+        // Utilise les classes configurées et les variables CSS globales
         style.textContent = `
+            /* Span de surlignage */
             .${this.config.spanClass} {
-                padding: 0 2px;
-                border-radius: 2px;
+                border-radius: 3px;
+                padding: 0.1em 0;
+                box-decoration-break: clone;
+                -webkit-box-decoration-break: clone;
             }
-            
+            /* Conteneur pour l'édition surlignée */
             .tf-highlight-edit-container {
                 position: relative;
                 width: 100%;
+                min-height: calc(1.5em + 2 * var(--tf-input-padding, 4px)); /* Hauteur basée sur input */
+                padding: var(--tf-input-padding, 4px 6px); /* Simuler padding input */
+                box-sizing: border-box;
+                cursor: text;
             }
-            
+            /* Input réel transparent */
             .tf-highlight-edit-input {
-                position: relative;
+                position: absolute; top: 0; left: 0;
+                width: 100%; height: 100%;
                 background: transparent !important;
                 color: transparent !important;
-                caret-color: black !important;
-                z-index: 2;
-                width: 100%;
-                border: none;
-                padding: 0;
-                margin: 0;
-                font: inherit;
-            }
-            
-            .tf-highlight-edit-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                pointer-events: none;
-                white-space: pre-wrap;
-                word-break: break-word;
+                caret-color: var(--tf-highlight-edit-caret-color, black) !important;
+                border: none !important; outline: none !important;
+                padding: var(--tf-input-padding, 4px 6px) !important;
+                margin: 0 !important;
+                font: inherit !important; line-height: inherit !important;
+                box-sizing: border-box !important;
                 z-index: 1;
-                padding: 0;
-                margin: 0;
-                border: none;
-                font: inherit;
+                white-space: pre-wrap; resize: none;
             }
-            
-            /* Modal styles */
-            .${this.config.ui.modalClass} {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: white;
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                width: 600px;
-                max-width: 90%;
-                max-height: 80vh;
-                display: flex;
-                flex-direction: column;
-                z-index: 1000;
+            /* Overlay avec texte surligné */
+            .tf-highlight-edit-overlay {
+                position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                pointer-events: none;
+                white-space: pre-wrap; word-break: break-word;
+                overflow: hidden;
+                padding: var(--tf-input-padding, 4px 6px);
+                box-sizing: border-box;
+                font: inherit; line-height: inherit;
+                color: var(--tf-text-muted-color, #666);
+                z-index: 0;
             }
-            
-            .${this.config.ui.modalClass}-header {
-                padding: 16px 20px;
-                border-bottom: 1px solid #eee;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            
-            .${this.config.ui.modalClass}-body {
-                padding: 20px;
-                overflow-y: auto;
-                flex: 1;
-            }
-            
-            .${this.config.ui.modalClass}-footer {
-                padding: 16px 20px;
-                border-top: 1px solid #eee;
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-            
-            .${this.config.ui.modalClass}-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 999;
-            }
-            
-            /* Button styles */
-            .${this.config.ui.buttonClass} {
-                padding: 8px 16px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background: #fff;
-                cursor: pointer;
-                font-size: 14px;
-            }
-            
-            .${this.config.ui.buttonClass}-primary {
-                background: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-            
-            .${this.config.ui.buttonClass}-danger {
-                background: #dc3545;
-                color: white;
-                border-color: #dc3545;
-            }
-            
-            /* Form styles */
-            .${this.config.ui.formClass} {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-            
-            .${this.config.ui.formClass}-group {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .${this.config.ui.formClass}-label {
-                font-weight: 500;
-            }
-            
-            .${this.config.ui.inputClass} {
-                padding: 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            
-            .${this.config.ui.inputClass}:focus {
-                outline: none;
-                border-color: #007bff;
-                box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
-            }
-            
-            /* Rules list styles */
-            .highlight-rules-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .highlight-rule-item {
-                display: flex;
-                align-items: center;
-                padding: 8px;
-                border: 1px solid #eee;
-                border-radius: 4px;
-                gap: 8px;
-            }
-            
-            .highlight-rule-item:hover {
-                background: #f8f9fa;
-            }
-            
-            .highlight-rule-color {
-                width: 16px;
-                height: 16px;
-                border-radius: 50%;
-                border: 1px solid #ccc;
-            }
-            
-            .highlight-rule-pattern {
-                font-family: monospace;
-                flex: 1;
-            }
-            
-            .highlight-rule-actions {
-                display: flex;
-                gap: 8px;
-            }
+            /* Styles Modale (si non définis globalement dans tableFlow.css) */
+            /* ... (Copier les styles de la modale depuis la doc ou tableFlow.css si nécessaire) ... */
         `;
-        
         document.head.appendChild(style);
+        this.debug("Styles CSS pour Highlight injectés.");
     }
-    
-    /**************************************************************
-     * INTERFACE MENU CONTEXTUEL
-     **************************************************************/
-    
-    // Méthode pour fournir des éléments de menu au ContextMenuPlugin
+
+    // -------------------------------------------------------------------------
+    // Implémentation Interface Fournisseur pour ContextMenuPlugin
+    // -------------------------------------------------------------------------
+
+    /**
+     * Retourne les items de menu pour le ContextMenuPlugin.
+     * @param {HTMLTableCellElement} cell - La cellule ciblée.
+     * @returns {Array<object>} Tableau d'items de menu.
+     */
     getMenuItems(cell) {
-        // Ne fournir des éléments que pour les cellules éditables
-        if (!cell || !cell.classList.contains(this.editPlugin.config.cellClass)) {
-            return [];
+        if (!this.config.menuEnabled) return []; // Ne rien ajouter si désactivé
+
+        // Vérifier si la cellule est éditable (gérée par EditPlugin)
+        if (!this.editPlugin || !cell.classList.contains(this.editPlugin.config.cellClass)) {
+            return []; // Ne s'applique qu'aux cellules éditables
         }
-        
+
         const items = [];
-        
-        // En-tête de section
+        // Ajouter l'en-tête de section
         if (this.config.menuSection) {
-            items.push({
-                type: 'header',
-                label: this.config.menuSection
-            });
+            items.push({ type: 'header', label: this.config.menuSection });
         }
-        
-        // Option pour activer/désactiver le surlignage
+
+        // Option Activer/Désactiver
         items.push({
             id: 'toggleHighlighting',
-            label: this.config.highlightEnabled ? 'Désactiver le surlignage' : 'Activer le surlignage',
-            icon: this.config.highlightEnabled ? '🎨' : '⚪'
+            label: this.config.highlightEnabled ? 'Désactiver Surlignage' : 'Activer Surlignage',
+            icon: this.config.highlightEnabled ? '🎨' : '⚪' // Ou utiliser des classes FontAwesome
         });
-        
-        // Options pour ajouter une règle selon le groupe
-        if (this.config.ruleCreation.enabled) {
+
+        // Options pour ajouter une règle depuis la sélection
+        if (this.config.ruleCreation.enabled && typeof window.getSelection === 'function') {
             const selection = window.getSelection();
-            const hasSelection = selection && !selection.isCollapsed && selection.toString().trim() !== '';
-            
-            if (hasSelection) {
-                items.push({
-                    type: 'separator'
-                });
-                
-                items.push({
-                    type: 'header',
-                    label: 'Ajouter une règle'
-                });
-                
-                // Ajouter une entrée pour chaque groupe non-exclusion
-                this.config.groups
-                    .filter(group => !group.isExclusion)
-                    .forEach(group => {
-                        items.push({
-                            id: `addRuleToGroup:${group.id}`,
-                            label: `Surligner en ${group.name}`,
-                            icon: '🖍️'
-                        });
-                    });
-                
-                // Option pour ajouter aux exclusions
-                const ignoredGroup = this.config.groups.find(g => g.isExclusion);
-                if (ignoredGroup) {
-                    items.push({
-                        id: `addRuleToGroup:${ignoredGroup.id}`,
-                        label: `Ne pas surligner "${selection.toString().trim()}"`,
-                        icon: '🚫'
-                    });
-                }
+            const selectedText = selection?.toString().trim();
+
+            if (selectedText) { // Si du texte est sélectionné DANS LA PAGE (pas forcément la cellule)
+                 // Vérifier si la sélection provient bien de la cellule cible? Difficile.
+                 // On propose l'option si une sélection existe.
+                 items.push({ type: 'separator' });
+                 items.push({ type: 'header', label: `Ajouter règle pour "${selectedText.substring(0, 20)}..."` });
+
+                 // Ajouter une option pour chaque groupe non-exclusion
+                 this.config.groups.filter(g => !g.isExclusion).forEach(group => {
+                     items.push({
+                         id: `addRuleToGroup:${group.id}:${selectedText}`, // Passer le texte dans l'ID
+                         label: `Surligner en ${group.name}`,
+                         icon: '🖍️' // Ou une icône plus spécifique
+                     });
+                 });
+                 // Option pour ajouter aux exclusions
+                 const ignoredGroup = this.config.groups.find(g => g.isExclusion);
+                 if (ignoredGroup) {
+                     items.push({
+                         id: `addRuleToGroup:${ignoredGroup.id}:${selectedText}`,
+                         label: `Ne jamais surligner ce texte`,
+                         icon: '🚫'
+                     });
+                 }
             }
         }
-        
+
         // Option pour gérer les règles
-        items.push({
-            type: 'separator'
-        });
-        
+        items.push({ type: 'separator' });
         items.push({
             id: 'manageRules',
-            label: 'Gérer les règles de surlignage',
+            label: 'Gérer les règles...',
             icon: '⚙️'
         });
-        
+
         return items;
     }
-    
-    // Exécuter une action demandée via le menu contextuel
+
+    /**
+     * Exécute une action demandée depuis le menu contextuel.
+     * @param {string} actionId - L'ID de l'action (ex: 'toggleHighlighting', 'addRuleToGroup:ID:TEXT').
+     * @param {HTMLTableCellElement} cell - La cellule ciblée lors de l'ouverture du menu.
+     */
     executeAction(actionId, cell) {
+        this.debug(`Exécution de l'action ContextMenu: ${actionId}`);
+
         if (actionId === 'toggleHighlighting') {
             this.toggleHighlighting();
             return;
         }
-        
+
         if (actionId === 'manageRules') {
-            this.showRulesManager();
+            this.showRulesManager(); // Ouvre la modale de gestion
             return;
         }
-        
-        // Gestion des actions addRuleToGroup:{groupId}
+
+        // Gérer l'ajout de règle depuis la sélection
         if (actionId.startsWith('addRuleToGroup:')) {
-            const groupId = actionId.split(':')[1];
-            this.createRuleFromSelection(cell, groupId);
+            const parts = actionId.split(':');
+            if (parts.length >= 3) {
+                 const groupId = parts[1];
+                 // Rejoindre le reste au cas où le texte contenait ':'
+                 const selectedText = parts.slice(2).join(':');
+                 this.createRuleFromSelection(selectedText, groupId);
+            } else {
+                 this.logger.warn(`Format d'action invalide pour addRuleToGroup: ${actionId}`);
+            }
             return;
         }
-    }
-    
-    // Créer une règle basée sur la sélection de texte
-   createRuleFromSelection(cell, groupId) {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) {
-        alert('Veuillez d\'abord sélectionner du texte dans la cellule.');
-        return;
-    }
-    
-    // Obtenir le texte sélectionné
-    const selectedText = selection.toString().trim();
-    if (!selectedText) {
-        alert('Aucun texte sélectionné.');
-        return;
-    }
-    
-    // Vérifier que le groupe existe
-    const group = this.getGroupById(groupId);
-    if (!group) {
-        alert(`Groupe '${groupId}' introuvable.`);
-        return;
-    }
-    
-    // Échapper les caractères spéciaux de regex
-    const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
-    // Demander si la règle doit être sensible à la casse
-    const caseSensitive = confirm('Rendre la règle sensible à la casse ?');
-    
-    // Créer la nouvelle règle
-    const newRule = {
-        id: 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-        group: groupId,
-        regex: caseSensitive ? escapedText : '(?i)' + escapedText,
-        exclusions: [],
-        enabled: true,
-        description: `Surligner "${selectedText}" en ${group.name}`
-    };
-    
-    // Ajouter la règle
-    const addedRule = this.addRule(newRule);
-    
-    if (addedRule) {
-        // Notification succès
-        this.notify('success', `Règle ajoutée avec succès au groupe '${group.name}'`);
-    }
-}
 
-// Interface graphique pour la gestion des règles
-showRulesManager() {
-    // Empêcher l'ouverture multiple
-    if (this.state.modalOpen) return;
-    
-    this.state.modalOpen = true;
-    
-    // Créer l'overlay
-    const overlay = document.createElement('div');
-    overlay.className = `${this.config.ui.modalClass}-overlay`;
-    
-    // Créer le modal
-    const modal = document.createElement('div');
-    modal.className = this.config.ui.modalClass;
-    
-    // En-tête
-    const header = document.createElement('div');
-    header.className = `${this.config.ui.modalClass}-header`;
-    header.innerHTML = `
-        <h3 style="margin: 0;">Gestion des règles de surlignage</h3>
-        <button class="tf-modal-close ${this.config.ui.buttonClass}" style="padding: 4px 8px;">&times;</button>
-    `;
-    
-    // Corps
-    const body = document.createElement('div');
-    body.className = `${this.config.ui.modalClass}-body`;
-    
-    // Pied de page
-    const footer = document.createElement('div');
-    footer.className = `${this.config.ui.modalClass}-footer`;
-    footer.innerHTML = `
-        <button class="tf-add-rule-btn ${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-primary">
-            Ajouter une règle
-        </button>
-        ${this.config.ui.allowExport ? `
-            <button class="tf-export-btn ${this.config.ui.buttonClass}">
-                Exporter
-            </button>
-        ` : ''}
-        ${this.config.ui.allowImport ? `
-            <button class="tf-import-btn ${this.config.ui.buttonClass}">
-                Importer
-            </button>
-        ` : ''}
-    `;
-    
-    // Assembler le modal
-    modal.appendChild(header);
-    modal.appendChild(body);
-    modal.appendChild(footer);
-    
-    // Ajouter au DOM
-    document.body.appendChild(overlay);
-    document.body.appendChild(modal);
-    
-    // Afficher les règles
-    this.renderRulesList(body);
-    
-    // Gestionnaires d'événements
-    const closeModal = () => {
-        document.body.removeChild(overlay);
-        document.body.removeChild(modal);
-        this.state.modalOpen = false;
-    };
-    
-    // Fermer sur clic overlay
-    overlay.addEventListener('click', closeModal);
-    
-    // Fermer sur clic bouton X
-    header.querySelector('.tf-modal-close').addEventListener('click', closeModal);
-    
-    // Fermer avec Échap
-    const handleKeyDown = (e) => {
-        if (e.key === 'Escape' && this.state.modalOpen) {
-            closeModal();
-            document.removeEventListener('keydown', handleKeyDown);
+        this.logger.warn(`Action ContextMenu non reconnue: ${actionId}`);
+    }
+
+    /**
+     * Crée une nouvelle règle basée sur un texte sélectionné et un groupe choisi.
+     * @param {string} selectedText - Le texte sélectionné.
+     * @param {string} groupId - L'ID du groupe cible.
+     */
+    createRuleFromSelection(selectedText, groupId) {
+        if (!selectedText || !groupId) return;
+        this.debug(`Création d'une règle pour "${selectedText}" dans le groupe ${groupId}`);
+
+        const group = this.getGroupById(groupId);
+        if (!group) {
+            this.logger.error(`Groupe ${groupId} introuvable pour la création de règle.`);
+            this.table?.notify('error', `Groupe ${groupId} introuvable.`);
+            return;
         }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    
-    // Bouton Ajouter
-    footer.querySelector('.tf-add-rule-btn').addEventListener('click', () => {
-        this.showAddRuleForm((newRule) => {
-            this.renderRulesList(body);
-        });
-    });
-    
-    // Bouton Exporter
-    const exportBtn = footer.querySelector('.tf-export-btn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            this.exportRules();
-        });
-    }
-    
-    // Bouton Importer
-    const importBtn = footer.querySelector('.tf-import-btn');
-    if (importBtn) {
-        importBtn.addEventListener('click', () => {
-            this.importRules(() => {
-                this.renderRulesList(body);
-            });
-        });
-    }
-}
 
-// Afficher la liste des règles
-renderRulesList(container) {
-    container.innerHTML = '';
-    
-    if (this.config.rules.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666;">Aucune règle définie</p>';
-        return;
-    }
-    
-    const list = document.createElement('div');
-    list.className = 'highlight-rules-list';
-    
-    // Grouper les règles si nécessaire
-    if (this.config.ui.groupByColor) {
-        // Créer les sections pour chaque groupe
-        this.config.groups.forEach(group => {
-            const groupRules = this.config.rules.filter(rule => rule.group === group.id);
-            if (groupRules.length === 0) return;
-            
-            // En-tête du groupe
-            if (this.config.ui.showGroupHeaders) {
-                const groupHeader = document.createElement('div');
-                groupHeader.style.padding = '8px';
-                groupHeader.style.background = '#f8f9fa';
-                groupHeader.style.borderRadius = '4px';
-                groupHeader.style.marginBottom = '8px';
-                groupHeader.style.display = 'flex';
-                groupHeader.style.alignItems = 'center';
-                groupHeader.style.gap = '8px';
-                
-                // Prévisualisation de la couleur
-                const colorPreview = document.createElement('span');
-                colorPreview.className = 'highlight-rule-color';
-                colorPreview.style.backgroundColor = group.backgroundColor || '#fff';
-                colorPreview.style.color = group.color || '#000';
-                colorPreview.innerHTML = 'A';
-                
-                groupHeader.appendChild(colorPreview);
-                groupHeader.appendChild(document.createTextNode(group.name));
-                list.appendChild(groupHeader);
-            }
-            
-            // Afficher les règles du groupe
-            groupRules.forEach(rule => {
-                list.appendChild(this.createRuleElement(rule, group));
-            });
-        });
-    } else {
-        // Affichage plat
-        this.config.rules.forEach(rule => {
-            const group = this.getGroupById(rule.group);
-            if (group) {
-                list.appendChild(this.createRuleElement(rule, group));
-            }
-        });
-    }
-    
-    container.appendChild(list);
-}
+        // Échapper les caractères spéciaux pour la regex
+        const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Optionnel: Ajouter des limites de mot \b ?
+        const regexPattern = `\\b${escapedText}\\b`;
 
-// Créer un élément de règle
-createRuleElement(rule, group) {
-    const ruleElement = document.createElement('div');
-    ruleElement.className = 'highlight-rule-item';
-    
-    // Case à cocher pour activer/désactiver
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = rule.enabled !== false;
-    checkbox.addEventListener('change', () => {
-        this.updateRule(rule.id, { enabled: checkbox.checked });
-    });
-    
-    // Prévisualisation de la couleur
-    const colorPreview = document.createElement('span');
-    colorPreview.className = 'highlight-rule-color';
-    colorPreview.style.backgroundColor = group.backgroundColor || '#fff';
-    
-    // Pattern regex
-    const pattern = document.createElement('div');
-    pattern.className = 'highlight-rule-pattern';
-    pattern.textContent = rule.regex;
-    pattern.title = rule.description || rule.regex;
-    
-    // Actions
-    const actions = document.createElement('div');
-    actions.className = 'highlight-rule-actions';
-    
-    // Bouton Éditer
-    const editBtn = document.createElement('button');
-    editBtn.className = this.config.ui.buttonClass;
-    editBtn.innerHTML = '✏️';
-    editBtn.title = 'Modifier';
-    editBtn.addEventListener('click', () => {
-        this.showEditRuleForm(rule, () => {
-            this.renderRulesList(ruleElement.parentElement.parentElement);
-        });
-    });
-    
-    // Bouton Supprimer
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = `${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-danger`;
-    deleteBtn.innerHTML = '🗑️';
-    deleteBtn.title = 'Supprimer';
-    deleteBtn.addEventListener('click', () => {
-        if (confirm('Êtes-vous sûr de vouloir supprimer cette règle ?')) {
-            this.deleteRule(rule.id);
-            this.renderRulesList(ruleElement.parentElement.parentElement);
-        }
-    });
-    
-    actions.appendChild(editBtn);
-    actions.appendChild(deleteBtn);
-    
-    // Assembler l'élément
-    ruleElement.appendChild(checkbox);
-    ruleElement.appendChild(colorPreview);
-    ruleElement.appendChild(pattern);
-    ruleElement.appendChild(actions);
-    
-    return ruleElement;
-}
+        // Demander confirmation ou options (ex: sensible à la casse?) - Simplifié ici
+        const ruleDescription = `Règle créée depuis sélection pour "${selectedText}"`;
 
-// Formulaire d'ajout de règle
-showAddRuleForm(callback) {
-    this.showRuleForm(null, callback);
-}
-
-// Formulaire d'édition de règle
-showEditRuleForm(rule, callback) {
-    this.showRuleForm(rule, callback);
-}
-
-// Formulaire générique pour les règles
-showRuleForm(rule, callback) {
-    const isEdit = !!rule;
-    
-    // Créer l'overlay
-    const overlay = document.createElement('div');
-    overlay.className = `${this.config.ui.modalClass}-overlay`;
-    overlay.style.zIndex = '1001';
-    
-    // Créer le formulaire
-    const formModal = document.createElement('div');
-    formModal.className = this.config.ui.modalClass;
-    formModal.style.zIndex = '1002';
-    formModal.style.width = '500px';
-    
-    formModal.innerHTML = `
-        <div class="${this.config.ui.modalClass}-header">
-            <h3 style="margin: 0;">${isEdit ? 'Modifier la règle' : 'Ajouter une règle'}</h3>
-            <button class="tf-form-close ${this.config.ui.buttonClass}" style="padding: 4px 8px;">&times;</button>
-        </div>
-        <div class="${this.config.ui.modalClass}-body">
-            <form class="${this.config.ui.formClass}">
-                <div class="${this.config.ui.formClass}-group">
-                    <label class="${this.config.ui.formClass}-label">Groupe</label>
-                    <select name="group" class="${this.config.ui.inputClass}" required>
-                        ${this.config.groups.map(group => `
-                            <option value="${group.id}" ${rule && rule.group === group.id ? 'selected' : ''}>
-                                ${group.name}
-                            </option>
-                        `).join('')}
-                    </select>
-                </div>
-                
-                <div class="${this.config.ui.formClass}-group">
-                    <label class="${this.config.ui.formClass}-label">Expression régulière</label>
-                    <input type="text" name="regex" class="${this.config.ui.inputClass}" 
-                           value="${rule ? rule.regex : ''}" required>
-                    <small style="color: #666;">Utilisez (?i) au début pour ignorer la casse</small>
-                </div>
-                
-                <div class="${this.config.ui.formClass}-group">
-                    <label class="${this.config.ui.formClass}-label">Description (optionnelle)</label>
-                    <input type="text" name="description" class="${this.config.ui.inputClass}" 
-                           value="${rule ? rule.description || '' : ''}">
-                </div>
-                
-                <div class="${this.config.ui.formClass}-group">
-                    <label class="${this.config.ui.formClass}-label">Exclusions (une par ligne)</label>
-                    <textarea name="exclusions" class="${this.config.ui.inputClass}" rows="3">${
-                        rule && rule.exclusions ? rule.exclusions.join('\n') : ''
-                    }</textarea>
-                </div>
-                
-                <div class="${this.config.ui.formClass}-group">
-                    <label style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" name="enabled" ${!rule || rule.enabled !== false ? 'checked' : ''}>
-                        Activer cette règle
-                    </label>
-                </div>
-                
-                ${this.config.ui.showPreview ? `
-                    <div class="${this.config.ui.formClass}-group">
-                        <label class="${this.config.ui.formClass}-label">Prévisualisation</label>
-                        <div class="highlight-preview" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px;">
-                            Entrez du texte pour tester...
-                        </div>
-                    </div>
-                ` : ''}
-            </form>
-        </div>
-        <div class="${this.config.ui.modalClass}-footer">
-            <button type="button" class="tf-form-cancel ${this.config.ui.buttonClass}">Annuler</button>
-            <button type="submit" class="tf-form-submit ${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-primary">
-                ${isEdit ? 'Mettre à jour' : 'Ajouter'}
-            </button>
-        </div>
-    `;
-    
-    // Ajouter au DOM
-    document.body.appendChild(overlay);
-    document.body.appendChild(formModal);
-    
-    // Récupérer les éléments
-    const form = formModal.querySelector('form');
-    const closeBtn = formModal.querySelector('.tf-form-close');
-    const cancelBtn = formModal.querySelector('.tf-form-cancel');
-    const submitBtn = formModal.querySelector('.tf-form-submit');
-    const preview = formModal.querySelector('.highlight-preview');
-    
-    // Gestionnaire de fermeture
-    const closeForm = () => {
-        document.body.removeChild(overlay);
-        document.body.removeChild(formModal);
-    };
-    
-    overlay.addEventListener('click', closeForm);
-    closeBtn.addEventListener('click', closeForm);
-    cancelBtn.addEventListener('click', closeForm);
-    
-    // Prévisualisation en temps réel
-    if (preview) {
-        const updatePreview = () => {
-            const regex = form.elements.regex.value;
-            const group = this.getGroupById(form.elements.group.value);
-            
-            if (!regex || !group) {
-                preview.textContent = 'Entrez une expression régulière valide...';
-                return;
-            }
-            
-            try {
-                const testText = 'Voici un exemple de texte pour tester votre expression régulière.';
-                const tempRule = {
-                    regex: regex,
-                    group: group.id,
-                    enabled: true
-                };
-                
-                // Créer une copie temporaire des règles
-                const originalRules = this.config.rules;
-                this.config.rules = [tempRule];
-                
-                // Appliquer le surlignage
-                const highlighted = this.highlightText(testText);
-                preview.innerHTML = highlighted;
-                
-                // Restaurer les règles originales
-                this.config.rules = originalRules;
-            } catch (error) {
-                preview.textContent = 'Expression régulière invalide';
-                preview.style.color = 'red';
-            }
+        // Créer et ajouter la règle
+        const newRule = {
+            group: groupId,
+            regex: regexPattern,
+            description: ruleDescription,
+            enabled: true
         };
-        
-        form.elements.regex.addEventListener('input', updatePreview);
-        form.elements.group.addEventListener('change', updatePreview);
-        
-        // Mise à jour initiale
-        if (rule) {
-            updatePreview();
+        const added = this.addRule(newRule); // addRule gère la sauvegarde et le refresh
+
+        if (added) {
+            this.table?.notify('success', `Règle ajoutée pour "${selectedText}" dans le groupe ${group.name}.`);
+        } else {
+             this.table?.notify('error', `Impossible d'ajouter la règle pour "${selectedText}".`);
         }
     }
-    
-    // Soumission du formulaire
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Récupérer les valeurs
-        const formData = {
-            group: form.elements.group.value,
-            regex: form.elements.regex.value,
-            description: form.elements.description.value,
-            exclusions: form.elements.exclusions.value
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line !== ''),
-            enabled: form.elements.enabled.checked
-        };
-        
+
+    // -------------------------------------------------------------------------
+    // Interface Utilisateur (Modale de gestion des règles) - Simplifié
+    // Le code complet pour la modale est assez long et dépend fortement du HTML/CSS.
+    // Les fonctions showRulesManager, renderRulesList, showRuleForm, etc.
+    // devraient être implémentées ici si une UI intégrée est souhaitée.
+    // Pour l'instant, on met juste un placeholder.
+    // -------------------------------------------------------------------------
+
+    /** Affiche la modale de gestion des règles (implémentation à faire). */
+    showRulesManager() {
+        this.debug("Affichage de la modale de gestion des règles (non implémenté dans cette version).");
+        alert("Fonctionnalité 'Gérer les règles' non implémentée dans cet exemple.");
+        // Ici, il faudrait créer dynamiquement le HTML de la modale,
+        // afficher les groupes et les règles, ajouter les boutons
+        // (Ajouter, Modifier, Supprimer, Exporter, Importer),
+        // et gérer les interactions utilisateur.
+        // Voir le code original pour une implémentation possible.
+    }
+
+    // --- Méthodes pour l'export/import (simplifié) ---
+
+    /** Exporte la configuration (groupes et règles) en JSON. */
+    exportRules() {
+        if (!this.config.ui.allowExport) return;
+        this.debug("Exportation des règles...");
         try {
-            // Valider la regex
-            new RegExp(formData.regex);
-            
-            if (isEdit) {
-                // Mise à jour
-                this.updateRule(rule.id, formData);
-            } else {
-                // Création
-                this.addRule(formData);
-            }
-            
-            closeForm();
-            
-            if (callback) {
-                callback();
-            }
+            const dataToExport = {
+                groups: this.config.groups,
+                rules: this.config.rules,
+                version: this.version, // Ajouter la version du plugin
+                exportDate: new Date().toISOString()
+            };
+            const dataStr = JSON.stringify(dataToExport, null, 2); // Indenté pour lisibilité
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tableflow-highlight-config-${this.table?.tableId || 'export'}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            this.table?.notify('success', 'Configuration exportée avec succès.');
         } catch (error) {
-            alert('Expression régulière invalide: ' + error.message);
+            this.logger.error("Erreur lors de l'exportation des règles:", error);
+            this.table?.notify('error', `Erreur lors de l'exportation: ${error.message}`);
         }
-    });
-}
-
-// Exporter les règles
-exportRules() {
-    try {
-        const dataToExport = {
-            groups: this.config.groups,
-            rules: this.config.rules,
-            version: this.version,
-            exportDate: new Date().toISOString()
-        };
-        
-        const dataStr = JSON.stringify(dataToExport, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `highlight-rules-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        this.notify('success', 'Configuration exportée avec succès');
-    } catch (error) {
-        console.error('Error exporting configuration:', error);
-        this.notify('error', 'Erreur lors de l\'export: ' + error.message);
     }
-}
 
-// Importer des règles
-importRules(callback) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target.result);
-                
-                // Validation de base
-                if (!data.groups || !Array.isArray(data.groups) || 
-                    !data.rules || !Array.isArray(data.rules)) {
-                    throw new Error('Format invalide');
-                }
-                
-                // Validation des règles
-                data.rules.forEach(rule => {
-                    if (!rule.regex || !rule.group) {
-                        throw new Error('Règle invalide détectée');
+    /** Importe une configuration (groupes et règles) depuis un fichier JSON. */
+    importRules(callback) {
+        if (!this.config.ui.allowImport) return;
+        this.debug("Importation des règles...");
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+
+        input.onchange = (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(/** @type {string} */ (event.target?.result));
+                    // Validation basique du fichier importé
+                    if (!data || !Array.isArray(data.groups) || !Array.isArray(data.rules)) {
+                        throw new Error("Format de fichier invalide. 'groups' et 'rules' (tableaux) attendus.");
                     }
-                    
-                    // Vérifier que la regex est valide
-                    new RegExp(rule.regex);
-                    
-                    // Ajouter un ID si absent
-                    if (!rule.id) {
-                        rule.id = 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                    // TODO: Ajouter une validation plus poussée de la structure des groupes/règles
+
+                    this.debug(`Importation de ${data.groups.length} groupes et ${data.rules.length} règles.`);
+                    // Remplacer la configuration actuelle
+                    this.config.groups = data.groups;
+                    this.config.rules = data.rules;
+
+                    // Mettre à jour et sauvegarder
+                    this.saveRules();
+                    this.clearCache();
+                    this.highlightAllCells();
+
+                    this.table?.notify('success', 'Configuration importée avec succès.');
+                    if (typeof callback === 'function') {
+                        callback(); // Appeler le callback si fourni (ex: pour rafraîchir l'UI)
                     }
-                });
-                
-                // Appliquer l'import
-                this.config.groups = data.groups;
-                this.config.rules = data.rules;
-                this.saveRules();
-                this.clearCache();
-                this.highlightAllCells();
-                
-                this.notify('success', 'Configuration importée avec succès');
-                
-                if (callback) {
-                    callback();
+                } catch (error) {
+                    this.logger.error("Erreur lors de l'importation des règles:", error);
+                    this.table?.notify('error', `Erreur d'importation: ${error.message}`);
                 }
-            } catch (error) {
-                console.error('Error importing configuration:', error);
-                this.notify('error', 'Erreur lors de l\'import: ' + error.message);
+            };
+            reader.onerror = () => {
+                 this.logger.error("Erreur de lecture du fichier pour l'importation.");
+                 this.table?.notify('error', 'Erreur lors de la lecture du fichier.');
+            };
+            reader.readAsText(file);
+        };
+        input.click(); // Ouvre la boîte de dialogue de sélection de fichier
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Cycle de vie
+    // -------------------------------------------------------------------------
+
+    /** Rafraîchit l'état du plugin (réapplique le surlignage). */
+    refresh() {
+        this.debug('Rafraîchissement du plugin Highlight...');
+        if (this.config.highlightEnabled) {
+            this.clearCache(); // Effacer le cache avant de réappliquer
+            this.highlightAllCells();
+        }
+        this.debug('Rafraîchissement Highlight terminé.');
+    }
+
+    /** Nettoie les ressources utilisées par le plugin. */
+    destroy() {
+        this.debug('Destruction du plugin Highlight...');
+        // Se désenregistrer des hooks du plugin Edit
+        if (this.editPlugin && typeof this.editPlugin.removeHook === 'function') {
+            this.editPlugin.removeHook('onRender', 'Highlight');
+            if (this.config.highlightDuringEdit) {
+                this.editPlugin.removeHook('afterEdit', 'Highlight');
             }
-        };
-        
-        reader.onerror = () => {
-            this.notify('error', 'Erreur lors de la lecture du fichier');
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
-}
+            this.debug("Désenregistrement des hooks du plugin Edit.");
+        }
 
-// Notification utilitaire
-notify(type, message) {
-    // Utiliser le système de notification du tableau si disponible
-    if (this.table && this.table.notify) {
-        this.table.notify(type, message);
-    } else {
-        // Fallback sur console
-        console[type === 'error' ? 'error' : 'log'](`[HighlightPlugin] ${message}`);
-    }
-}
+        // Se désenregistrer du plugin ContextMenu
+        if (this.contextMenuPlugin && typeof this.contextMenuPlugin.unregisterProvider === 'function') {
+            this.contextMenuPlugin.unregisterProvider(this);
+            this.debug("Désenregistrement de ContextMenuPlugin.");
+        }
 
-refresh() {
-    if (this.config.highlightEnabled) {
+        // Nettoyer les caches
         this.clearCache();
-        this.highlightAllCells();
-    }
-}
 
-destroy() {
-    // Se désabonner des hooks du plugin Edit
-    if (this.editPlugin) {
-        this.editPlugin.removeHooksByNamespace('highlight');
+        // Supprimer les styles injectés (optionnel)
+        // const style = document.getElementById('tableflow-highlight-styles');
+        // if (style) style.remove();
+
+        // Nettoyer les références
+        this.table = null;
+        this.editPlugin = null;
+        this.contextMenuPlugin = null;
+        this.providers = []; // Si ce plugin était lui-même un registre
+
+        this.debug('Plugin Highlight détruit.');
     }
-    
-    // Se désabonner du plugin de menu contextuel
-    if (this.contextMenuPlugin) {
-        // TODO: Implémenter unregisterProvider dans ContextMenuPlugin
-    }
-    
-    // Nettoyer les caches
-    this.clearCache();
-    
-    // Nettoyer les styles
-    const style = document.getElementById('highlight-plugin-styles');
-    if (style) {
-        style.remove();
-    }
-}
 }

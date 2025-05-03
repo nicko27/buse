@@ -4,21 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentation Exhaustive TableFlow</title>
-    <link rel="stylesheet" href="documentation.css"> <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> <style>
-        /* Styles spécifiques pour les exemples */
-        #exempleTableComplex tr.modified td { background-color: #fffbeb; }
-        #exempleTableComplex tr.highlight td { background-color: #d1fae5 !important; }
-        #exempleTableComplex tr.error-row td { background-color: #fee2e2 !important; }
-        #exempleTableComplex td.invalid { background-color: #fee2e2 !important; outline: 1px solid #f8d7da; }
-        #exempleTableComplex .validation-error { color: #dc3545; font-size: 0.8em; margin-top: 4px; display: none; }
-        #exempleTableComplex td.invalid .validation-error { display: block; }
-        #exempleTableComplex .tf-color-wrapper{display:flex;align-items:center;gap:5px;}
-        #exempleTableComplex .color-preview{width:20px;height:20px;border:1px solid #ccc;border-radius:4px;cursor:pointer}
-        #exempleTableComplex .color-input{width:80px;text-align:center;border:1px solid #ccc;border-radius:4px;padding:3px 5px;font-size:inherit}
-        #exempleTableComplex th.reorderable-column{position:relative;cursor:grab}
-        #exempleTableComplex .column-drag-handle{cursor:grab;color:#999;padding:0 5px}
-        #globalFilterInputExemple { margin-bottom: 1em; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; }
+    <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="../src/tableFlow.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Styles spécifiques pour les exemples dans cette page */
+        #exempleTableTaches tr.modified td,
+        #exempleTableProduits tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
+        #exempleTableTaches tr.dim { opacity: 0.6; }
+        #exempleTableTaches tr.error-row td { background-color: var(--tf-invalid-bg, #fee2e2) !important; }
+        #exempleTableProduits .tf-highlight-span[data-group="urgent"] { background-color: pink; color: red; }
+        #exempleTableProduits .tf-highlight-span[data-group="promo"] { background-color: green; color: white; }
+        #exempleTableProduits td.invalid { background-color: var(--tf-invalid-bg, #fee2e2) !important; outline: 1px solid var(--tf-invalid-border, #fca5a5); }
+        #exempleTableProduits .validation-error { color: var(--tf-error-text-color, #991b1b); font-size: 0.8em; margin-top: 4px; display: none; }
+        #exempleTableProduits td.invalid .validation-error { display: block; }
+        #exempleTableProduits .tf-color-wrapper { display: flex; align-items: center; gap: 5px; }
+        #exempleTableProduits .tf-color-preview { width: var(--tf-color-preview-size, 20px); height: var(--tf-color-preview-size, 20px); border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); cursor: pointer; }
+        #exempleTableProduits .tf-color-input { width: var(--tf-color-input-width, 80px); text-align: center; border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); padding: 3px 5px; font-size: inherit; }
+        #exempleTableTaches th.reorderable-column,
+        #exempleTableProduits th.reorderable-column { position: relative; cursor: grab; }
+        #exempleTableTaches .column-drag-handle,
+        #exempleTableProduits .column-drag-handle { cursor: grab; color: var(--tf-reorder-handle-color, #999); padding: 0 5px; }
+        #filterProduits, #filterTaches { margin-bottom: 1em; padding: 0.5em; border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); }
         .pagination-container { margin-top: 1em; }
+        /* Styles pour les boutons de pagination (exemple simple) */
+        .tf-page-button { padding: 0.3rem 0.6rem; border: 1px solid var(--tf-primary-color, #4f46e5); background-color: transparent; color: var(--tf-primary-color, #4f46e5); border-radius: 4px; cursor: pointer; margin: 0 2px; }
+        .tf-page-button.active { background-color: var(--tf-primary-color, #4f46e5); color: white; }
+        .tf-page-button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tf-pagesize-select { padding: 0.3rem; border: 1px solid var(--tf-border-color, #ccc); border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -44,12 +57,11 @@
                         <li><a href="highlight.html">Highlight</a></li>
                         <li><a href="hide.html">Hide</a></li>
                         <li><a href="linetoggle.html">LineToggle</a></li>
-                        <li><a href="#">Select (Alternative)</a></li>
-                        <li><a href="#">Selection</a></li>
-                        <li><a href="#">Sort</a></li>
+                        <li><a href="selection.html">Selection</a></li>
+                        <li><a href="sort.html">Sort</a></li>
                         <li><a href="texteditor.html">TextEditor</a></li>
                         <li><a href="validation.html">Validation</a></li>
-                    </ul>
+                        </ul>
                 </li>
                 <li><a href="#exemples-complets">Exemples Complets</a>
                     <ul>
@@ -57,6 +69,8 @@
                         <li><a href="#exemple-catalogue-produits">Catalogue Produits</a></li>
                     </ul>
                 </li>
+                 <li><a href="#personnalisation">Personnalisation</a></li>
+                 <li><a href="#contribution">Contribution</a></li>
             </ul>
         </nav>
 
@@ -80,323 +94,337 @@
                     de votre tableau, complétés par une configuration JavaScript pour les options plus complexes
                     et la logique métier (comme les handlers d'action).
                 </p>
+                <p>
+                    L'architecture utilise un gestionnaire d'instances (`instanceManager`) pour potentiellement gérer plusieurs tables sur une même page, chaque table étant représentée par une `TableInstance`.
+                </p>
             </section>
 
             <section id="installation">
                 <h2>Installation</h2>
                 <p>
-                    TableFlow utilise les modules ES6. Incluez <code>tableFlow.js</code>, les plugins désirés, et les CSS nécessaires.
+                    TableFlow utilise les modules ES6. Assurez-vous d'inclure les fichiers nécessaires dans votre projet.
                 </p>
-                <pre><code class="language-html">&lt;!-- 1. CSS TableFlow + Documentation (ou votre propre style) --&gt;
-&lt;link rel="stylesheet" href="path/to/src/tableFlow.css"&gt;
-&lt;link rel="stylesheet" href="path/to/docs/documentation.css"&gt;
+                <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="fr"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;TableFlow Setup&lt;/title&gt;
 
-&lt;!-- 2. FontAwesome (Optionnel, pour icônes par défaut) --&gt;
-&lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"&gt;
+    &lt;!-- 1. CSS de base TableFlow (requis) --&gt;
+    &lt;link rel="stylesheet" href="path/to/tableflow/src/tableFlow.css"&gt;
 
-&lt;!-- 3. Dépendances externes (Ex: ColorFlow pour plugin Color) --&gt;
-&lt;!-- &lt;script src="path/to/colorFlow/src/colorFlow.js"&gt;&lt;/script&gt; --&gt;
+    &lt;!-- 2. CSS de la documentation ou votre thème personnalisé (optionnel) --&gt;
+    &lt;link rel="stylesheet" href="path/to/tableflow/docs/documentation.css"&gt;
+    &lt;!-- Ou: &lt;link rel="stylesheet" href="votre_theme.css"&gt; --&gt;
 
-&lt;!-- 4. Votre table HTML avec un ID et des attributs th-* --&gt;
-&lt;table id="maSuperTable"&gt;
-  &lt;thead&gt;
-    &lt;tr&gt;
-      &lt;th id="col1" th-sort&gt;Colonne Triable&lt;/th&gt;
-      &lt;th id="col2" th-edit th-validate='{"required":true}'&gt;Colonne Éditable&lt;/th&gt;
-      &lt;th id="col3" th-choice='["A","B"]'&gt;Choix&lt;/th&gt;
-      &lt;th id="col4" th-actions="save,delete"&gt;Actions&lt;/th&gt;
-      &lt;!-- ... --&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;&lt;!-- Données --&gt;&lt;/tbody&gt;
-&lt;/table&gt;
+    &lt;!-- 3. FontAwesome (Optionnel, pour les icônes par défaut de certains plugins) --&gt;
+    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"&gt;
 
-&lt;!-- 5. Initialisation via script module --&gt;
-&lt;script type="module"&gt;
-  import TableFlow from './path/to/src/tableFlow.js'; // Ajustez
+    &lt;!-- 4. Dépendances externes spécifiques aux plugins (Ex: ColorFlow pour le plugin Color) --&gt;
+    &lt;!-- &lt;script src="path/to/colorFlow.js"&gt;&lt;/script&gt; --&gt;
+&lt;/head&gt;
+&lt;body&gt;
 
-  const maTableInstance = new TableFlow({
-    tableId: 'maSuperTable',
-    pluginsPath: './path/to/plugins', // Ajustez
-    plugins: {
-        names: ['Sort', 'Edit', 'Validation', 'Choice', 'Actions'],
-        // ... configuration spécifique des plugins ...
-    }
-  });
-&lt;/script&gt;</code></pre>
+    &lt;!-- 5. Votre table HTML avec un ID unique et des attributs th-* pour activer les plugins --&gt;
+    &lt;table id="maSuperTable"&gt;
+      &lt;thead&gt;
+        &lt;tr&gt;
+          &lt;th id="col1" th-sort&gt;Colonne Triable&lt;/th&gt;
+          &lt;th id="col2" th-edit th-validate='{"required":true}'&gt;Colonne Éditable&lt;/th&gt;
+          &lt;th id="col3" th-choice='{"type":"toggle", "values":["A","B"]}'&gt;Choix&lt;/th&gt; &lt;!-- Config JSON préférée --&gt;
+          &lt;th id="col4" th-actions="save,delete"&gt;Actions&lt;/th&gt;
+          &lt;th id="col5" th-hide&gt;Cachée&lt;/th&gt;
+          &lt;!-- ... --&gt;
+        &lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+          &lt;!-- Données initiales de la table --&gt;
+          &lt;tr id="r1"&gt;
+              &lt;td id="col1_r1"&gt;Zebra&lt;/td&gt;
+              &lt;td id="col2_r1"&gt;Texte initial&lt;/td&gt;
+              &lt;td id="col3_r1" data-value="A"&gt;A&lt;/td&gt;
+              &lt;td id="col4_r1"&gt;&lt;/td&gt; &lt;!-- Sera peuplé par Actions --&gt;
+              &lt;td id="col5_r1"&gt;secret&lt;/td&gt;
+          &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;!-- 6. Initialisation via un script de type module --&gt;
+    &lt;script type="module"&gt;
+      // Importe la classe TableFlow principale
+      import TableFlow from './path/to/tableflow/src/tableFlow.js'; // Ajustez le chemin
+
+      // Options de configuration pour cette table
+      const tableOptions = {
+        tableId: 'maSuperTable',          // ID de la table HTML
+        pluginsPath: './path/to/tableflow/plugins', // Chemin vers le dossier des plugins JS
+        debug: true,                     // Activer les logs de débogage
+        plugins: {
+            // Noms des plugins à activer pour cette table
+            names: ['Sort', 'Edit', 'Validation', 'Choice', 'Actions', 'Hide'],
+            // Configuration spécifique pour chaque plugin (optionnel)
+            sort: {
+                ignoreCase: true
+            },
+            choice: {
+                // La config pour col3 est déjà dans l'attribut th-choice,
+                // mais on pourrait la définir ou la surcharger ici si besoin.
+                // columns: {
+                //     'col3': { type: 'toggle', values: ['A', 'B', 'C'] }
+                // }
+            },
+            actions: {
+                actions: { // Définition des handlers
+                    'save': {
+                        handler: (context) => {
+                            console.log('Sauvegarde demandée:', context.data);
+                            context.tableHandler.markRowAsSaved(context.row); // Utilise l'API TableInstance
+                        },
+                        showOnChange: true // Afficher seulement si modifié
+                    },
+                    'delete': {
+                        handler: (context) => {
+                            if (confirm('Supprimer cette ligne ?')) {
+                                console.log('Suppression demandée:', context.row.id);
+                                context.tableHandler.removeRow(context.row); // Utilise l'API TableInstance
+                            }
+                        }
+                    }
+                },
+                icons: { // Icônes FontAwesome par défaut
+                    'save': '&lt;i class="fas fa-save" style="color: green; cursor: pointer;"&gt;&lt;/i&gt;',
+                    'delete': '&lt;i class="fas fa-trash-alt" style="color: red; cursor: pointer;"&gt;&lt;/i&gt;'
+                }
+            }
+            // Pas de config JS nécessaire pour Hide, Edit, Validation, Sort si les attributs suffisent
+        }
+      };
+
+      // Initialiser TableFlow pour cette table
+      try {
+          const maTableInstance = new TableFlow(tableOptions);
+          console.log('TableFlow initialisé avec succès pour maSuperTable !');
+          // Vous pouvez maintenant utiliser maTableInstance pour interagir avec la table via l'API
+          // Exemple: maTableInstance.addRow({ col1: 'Nouvel Item', col2: 'Description', col3: 'B' });
+      } catch (error) {
+          console.error("Erreur lors de l'initialisation de TableFlow:", error);
+          // Gérer l'erreur (ex: afficher un message à l'utilisateur)
+      }
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
                  <div class="info-block">
-                    <strong>Important :</strong> Le chemin `pluginsPath` est relatif à l'emplacement de `tableFlow.js`. Assurez-vous que les fichiers JS des plugins sont accessibles. L'attribut `type="module"` est essentiel.
+                    <strong>Important :</strong> Le chemin `pluginsPath` est relatif à l'emplacement où le navigateur exécute le script module (généralement votre fichier JS principal), et non relatif à `tableFlow.js` lui-même. Assurez-vous que les fichiers JS des plugins sont accessibles depuis cette localisation. L'attribut `type="module"` sur la balise script est essentiel.
                 </div>
             </section>
 
             <section id="initialisation">
                 <h2>Initialisation</h2>
                 <p>
-                    Créez une instance de `TableFlow` avec un objet de configuration.
+                    L'initialisation se fait en créant une instance de la classe `TableFlow` et en lui passant un objet d'options. L'option la plus importante est `tableId`, qui identifie l'élément `<table>` HTML à améliorer.
                 </p>
-                <pre><code class="language-javascript">// Voir exemple détaillé dans la section Installation</code></pre>
-                <h3>Options d'Initialisation Principales</h3>
-                <p>Les options principales sont passées lors de la création de `new TableFlow(options)`.</p>
+                <pre><code class="language-javascript">// Importation
+import TableFlow from './path/to/tableflow/src/tableFlow.js';
+
+// Options minimales
+const optionsMinimales = {
+    tableId: 'maTableHtml'
+    // Les plugins peuvent être activés via les attributs th-*
+};
+const tableSimple = new TableFlow(optionsMinimales);
+
+// Options plus complètes avec plugins et configuration
+const optionsCompletes = {
+    tableId: 'maTableComplexe',
+    pluginsPath: '../plugins', // Ajustez
+    debug: true,
+    plugins: {
+        names: ['Sort', 'Edit', 'Actions'], // Activer ces plugins
+        sort: { ignoreCase: true },         // Configurer Sort
+        actions: {                          // Configurer Actions
+            actions: { /* ... handlers ... */ },
+            icons: { /* ... icônes ... */ }
+        }
+        // Edit utilisera l'attribut th-edit
+    }
+};
+const tableComplexe = new TableFlow(optionsCompletes);
+
+// Attendre que l'initialisation soit terminée (chargement des plugins)
+tableComplexe.ready().then(instance => {
+    console.log(`TableFlow pour ${instance.tableId} est prête !`);
+    // Vous pouvez maintenant utiliser l'API en toute sécurité
+    // instance.addRow({...});
+}).catch(error => {
+    console.error("Échec de l'initialisation de TableFlow:", error);
+});
+</code></pre>
+                <h3>Options d'Initialisation Principales (`new TableFlow(options)`)</h3>
+                <p>Ces options contrôlent le comportement global de l'instance TableFlow.</p>
                 <table class="documentation-table">
                     <thead>
                         <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td><code class="attr">tableId</code></td><td class="type">string</td><td><i>Requis</i></td><td>ID de l'élément <code>&lt;table&gt;</code> HTML.</td></tr>
-                        <tr><td><code class="attr">plugins</code></td><td class="type">object</td><td><code>{}</code></td><td>Objet pour configurer les plugins : <code>{ names: ['Plugin1', 'Plugin2'], plugin1: { /* config */ }, plugin2: { /* config */ } }</code>.</td></tr>
-                        <tr><td><code class="attr">pluginsPath</code></td><td class="type">string</td><td><code>'../plugins'</code></td><td>Chemin relatif (depuis `tableFlow.js`) vers le dossier des fichiers <code>.js</code> des plugins.</td></tr>
-                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage globaux pour TableFlow et les plugins (peut être surchargé par la config de chaque plugin).</td></tr>
-                        <tr><td><code class="attr">notifications</code></td><td class="type">object</td><td><code>{...}</code></td><td>Permet de brancher un système de notification externe (ex: toasts) avec des fonctions pour `info`, `warning`, `success`, `error`.</td></tr>
-                        <tr><td><code class="attr">onSort</code>, <code>onFilter</code>, etc.</td><td class="type">function</td><td><code>null</code></td><td>Callbacks globaux déclenchés par certains événements. Moins utilisés car la logique est souvent dans les handlers de plugins.</td></tr>
+                        <tr><td><code class="attr">tableId</code></td><td class="type">string</td><td><i>Requis</i></td><td>ID de l'élément <code>&lt;table&gt;</code> HTML à cibler.</td></tr>
+                        <tr><td><code class="attr">plugins</code></td><td class="type">object</td><td><code>{names:[]}</code></td><td>Objet pour configurer les plugins : <code>{ names: ['Plugin1', 'Plugin2'], plugin1: { /* config */ }, plugin2: { /* config */ } }</code>. La clé `names` est un tableau des noms de plugins à charger. Les autres clés (nom du plugin en minuscules) contiennent la configuration spécifique à chaque plugin.</td></tr>
+                        <tr><td><code class="attr">pluginsPath</code></td><td class="type">string</td><td><code>'../plugins'</code></td><td>Chemin relatif (depuis le script qui importe TableFlow) vers le dossier contenant les fichiers <code>.js</code> des plugins.</td></tr>
+                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage détaillés pour TableFlow et les plugins (peut être surchargé par la config de chaque plugin).</td></tr>
+                        <tr><td><code class="attr">verbosity</code></td><td class="type">number</td><td><code class="default">0</code></td><td>Niveau de détail des logs (0: erreurs, 1: +succès/warnings, 2: +debug). `debug: true` équivaut à `verbosity: 2`.</td></tr>
+                        <tr><td><code class="attr">notifications</code></td><td class="type">object</td><td><code>{}</code></td><td>Permet de brancher un système de notification externe (ex: toasts). Doit fournir des fonctions pour `info`, `warning`, `success`, `error`. Ex: `{ error: (msg) => myToastLib.error(msg) }`.</td></tr>
+                        <tr><td><code class="attr">wrapCellsEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, le contenu de chaque `<td>` sera automatiquement enveloppé dans un `<div>` avec la classe `wrapCellClass`. Recommandé pour la plupart des plugins.</td></tr>
+                        <tr><td><code class="attr">wrapHeadersEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, le contenu de chaque `<th>` sera automatiquement enveloppé dans un `<div>` avec la classe `wrapHeaderClass`. Recommandé pour les plugins ajoutant des indicateurs (Sort) ou des poignées (ColumnReorder).</td></tr>
+                        <tr><td><code class="attr">wrapCellClass</code></td><td class="type">string</td><td><code class="default">'cell-wrapper'</code></td><td>Classe CSS appliquée au wrapper des cellules `<td>`.</td></tr>
+                        <tr><td><code class="attr">wrapHeaderClass</code></td><td class="type">string</td><td><code class="default">'head-wrapper'</code></td><td>Classe CSS appliquée au wrapper des en-têtes `<th>`.</td></tr>
+                        <tr><td><code class="attr">logger</code></td><td class="type">object</td><td><code>console</code></td><td>Permet de fournir une instance de logger personnalisée (doit implémenter `debug`, `info`, `warn`, `error`, `success`).</td></tr>
                     </tbody>
                 </table>
-                 <div class="info-block">
-                    <strong>Note sur les Wrappers :</strong> Les options `cellWrapper`, `headWrapper`, `cellWrapperClass`, `headWrapperClass` ne sont plus directement dans `TableFlow`. La gestion des wrappers est maintenant assurée par `TableInstance` (via `instanceManager.js`), qui a ses propres options (`wrapCellsEnabled`, `wrapHeadersEnabled`, etc.) si vous utilisez cette architecture avancée. Pour une utilisation simple de `TableFlow`, les wrappers sont généralement activés par défaut.
-                </div>
             </section>
 
             <section id="core-concepts">
                 <h2>Concepts Clés Détaillés</h2>
                 <ul>
                     <li>
-                        <strong>Approche Modulaire (Plugins) :</strong> Chaque fonctionnalité (tri, édition, etc.) est un plugin indépendant (`.js` + potentiellement `.css`). Vous activez uniquement ceux nécessaires via `plugins.names`. Cela garde le code léger et organisé. Les plugins sont chargés dynamiquement via `import()`.
+                        <strong>Architecture Modulaire (`instanceManager`, `TableInstance`, Plugins) :</strong> TableFlow utilise un `instanceManager` pour gérer potentiellement plusieurs tables. Chaque table est une `TableInstance` qui charge et gère ses propres plugins. Les fonctionnalités (tri, édition, etc.) sont encapsulées dans des plugins JS indépendants. Vous activez les plugins nécessaires via `plugins.names`.
                     </li>
                     <li>
-                        <strong>Configuration Déclarative (Attributs `th-*`) :</strong> Moyen simple et lisible d'activer et de configurer des fonctionnalités au niveau des colonnes directement dans le HTML. Exemples :
-                        <ul>
-                            <li><code>th-sort</code>: Active le tri.</li>
-                            <li><code>th-edit</code>: Active l'édition.</li>
-                            <li><code>th-validate='{...}'</code>: Définit les règles de validation (JSON).</li>
-                            <li><code>th-choice='[...] / {...}' / "type"</code>: Configure le plugin Choice.</li>
-                            <li><code>th-actions="save,delete"</code>: Définit les boutons d'action.</li>
-                            <li><code>th-color</code>: Active le sélecteur de couleur.</li>
-                            <li><code>th-hide</code>: Masque la colonne.</li>
-                            <li><code>th-linetoggle='[...]'</code>: Définit les règles de style de ligne.</li>
-                            <li><code>th-noreorder</code>: Exclut la colonne de la réorganisation.</li>
-                            <li><code>th-sql-exclude</code>: Exclut la colonne de `getRowData`.</li>
-                        </ul>
+                        <strong>Configuration Déclarative (Attributs `th-*`) :</strong> Activez et configurez simplement les plugins au niveau des colonnes via des attributs HTML sur les `<th>` (ex: `th-sort`, `th-edit`, `th-actions="save,delete"`).
                     </li>
                     <li>
-                        <strong>Configuration Programmatique (Options JS) :</strong> Pour les options globales, les configurations complexes (listes dynamiques, handlers d'actions) et pour surcharger/préciser les configurations HTML. Se fait dans l'objet `plugins` lors de l'instanciation `new TableFlow(options)`.
+                        <strong>Configuration Programmatique (Options JS) :</strong> Complétez ou surchargez la configuration HTML via l'objet `plugins` dans les options `TableFlow` pour les réglages fins, les listes d'options dynamiques, ou les handlers d'actions.
                     </li>
                     <li>
                         <strong>Gestion de l'État (`data-*`, classe `modified`) :</strong>
                         <ul>
-                            <li><code>data-initial-value</code>: Stocke la valeur "propre" d'une cellule (au chargement ou après sauvegarde). Essentiel pour détecter les modifications.</li>
-                            <li><code>data-value</code>: Stocke la valeur sémantique *actuelle* (peut différer du texte affiché). Utilisé par les plugins d'édition/choix pour la logique interne et la sauvegarde.</li>
-                            <li>Classe `modified`: Appliquée à `<tr>` si `data-value` != `data-initial-value` pour au moins une cellule. Permet un retour visuel et le déclenchement conditionnel d'actions (ex: bouton "Sauvegarder").</li>
+                            <li><code>data-initial-value</code>: Stocke la valeur "propre" d'une cellule (au chargement ou après sauvegarde).</li>
+                            <li><code>data-value</code>: Stocke la valeur sémantique *actuelle* (utilisée par les plugins).</li>
+                            <li>Classe `modified`: Appliquée à `<tr>` si `data-value` diffère de `data-initial-value` pour au moins une cellule.</li>
                         </ul>
                     </li>
                      <li>
-                        <strong>Wrappers (`cell-wrapper`, `head-wrapper`) :</strong> Divs ajoutés autour du contenu des `<td>` et `<th>`. Cruciaux pour que les plugins puissent manipuler le contenu (remplacer par un input, ajouter des boutons/icônes) sans casser la structure de la cellule. Facilitent aussi le style (ex: alignement vertical). Gérés par `TableInstance` ou activés par défaut dans `TableFlow`.
+                        <strong>Wrappers (`cell-wrapper`, `head-wrapper`) :</strong> `<div>` optionnels ajoutés autour du contenu des `<td>` et `<th>` (activés par défaut). Essentiels pour que les plugins puissent manipuler le contenu ou ajouter des éléments (icônes, inputs) sans casser la structure.
                     </li>
                     <li>
-                        <strong>Système d'Événements (DOM Personnalisés) :</strong> Communication inter-plugins et avec l'extérieur via des événements émis sur l'élément `<table>`. Permet le découplage. Exemples:
-                        <ul>
-                            <li>`cell:change` (par Edit, Choice, Color, TextEditor...)</li>
-                            <li>`row:saved` (par `markRowAsSaved`, souvent appelé par Actions)</li>
-                            <li>`row:added` / `row:removed` (par `addRow`/`removeRow`)</li>
-                            <li>`sortAppened` (par Sort)</li>
-                            <li>`pageChanged` (par FilterAndPaginate)</li>
-                            <li>`column:reordered` (par ColumnReorder)</li>
-                            <li>... et potentiellement d'autres événements spécifiques aux plugins.</li>
-                        </ul>
+                        <strong>Système d'Événements (DOM Personnalisés) :</strong> Les plugins communiquent entre eux et avec l'application externe via des événements émis sur l'élément `<table>` (ex: `cell:change`, `row:saved`, `sortAppened`).
                     </li>
                     <li>
-                        <strong>API Core (`TableFlow` instance) :</strong> Fournit des méthodes pour manipuler la table (`addRow`, `removeRow`, `getRowData`), gérer l'état (`markRowAsSaved`), interagir avec les plugins (`getPlugin`, `refreshPlugins`), et notifier (`notify`).
+                        <strong>API Core (`TableFlow` instance) :</strong> Fournit des méthodes pour interagir avec la table gérée par son `TableInstance` (ex: `addRow`, `removeRow`, `getPlugin`, `markRowAsSaved`). Utilisez `instance.ready()` pour attendre l'initialisation.
+                    </li>
+                     <li>
+                        <strong>Sanitization (`DOMSanitizer`) :</strong> Un utilitaire interne (potentiellement accessible via `tableInstance.sanitizer`) est utilisé pour nettoyer le HTML inséré (ex: icônes, labels) afin de prévenir les attaques XSS.
                     </li>
                 </ul>
             </section>
 
              <section id="architecture">
                 <h2>Architecture Détaillée</h2>
-                <p>L'architecture repose sur l'interaction entre `TableFlow`, `PluginRegistry`, `InstanceManager`, `TableInstance`, et `InstancePluginManager`.</p>
+                <p>L'architecture repose sur l'interaction entre `TableFlow`, `instanceManager`, `TableInstance`, `InstancePluginManager`, et `PluginRegistry`.</p>
                 <ol>
-                    <li><strong>`TableFlow` (`src/tableFlow.js`):</strong> Point d'entrée principal. Gère les options de haut niveau, charge les plugins via `import()` et les instancie. Stocke les valeurs initiales (`initialValues` Map). Fournit l'API publique.</li>
-                    <li><strong>`PluginRegistry` (`src/pluginRegistry.js`):</strong> Singleton. Catalogue central des définitions de plugins. Gère le chargement asynchrone (`load`) des fichiers de plugins via `import()` et évite les chargements multiples. Valide l'interface (`init`, `destroy`) et le type (`PluginType`) des plugins.</li>
-                    <li><strong>`InstanceManager` (`src/instanceManager.js`):</strong> Singleton. Gère potentiellement plusieurs instances de tables sur une même page. Chaque instance est un objet `TableInstance`. Fournit des méthodes pour créer/récupérer/détruire ces instances.</li>
-                    <li><strong>`TableInstance` (dans `src/instanceManager.js`):</strong> Représentation interne d'une table gérée. Contient sa propre configuration (qui peut inclure l'activation/désactivation des wrappers), la référence à l'élément DOM, et son propre `InstancePluginManager`. C'est elle qui gère l'initialisation effective des wrappers et l'appel à `init()` des plugins.</li>
-                    <li><strong>`InstancePluginManager` (`src/instancePluginManager.js`):</strong> Chaque `TableInstance` en a un. Gère le cycle de vie des plugins *pour cette instance spécifique*. Utilise `PluginRegistry` pour charger le code, puis instancie et initialise le plugin en lui passant la référence à la `TableInstance`.</li>
-                    <li><strong>Plugins (`plugins/*.js`):</strong> Classes autonomes respectant l'interface (`init`, `destroy`, `refresh` optionnel). Reçoivent la référence à l'instance `TableFlow`/`TableInstance` dans `init()` pour interagir avec la table et les autres plugins.</li>
+                    <li><strong>`TableFlow` (`src/tableFlow.js`):</strong> Classe publique principale. Agit comme une façade. Son constructeur reçoit les options, configure un logger, et appelle `instanceManager.createInstance`. Elle expose l'API publique qui délègue généralement les appels à la `TableInstance` sous-jacente après avoir vérifié que l'initialisation est terminée (via la promesse `_initializationPromise`).</li>
+                    <li><strong>`instanceManager` (`src/instanceManager.js`):</strong> Singleton exporté. Gère un `Map` de toutes les `TableInstance` actives sur la page, indexées par leur `tableId`. Empêche la création de multiples instances pour la même table. Fournit `createInstance`, `getInstance`, `hasInstance`, `destroyInstance`, `destroyAll`.</li>
+                    <li><strong>`TableInstance` (classe dans `src/instanceManager.js`):</strong> Représentation interne d'une table gérée. Créée par `instanceManager`. Contient la référence à l'élément `<table>` (`element`), la configuration fusionnée (`config`), son propre `InstancePluginManager`, et potentiellement l'API de manipulation du tableau (`getRowData`, `addRow`, etc.). Sa méthode `init()` orchestre `setupTable()` (wrappers) et `initPlugins()`.</li>
+                    <li><strong>`InstancePluginManager` (`src/instancePluginManager.js`):</strong> Chaque `TableInstance` en possède un. Gère le cycle de vie (chargement via `pluginRegistry`, instanciation, `init`, `destroy`, `refresh`) des plugins *pour cette instance spécifique*. Gère les dépendances entre plugins lors de l'activation.</li>
+                    <li><strong>`pluginRegistry` (`src/pluginRegistry.js`):</strong> Singleton exporté. Catalogue central des *définitions* de plugins (classes ou objets). Gère le chargement asynchrone (`import()`) des fichiers de plugins via sa méthode `load()`, en évitant les chargements multiples. Valide l'interface de base des plugins lors de l'enregistrement.</li>
+                    <li><strong>Plugins (`plugins/*.js`):</strong> Modules JS exportant une classe (ou un objet) par défaut respectant l'interface `PluginDefinition` (propriétés `name`, `version`, `type`, `dependencies`, méthodes `init`, `destroy`, `refresh` optionnel). Reçoivent l'instance `TableInstance` dans leur méthode `init()`.</li>
+                     <li><strong>`DOMSanitizer` (`src/domSanitizer.js`):</strong> Classe utilitaire statique fournissant des méthodes pour nettoyer le HTML (`sanitizeHTML`, `setHTML`) et échapper le texte (`escapeHTML`). Peut être rendue accessible aux plugins via `tableInstance.sanitizer`.</li>
+                     <li><strong>`types.js` (`src/types.js`):</strong> Fichier définissant les types JSDoc partagés (ex: `PluginType`, `TableFlowConfig`, `TableInstance`, `PluginContext`).</li>
                 </ol>
                  <div class="info-block">
-                    <strong>Flux d'Initialisation (Précisé) :</strong>
+                    <strong>Flux d'Initialisation :</strong>
                     <ol>
-                        <li>`new TableFlow(options)` crée l'instance principale.</li>
-                        <li>`TableFlow` appelle `loadPlugins()`.</li>
-                        <li>Pour chaque nom dans `options.plugins.names`:
-                            <ul>
-                                <li>`import(pluginPath)` charge le module JS du plugin.</li>
-                                <li>`new pluginModule.default(mergedConfig)` instancie le plugin.</li>
-                                <li>`pluginInstance.init(thisTableFlowInstance)` est appelé.</li>
-                            </ul>
-                        </li>
-                        <li>Dans `pluginInstance.init(tableHandler)`:
-                            <ul>
-                                <li>Le plugin stocke `tableHandler`.</li>
-                                <li>Il configure ses écouteurs (ex: `tableHandler.table.addEventListener(...)`).</li>
-                                <li>Il modifie le DOM si nécessaire (ajoute classes, poignées, etc.).</li>
-                                <li>Il peut récupérer d'autres plugins via `tableHandler.getPlugin(...)` pour interagir ou s'enregistrer (ex: `ContextMenu.registerProvider(this)`).</li>
-                            </ul>
-                        </li>
+                        <li>`new TableFlow(options)`</li>
+                        <li>`TableFlow` appelle `instanceManager.createInstance(tableId, options)`.</li>
+                        <li>`instanceManager` crée `new TableInstance(tableId, options)`.</li>
+                        <li>`TableInstance.init()` est appelé.</li>
+                        <li>`TableInstance.setupTable()` configure les wrappers.</li>
+                        <li>`TableInstance.initPlugins()` appelle `instance.pluginManager.activate(pluginName, pluginConfig)` pour chaque plugin dans `options.plugins.names`.</li>
+                        <li>`InstancePluginManager.activate()` appelle `pluginRegistry.load(pluginName, pluginUrl)` pour obtenir la définition du plugin (chargement via `import()` si nécessaire).</li>
+                        <li>`PluginRegistry.load()` retourne la classe/objet du plugin.</li>
+                        <li>`InstancePluginManager` vérifie les dépendances, fusionne la config, instancie le plugin (`new PluginClass(config)`), et appelle `pluginInstance.init(tableInstance)`.</li>
+                        <li>Le plugin s'initialise, s'enregistre aux hooks/providers nécessaires, et attache ses écouteurs.</li>
+                        <li>La promesse `createInstance` résout avec la `TableInstance`.</li>
+                        <li>La promesse `TableFlow._initializationPromise` résout.</li>
                     </ol>
-                     <p>L'utilisation de `InstanceManager` et `TableInstance` semble être une couche d'abstraction supplémentaire potentielle, mais l'initialisation décrite dans `TableFlow.js` charge et initialise directement les plugins.</p>
                 </div>
             </section>
 
             <section id="core-api">
                  <h2>API Principale (Méthodes de l'instance <code>TableFlow</code>)</h2>
-                 <p>Voici les méthodes les plus utiles disponibles sur l'objet retourné par `new TableFlow(...)`:</p>
+                 <p>Après avoir obtenu une instance via `const myTable = new TableFlow(...)`, vous pouvez utiliser les méthodes suivantes. Utilisez `await myTable.ready()` pour vous assurer que l'initialisation est terminée avant d'appeler ces méthodes.</p>
                  <table class="documentation-table">
                      <thead>
                          <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
                      </thead>
                      <tbody>
-                         <tr><td><code>getVisibleRows()</code></td><td>-</td><td>Retourne un tableau des éléments <code>&lt;tr&gt;</code> du `tbody` actuellement visibles (prend en compte le filtrage du plugin FilterAndPaginate, par exemple).</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
-                         <tr><td><code>getAllRows()</code></td><td>-</td><td>Retourne un tableau de tous les éléments <code>&lt;tr&gt;</code> du <code>&lt;tbody&gt;</code>, qu'ils soient visibles ou non.</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
-                         <tr><td><code>getHeaderCell(columnIndex)</code></td><td><code class="attr">columnIndex</code> <span class="type">(number)</span></td><td>Retourne l'élément <code>&lt;th&gt;</code> à l'index de colonne spécifié.</td><td class="type">HTMLTableCellElement | null</td></tr>
-                         <tr><td><code>isEditable()</code></td><td>-</td><td>Vérifie si la table est globalement éditable (basé sur l'attribut `th-readonly` sur <code>&lt;table&gt;</code> - *Note: non standardisé*). Actuellement retourne `true` par défaut.</td><td class="type">boolean</td></tr>
-                         <tr><td><code>isRowModified(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Vérifie si une ligne a été modifiée en comparant les `data-value` actuels avec les `data-initial-value` stockés, ou en vérifiant la présence de la classe `modified`.</td><td class="type">boolean</td></tr>
-                         <tr><td><code>markRowAsModified(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span></td><td>Ajoute ou retire la classe `modified` à la ligne en fonction de `isRowModified`.</td><td class="type">void</td></tr>
-                         <tr><td><code>updateCellValue(row, columnId, value)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span>, <code class="attr">columnId</code> <span class="type">(string)</span>, <code class="attr">value</code> <span class="type">(any)</span></td><td>Met à jour le contenu textuel de la cellule (via son wrapper si présent) et appelle `markRowAsModified`. <strong>Attention:</strong> Ne met pas à jour `data-value` ou `data-initial-value`, ni ne déclenche `cell:change`. Préférez les méthodes des plugins (Edit, Choice) pour des mises à jour complètes.</td><td class="type">void</td></tr>
-                         <tr><td><code>markRowAsSaved(row, options)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span>, <code class="attr">options</code> <span class="type">(object, optionnel)</span></td><td>Marque une ligne comme sauvegardée : copie les `data-value` actuels vers `data-initial-value` (via `initialValues` map), retire la classe `modified` de la ligne, notifie les plugins via `plugin.markRowAsSaved(row, options)`, et déclenche l'événement `row:saved` (en passant l'`options`).</td><td class="type">void</td></tr>
-                         <tr><td><code>addRow(data, position)</code></td><td><code class="attr">data</code> <span class="type">(Array|Object, optionnel)</span>, <code class="attr">position</code> <span class="type">(string, 'start'|'end')</span></td><td>Ajoute une nouvelle ligne au tableau. `data` peut être un tableau de valeurs (ordre des colonnes) ou un objet `{ columnId: value }`. `position` (défaut: 'end'). Injecte le HTML, initialise les wrappers/valeurs, déclenche `row:added` et appelle `refreshPlugins()`.</td><td class="type">HTMLTableRowElement</td></tr>
-                         <tr><td><code>removeRow(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement | string ID)</span></td><td>Supprime une ligne (élément TR ou par son ID) du tableau. Déclenche `row:removing` avant et `row:removed` après. Appelle `refreshPlugins()`.</td><td class="type">boolean</td></tr>
-                         <tr><td><code>getRowData(row)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement | string ID)</span></td><td>Récupère les données d'une ligne (élément TR ou par son ID) sous forme d'objet `{ columnId: value }`. Utilise `data-value` si présent, sinon le contenu textuel (via le wrapper si activé). Exclut les colonnes d'actions et celles marquées `th-sql-exclude`. Ajoute `id` si la ligne a un ID. Tente des conversions de type basiques (nombre, booléen).</td><td class="type">object</td></tr>
-                         <tr><td><code>refreshPlugins()</code></td><td>-</td><td>Appelle la méthode `refresh()` (si elle existe) sur tous les plugins actifs, en respectant l'ordre des dépendances si défini par les plugins.</td><td class="type">void</td></tr>
-                         <tr><td><code>destroy()</code></td><td>-</td><td>Nettoie l'instance TableFlow : appelle `destroy()` sur tous les plugins actifs, nettoie les références internes, et supprime les écouteurs d'événements ajoutés par le cœur (si applicable). Ne supprime pas l'élément table du DOM.</td><td class="type">void</td></tr>
-                         <tr><td><code>hasPlugin(name)</code></td><td><code class="attr">name</code> <span class="type">(string)</span></td><td>Vérifie si un plugin (par son nom exact, ex: 'Sort') est actif pour cette instance.</td><td class="type">boolean</td></tr>
-                         <tr><td><code>getPlugin(name)</code></td><td><code class="attr">name</code> <span class="type">(string)</span></td><td>Retourne l'instance d'un plugin actif, permettant d'appeler ses méthodes publiques spécifiques si besoin.</td><td class="type">object | null</td></tr>
-                         <tr><td><code>notify(type, message)</code></td><td><code class="attr">type</code> <span class="type">(string)</span>, <code class="attr">message</code> <span class="type">(string)</span></td><td>Affiche une notification en utilisant le système configuré dans les options `notifications` (ex: 'info', 'error').</td><td class="type">void</td></tr>
-                     </tbody>
+                         <tr><td><code>ready()</code></td><td>-</td><td>Retourne une promesse qui résout lorsque l'instance TableFlow et ses plugins sont initialisés.</td><td class="type">Promise&lt;TableFlow&gt;</td></tr>
+                         <tr><td><code>getPlugin(name)</code></td><td><code class="attr">name</code> <span class="type">(string)</span></td><td>Retourne l'instance d'un plugin actif (par son nom, insensible à la casse), permettant d'appeler ses méthodes publiques spécifiques. Retourne `null` si le plugin n'est pas actif ou si l'initialisation a échoué.</td><td class="type">object | null</td></tr>
+                         <tr><td><code>refreshPlugins()</code></td><td>-</td><td>Appelle la méthode `refresh()` (si elle existe) sur tous les plugins actifs de l'instance associée.</td><td class="type">Promise&lt;void&gt;</td></tr>
+                         <tr><td><code>markRowAsSaved(row, options)</code></td><td><code class="attr">row</code> <span class="type">(HTMLTableRowElement)</span>, <code class="attr">options</code> <span class="type">(object, optionnel)</span></td><td>Marque une ligne comme sauvegardée (met à jour `data-initial-value`, retire classe `modified`, déclenche `row:saved`). Délègue à `TableInstance`.</td><td class="type">void</td></tr>
+                         <tr><td><code>addRow(data, position)</code></td><td><code class="attr">data</code> <span class="type">(Array|Object, optionnel)</span>, <code class="attr">position</code> <span class="type">(string, 'start'|'end')</span></td><td>Ajoute une nouvelle ligne au tableau. Délègue à `TableInstance`.</td><td class="type">HTMLTableRowElement | null</td></tr>
+                         <tr><td><code>removeRow(rowOrId)</code></td><td><code class="attr">rowOrId</code> <span class="type">(HTMLTableRowElement | string ID)</span></td><td>Supprime une ligne du tableau. Délègue à `TableInstance`.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>getRowData(rowOrId)</code></td><td><code class="attr">rowOrId</code> <span class="type">(HTMLTableRowElement | string ID)</span></td><td>Récupère les données d'une ligne sous forme d'objet `{ columnId: value }`. Délègue à `TableInstance`.</td><td class="type">object | null</td></tr>
+                         <tr><td><code>getAllRows()</code></td><td>-</td><td>Retourne un tableau de tous les éléments `&lt;tr&gt;` du `&lt;tbody&gt;`. Délègue à `TableInstance`.</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
+                         <tr><td><code>getVisibleRows()</code></td><td>-</td><td>Retourne un tableau des `&lt;tr&gt;` du `tbody` actuellement visibles (prend en compte le filtrage/pagination). Délègue à `TableInstance`.</td><td class="type">Array&lt;HTMLTableRowElement&gt;</td></tr>
+                         <tr><td><code>destroy()</code></td><td>-</td><td>Nettoie l'instance TableFlow et appelle `instanceManager.destroyInstance` pour nettoyer l'instance de table associée et ses plugins.</td><td class="type">Promise&lt;void&gt;</td></tr>
+                         <tr><td><code>notify(type, message)</code></td><td><code class="attr">type</code> <span class="type">(string)</span>, <code class="attr">message</code> <span class="type">(string)</span></td><td>Affiche une notification en utilisant le système configuré dans les options `notifications`.</td><td class="type">void</td></tr>
+                         </tbody>
                  </table>
+                 <div class="info-block">
+                    <strong>Accès à `TableInstance` :</strong> Si vous avez besoin d'accéder directement à l'instance `TableInstance` sous-jacente (par exemple, pour des méthodes non exposées par la façade `TableFlow`), vous pouvez utiliser `myTable.tableInstance` après que la promesse `myTable.ready()` soit résolue. Cependant, il est généralement préférable d'utiliser l'API publique de `TableFlow`.
+                 </div>
              </section>
 
             <section id="plugins-overview">
                 <h2>Plugins Disponibles (Synthèse)</h2>
-                <p>Voici un aperçu des plugins fournis. Cliquez sur le nom pour accéder à la documentation détaillée.</p>
-
+                <p>Cliquez sur le nom pour accéder à la documentation détaillée du plugin.</p>
                 <ul>
-                    <li>
-                        <strong><a href="actions.html">Actions</a></strong>
-                        <p>Ajoute des boutons d'action par ligne. Configuré via `th-actions="action1,..."` et `plugins.actions` (handlers, icônes, showOnChange).</p>
-                    </li>
-                    <li>
-                        <strong><a href="choice.html">Choice</a></strong>
-                        <p>Sélection de valeurs prédéfinies (toggle ou dropdown/search). Configuré via `th-choice` et `plugins.choice.columns` (type, values, readOnlyValues).</p>
-                    </li>
-                    <li>
-                        <strong><a href="color.html">Color</a></strong>
-                        <p>Sélecteur de couleur. Nécessite une bibliothèque externe (ColorFlow). Activé via `th-color`. Options JS minimes (`plugins.color`).</p>
-                    </li>
-                     <li>
-                        <strong><a href="columnreorder.html">ColumnReorder</a></strong>
-                        <p>Réorganisation des colonnes par glisser-déposer. Exclure avec `th-noreorder`. Configuré via `plugins.columnreorder` (poignée, persistance, callbacks).</p>
-                    </li>
-                     <li>
-                        <strong><a href="contextmenu.html">ContextMenu</a></strong>
-                        <p>Framework pour menu contextuel. D'autres plugins s'y enregistrent (`registerProvider`) pour ajouter des options. Configuré via `plugins.contextmenu` (classes CSS).</p>
-                    </li>
-                    <li>
-                        <strong><a href="edit.html">Edit</a></strong>
-                        <p>Édition en ligne par double-clic. Activé via `th-edit`. Intègre la validation via `th-validate`. Configuré via `plugins.edit` (classes, validateurs).</p>
-                    </li>
-                    <li>
-                        <strong><a href="filterandpaginate.html">Filter & Paginate</a></strong>
-                        <p>Filtrage global et pagination côté client. Nécessite un `<input>` externe. Configuré via `plugins.filterandpaginate` (sélecteur filtre, taille page, classes, labels).</p>
-                    </li>
-                     <li>
-                        <strong><a href="highlight.html">Highlight</a></strong>
-                        <p>Surligne du texte selon des règles regex et des groupes. Gère les priorités, exclusions, persistance, UI de gestion. Intégré à Edit et ContextMenu. Configuré via `plugins.highlight` (groups, rules, UI).</p>
-                    </li>
-                    <li>
-                        <strong><a href="hide.html">Hide</a></strong>
-                        <p>Masque des colonnes au chargement. Activé via `th-hide`. Pas de config JS. API pour `showColumn`/`hideColumn`.</p>
-                    </li>
-                    <li>
-                        <strong><a href="linetoggle.html">LineToggle</a></strong>
-                        <p>Modifie les classes CSS d'une ligne (`<tr>`) selon la valeur d'une cellule. Configuré via `th-linetoggle` (JSON) et/ou `plugins.linetoggle.rules` (conditions, addClass, removeClass).</p>
-                    </li>
-                     <li>
-                        <strong><a href="#">Select (Alternative)</a></strong>
-                        <p><em>(Doc à venir)</em> Alternative à Choice pour un dropdown avec recherche, potentiellement pour de grandes listes. Activé via `th-select`. Configuré via `plugins.select.options`.</p>
-                    </li>
-                     <li>
-                        <strong><a href="#">Selection</a></strong>
-                        <p><em>(Doc à venir)</em> Sélection avancée (cellules, lignes, colonnes) avec souris/clavier et menu contextuel optionnel. Configuré via `plugins.selection` (mode, classes, callbacks).</p>
-                    </li>
-                     <li>
-                        <strong><a href="#">Sort</a></strong>
-                        <p><em>(Doc à venir)</em> Tri des colonnes au clic sur l'en-tête. Activé via `th-sort`. Configuré via `plugins.sort` (icônes, ignoreCase).</p>
-                    </li>
-                     <li>
-                        <strong><a href="texteditor.html">TextEditor</a></strong>
-                        <p>Extension pour Edit/ContextMenu ajoutant des actions de manipulation de texte (suppr phrase, regex, majuscules...). Configuré via `plugins.texteditor` (actions, shortcuts).</p>
-                    </li>
-                    <li>
-                        <strong><a href="validation.html">Validation</a></strong>
-                        <p>Extension pour Edit. Valide les données avant sauvegarde selon des règles (`th-validate` et `plugins.validation.validators`).</p>
-                    </li>
-                </ul>
+                    <li><a href="actions.html">Actions</a>: Ajoute des boutons cliquables par ligne.</li>
+                    <li><a href="choice.html">Choice</a>: Sélection de valeurs prédéfinies (toggle/searchable).</li>
+                    <li><a href="color.html">Color</a>: Sélecteur de couleur (nécessite ColorFlow).</li>
+                    <li><a href="columnreorder.html">ColumnReorder</a>: Réorganisation des colonnes par drag & drop.</li>
+                    <li><a href="contextmenu.html">ContextMenu</a>: Framework pour menu contextuel.</li>
+                    <li><a href="edit.html">Edit</a>: Édition en ligne (double-clic) et système de hooks.</li>
+                    <li><a href="filterandpaginate.html">Filter & Paginate</a>: Filtrage global et pagination côté client.</li>
+                    <li><a href="highlight.html">Highlight</a>: Surlignage de texte basé sur règles regex.</li>
+                    <li><a href="hide.html">Hide</a>: Masque des colonnes au chargement.</li>
+                    <li><a href="linetoggle.html">LineToggle</a>: Change le style d'une ligne selon la valeur d'une cellule.</li>
+                    <li><a href="selection.html">Selection</a>: Sélection avancée de cellules/lignes/colonnes.</li>
+                    <li><a href="sort.html">Sort</a>: Tri des colonnes au clic sur l'en-tête.</li>
+                    <li><a href="texteditor.html">TextEditor</a>: Actions d'édition de texte (extension Edit/ContextMenu).</li>
+                    <li><a href="validation.html">Validation</a>: Validation des données avant sauvegarde (extension Edit).</li>
+                    </ul>
             </section>
 
             <section id="exemples-complets">
                 <h2>Exemples Complets</h2>
-                <p>Ces exemples montrent comment combiner plusieurs plugins pour créer des tableaux interactifs.</p>
+                <p>Ces exemples montrent comment combiner plusieurs plugins.</p>
 
                 <article id="exemple-gestion-taches">
                     <h3>Exemple 1 : Tableau de Gestion de Tâches</h3>
                     <p>Combine Edit, Validation, Choice, LineToggle, Actions, ContextMenu, TextEditor, Sort, ColumnReorder, Hide.</p>
-
                     <div class="example">
                         <div class="example-preview">
                              <table id="exempleTableTaches">
                                  <thead>
-                                     <tr>
-                                         <th id="tacheId" th-hide>ID</th>
-                                         <th id="tacheDesc" th-edit>Description</th>
-                                         <th id="tacheStatut" th-choice th-linetoggle>Statut</th>
-                                         <th id="tachePrio" th-choice="toggle" th-sort>Priorité</th>
-                                         <th id="tacheEcheance" th-edit th-validate='{"date": true}'>Échéance</th>
-                                         <th id="tacheActions" th-actions="save,delete">Actions</th>
-                                     </tr>
-                                 </thead>
-                                 <tbody>
-                                     <tr id="task-1">
-                                         <td id="tacheId_task-1">1</td>
-                                         <td id="tacheDesc_task-1">Finaliser le rapport mensuel. Vérifier les chiffres avec @compta.</td>
-                                         <td id="tacheStatut_task-1" data-value="in_progress">En cours</td>
-                                         <td id="tachePrio_task-1" data-value="Haute">Haute</td>
-                                         <td id="tacheEcheance_task-1" data-value="2025-05-10">2025-05-10</td>
-                                         <td id="tacheActions_task-1"></td>
-                                     </tr>
-                                      <tr id="task-2">
-                                         <td id="tacheId_task-2">2</td>
-                                         <td id="tacheDesc_task-2">Préparer la démo client. TODO: Ajouter slides sur nouvelle feature.</td>
-                                         <td id="tacheStatut_task-2" data-value="pending">En attente</td>
-                                         <td id="tachePrio_task-2" data-value="Moyenne">Moyenne</td>
-                                         <td id="tacheEcheance_task-2" data-value="2025-05-15">2025-05-15</td>
-                                         <td id="tacheActions_task-2"></td>
-                                     </tr>
-                                      <tr id="task-3">
-                                         <td id="tacheId_task-3">3</td>
-                                         <td id="tacheDesc_task-3">Corriger bug #456 (urgent).</td>
-                                         <td id="tacheStatut_task-3" data-value="error">Erreur Bloquante</td>
-                                         <td id="tachePrio_task-3" data-value="Haute">Haute</td>
-                                         <td id="tacheEcheance_task-3" data-value=""></td>
-                                         <td id="tacheActions_task-3"></td>
-                                     </tr>
-                                      <tr id="task-4">
-                                         <td id="tacheId_task-4">4</td>
-                                         <td id="tacheDesc_task-4">Archivage projet Y.</td>
-                                         <td id="tacheStatut_task-4" data-value="completed">Terminé</td>
-                                         <td id="tachePrio_task-4" data-value="Basse">Basse</td>
-                                         <td id="tacheEcheance_task-4" data-value="2025-04-30">2025-04-30</td>
-                                         <td id="tacheActions_task-4"></td>
-                                     </tr>
-                                 </tbody>
+                                      <tr>
+                                          <th id="tacheId" th-hide>ID</th>
+                                          <th id="tacheDesc" th-edit>Description</th>
+                                          <th id="tacheStatut" th-choice th-linetoggle>Statut</th>
+                                          <th id="tachePrio" th-choice="toggle" th-sort>Priorité</th>
+                                          <th id="tacheEcheance" th-edit th-validate='{"date": {"maxDate": "2026-12-31"}}'>Échéance</th>
+                                          <th id="tacheActions" th-actions="save,delete">Actions</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      <tr id="task-1"> <td id="tacheId_task-1">1</td> <td id="tacheDesc_task-1">Finaliser rapport. @compta</td> <td id="tacheStatut_task-1" data-value="in_progress">En cours</td> <td id="tachePrio_task-1" data-value="Haute">Haute</td> <td id="tacheEcheance_task-1" data-value="2025-05-10">2025-05-10</td> <td id="tacheActions_task-1"></td> </tr>
+                                      <tr id="task-2"> <td id="tacheId_task-2">2</td> <td id="tacheDesc_task-2">Préparer démo. TODO: slides.</td> <td id="tacheStatut_task-2" data-value="pending">En attente</td> <td id="tachePrio_task-2" data-value="Moyenne">Moyenne</td> <td id="tacheEcheance_task-2" data-value="2025-05-15">2025-05-15</td> <td id="tacheActions_task-2"></td> </tr>
+                                      <tr id="task-3"> <td id="tacheId_task-3">3</td> <td id="tacheDesc_task-3">Corriger bug #456 (urgent).</td> <td id="tacheStatut_task-3" data-value="error">Erreur Bloquante</td> <td id="tachePrio_task-3" data-value="Haute">Haute</td> <td id="tacheEcheance_task-3" data-value=""></td> <td id="tacheActions_task-3"></td> </tr>
+                                      <tr id="task-4"> <td id="tacheId_task-4">4</td> <td id="tacheDesc_task-4">Archivage projet Y.</td> <td id="tacheStatut_task-4" data-value="completed">Terminé</td> <td id="tachePrio_task-4" data-value="Basse">Basse</td> <td id="tacheEcheance_task-4" data-value="2025-04-30">2025-04-30</td> <td id="tacheActions_task-4"></td> </tr>
+                                  </tbody>
                              </table>
-                             </div>
+                         </div>
                         <div class="example-code">
                             <pre><code class="language-javascript">// Initialisation TableFlow pour l'exemple de tâches
 import TableFlow from '../src/tableFlow.js'; // Ajustez
@@ -409,103 +437,29 @@ const tachesTable = new TableFlow({
         names: [
             'Hide', 'Edit', 'Validation', 'Choice', 'LineToggle',
             'Actions', 'ContextMenu', 'TextEditor', 'Sort', 'ColumnReorder'
-            // 'FilterAndPaginate' // Pourrait être ajouté
         ],
-        // Config Edit & Validation (pour Échéance)
-        edit: { }, // Utilise th-edit
-        validation: { }, // Utilise th-validate
-
-        // Config Choice (pour Statut et Priorité)
+        // Config spécifique des plugins (extraits)
         choice: {
             columns: {
-                'tacheStatut': {
-                    type: 'searchable', // Dropdown avec recherche
-                    values: [
-                        { value: 'pending', label: 'En attente' },
-                        { value: 'in_progress', label: 'En cours' },
-                        { value: 'completed', label: 'Terminé' },
-                        { value: 'error', label: 'Erreur Bloquante' }
-                    ],
-                     readOnlyValues: [ { value: 'archived', class: 'readonly-locked' } ] // Exemple
-                },
-                'tachePrio': {
-                    type: 'toggle', // Clic pour changer
-                    values: ['Basse', 'Moyenne', 'Haute']
-                }
+                'tacheStatut': { type: 'searchable', values: [/*...*/], readOnlyValues: [/*...*/] },
+                'tachePrio': { type: 'toggle', values: ['Basse', 'Moyenne', 'Haute'] }
             }
         },
-
-        // Config LineToggle (pour Statut)
         linetoggle: {
-            rules: {
-                'tacheStatut': [
-                    { value: 'completed', addClass: 'dim' }, // Griser si terminé
-                    { value: 'error', addClass: 'error-row' }, // Fond rouge si erreur
-                    { condition: 'notEquals', compareValue: 'completed', removeClass: 'dim'},
-                    { condition: 'notEquals', compareValue: 'error', removeClass: 'error-row'}
-                ]
-            }
+            rules: { 'tacheStatut': [/*...*/] }
         },
-
-        // Config Actions
         actions: {
-            actions: {
-                'save': {
-                    handler: (ctx) => {
-                        console.log('Sauvegarde Tâche:', ctx.data);
-                        // Simuler sauvegarde
-                        setTimeout(() => ctx.tableHandler.markRowAsSaved(ctx.row), 500);
-                    },
-                    showOnChange: true
-                },
-                'delete': {
-                    handler: (ctx) => {
-                        if(confirm(`Supprimer tâche "${ctx.data.tacheDesc}" ?`)) {
-                            console.log('Suppression Tâche:', ctx.row.id);
-                            ctx.tableHandler.removeRow(ctx.row);
-                        }
-                    },
-                    confirm: false // Confirmation dans le handler
-                }
-            },
-            icons: {
-                 'save': '&lt;i class="fas fa-save" style="color: green; cursor: pointer;"&gt;&lt;/i&gt;',
-                 'delete': '&lt;i class="fas fa-trash-alt" style="color: red; cursor: pointer;"&gt;&lt;/i&gt;'
-            }
+            actions: { /* ... handlers save/delete ... */ },
+            icons: { /* ... icônes ... */ }
         },
-
-        // Config ContextMenu (sera peuplé par TextEditor)
-        contextmenu: {},
-
-        // Config TextEditor (ajoute des options au menu contextuel)
-        texteditor: {
-             menuSection: 'Édition Description'
-             // actions et shortcuts par défaut
-        },
-
-        // Config Sort (activé par th-sort sur Priorité)
-        sort: {},
-
-        // Config ColumnReorder (exclut ID et Actions par défaut via th-noreorder implicite si non présent)
-        columnreorder: {
-             excludeSelector: '[th-hide], [th-actions]' // Exclure ID et Actions
-        },
-
-        // Config Hide (activé par th-hide sur ID)
-        hide: {}
-
-        // Config FilterAndPaginate (si ajouté)
-        /*
-        filterandpaginate: {
-            enableFilter: true,
-            globalFilter: '#filterTaches',
-            pageSize: 10,
-            containerClass: 'pagination-container', // Assurez-vous que le style existe
-            paginationClass: 'pagination',
-            btnClass: 'btn btn-glass btn-glass-blue'
-        }
-        */
+        columnreorder: { excludeSelector: '[th-hide], [th-actions]' }
+        // Autres plugins utilisent config par défaut ou attributs HTML
     }
+});
+// Ajouter des listeners ou interagir après initialisation
+tachesTable.ready().then(instance => {
+    console.log("Tableau des tâches prêt !");
+    // instance.addRow({ tacheDesc: 'Nouvelle tâche', tacheStatut: 'pending', tachePrio: 'Moyenne' });
 });
 </code></pre>
                         </div>
@@ -514,49 +468,33 @@ const tachesTable = new TableFlow({
 
                 <article id="exemple-catalogue-produits">
                      <h3>Exemple 2 : Catalogue Produits Interactif</h3>
-                     <p>Combine Color, Highlight, Sort, FilterAndPaginate, ColumnReorder, ContextMenu.</p>
+                     <p>Combine Edit, Validation, Color, Highlight, Sort, FilterAndPaginate, ColumnReorder, ContextMenu.</p>
                      <div class="example">
                          <div class="example-preview">
                               <input type="text" id="filterProduits" placeholder="Filtrer les produits...">
-
                               <table id="exempleTableProduits">
                                   <thead>
-                                      <tr>
-                                          <th id="prodSku" th-sort>SKU</th>
-                                          <th id="prodNom" th-edit th-sort>Nom du Produit</th>
-                                          <th id="prodCouleur" th-color>Couleur</th>
-                                          <th id="prodStock" th-edit th-validate='{"number": {"min":0, "integer":true}}'>Stock</th>
-                                          <th id="prodTags" th-edit>Tags (urgent, promo)</th>
-                                      </tr>
-                                  </thead>
-                                   <tbody>
-                                      <tr id="prod-101">
-                                          <td id="prodSku_prod-101">ABC-001</td>
-                                          <td id="prodNom_prod-101">Super Widget Bleu</td>
-                                          <td id="prodCouleur_prod-101" data-value="#3b82f6">Bleu</td>
-                                          <td id="prodStock_prod-101" data-value="50">50</td>
-                                          <td id="prodTags_prod-101">nouveau, promo</td>
-                                      </tr>
-                                      <tr id="prod-102">
-                                          <td id="prodSku_prod-102">XYZ-002</td>
-                                          <td id="prodNom_prod-102">Widget Rouge Standard</td>
-                                          <td id="prodCouleur_prod-102" data-value="#ef4444">Rouge</td>
-                                          <td id="prodStock_prod-102" data-value="0">0</td>
-                                          <td id="prodTags_prod-102">standard, urgent</td>
-                                      </tr>
-                                       <tr id="prod-103">
-                                          <td id="prodSku_prod-103">DEF-003</td>
-                                          <td id="prodNom_prod-103">Gadget Vert</td>
-                                          <td id="prodCouleur_prod-103" data-value="#22c55e">Vert</td>
-                                          <td id="prodStock_prod-103" data-value="120">120</td>
-                                          <td id="prodTags_prod-103">best-seller</td>
-                                      </tr>
-                                      </tbody>
+                                       <tr>
+                                           <th id="prodSku" th-sort>SKU</th>
+                                           <th id="prodNom" th-edit th-sort>Nom du Produit</th>
+                                           <th id="prodCouleur" th-color>Couleur</th>
+                                           <th id="prodStock" th-edit th-validate='{"number": {"min":0, "integer":true}}'>Stock</th>
+                                           <th id="prodTags" th-edit>Tags (urgent, promo)</th>
+                                       </tr>
+                                   </thead>
+                                    <tbody>
+                                       <tr id="prod-101"> <td id="prodSku_prod-101">ABC-001</td> <td id="prodNom_prod-101">Super Widget Bleu</td> <td id="prodCouleur_prod-101" data-value="#3b82f6">Bleu</td> <td id="prodStock_prod-101" data-value="50">50</td> <td id="prodTags_prod-101">nouveau, promo</td> </tr>
+                                       <tr id="prod-102"> <td id="prodSku_prod-102">XYZ-002</td> <td id="prodNom_prod-102">Widget Rouge Standard</td> <td id="prodCouleur_prod-102" data-value="#ef4444">Rouge</td> <td id="prodStock_prod-102" data-value="0">0</td> <td id="prodTags_prod-102">standard, urgent</td> </tr>
+                                        <tr id="prod-103"> <td id="prodSku_prod-103">DEF-003</td> <td id="prodNom_prod-103">Gadget Vert</td> <td id="prodCouleur_prod-103" data-value="#22c55e">Vert</td> <td id="prodStock_prod-103" data-value="120">120</td> <td id="prodTags_prod-103">best-seller</td> </tr>
+                                        </tbody>
                               </table>
-                         </div>
+                              </div>
                          <div class="example-code">
                              <pre><code class="language-javascript">// Initialisation TableFlow pour l'exemple produits
 import TableFlow from '../src/tableFlow.js'; // Ajustez
+
+// Simulation ColorFlow si non disponible
+if (typeof ColorFlow === 'undefined') { window.ColorFlow = class { setupInput(i){ const p=document.createElement('span'); p.className='tf-color-preview'; p.style.cssText='display:inline-block;width:20px;height:20px;border:1px solid #ccc;vertical-align:middle;margin-right:5px;cursor:pointer'; p.style.backgroundColor=i.value; p.onclick=()=>{i.value='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0').toUpperCase();i.dispatchEvent(new Event('change',{bubbles:true}));p.style.backgroundColor=i.value;}; i.parentNode.insertBefore(p,i); i.addEventListener('change',()=>p.style.backgroundColor=i.value);}}; console.warn("ColorFlow simulé."); }
 
 const produitsTable = new TableFlow({
     tableId: 'exempleTableProduits',
@@ -567,9 +505,6 @@ const produitsTable = new TableFlow({
             'Edit', 'Validation', 'Color', 'Highlight', 'Sort',
             'FilterAndPaginate', 'ColumnReorder', 'ContextMenu'
         ],
-        edit: {},
-        validation: {}, // via th-validate
-        color: {}, // via th-color
         highlight: { // Surligner 'urgent' et 'promo'
             groups: [
                 { id: 'urgent', name: 'Urgent', color: 'red', backgroundColor: 'pink', priority: 0 },
@@ -581,67 +516,140 @@ const produitsTable = new TableFlow({
             ],
             menuEnabled: true // Ajouter options au menu contextuel
         },
-        sort: {}, // via th-sort
         filterandpaginate: {
             enableFilter: true,
-            globalFilter: '#filterProduits',
-            pageSize: 5 // Exemple
-        },
-        columnreorder: {}, // Toutes colonnes réorganisables par défaut
-        contextmenu: {} // Sera peuplé par Highlight
+            globalFilter: '#filterProduits', // ID de l'input de filtre
+            pageSize: 2, // Petit pour la démo
+            btnClass: 'tf-page-button', // Utiliser classe définie dans CSS
+            selectClass: 'tf-pagesize-select'
+        }
+        // Autres plugins utilisent config par défaut ou attributs HTML
     }
-});</code></pre>
+});
+</code></pre>
                          </div>
                      </div>
                 </article>
 
             </section>
 
-        </div>
-    </div>
+             <section id="personnalisation">
+                <h2>Personnalisation</h2>
+                <h3>Styles CSS</h3>
+                <p>
+                    L'apparence de la table et des éléments ajoutés par les plugins (indicateurs de tri, boutons d'action, sélecteurs de couleur, etc.) est contrôlée par CSS.
+                </p>
+                <p>
+                    Le fichier `src/tableFlow.css` fournit des styles de base. Il est fortement recommandé de :
+                </p>
+                <ol>
+                    <li><strong>Utiliser les Variables CSS :</strong> Le fichier `tableFlow.css` (version mise à jour) définit des variables CSS (ex: `--tf-primary-color`, `--tf-border-color`, `--tf-modified-bg`). Vous pouvez facilement surcharger ces variables dans votre propre feuille de style pour adapter l'apparence à votre thème sans modifier directement `tableFlow.css`.</li>
+                    <li><strong>Surcharger les Classes :</strong> Vous pouvez cibler les classes CSS ajoutées par TableFlow et ses plugins (ex: `.td-actions`, `.sortable`, `.tf-page-button`, `.tf-color-wrapper`) dans votre CSS pour appliquer des styles plus spécifiques ou intégrer l'apparence à votre framework UI (Bootstrap, Tailwind, etc.).</li>
+                    <li><strong>Configuration des Classes :</strong> De nombreux plugins permettent de configurer les classes CSS utilisées via leurs options JavaScript (ex: `plugins.actions.cellClass`, `plugins.filterandpaginate.btnClass`). Utilisez ces options pour aligner les classes avec votre système de design.</li>
+                </ol>
+                 <pre><code class="language-css">/* Exemple de personnalisation dans votre fichier CSS */
+:root {
+  --tf-primary-color: #dc3545; /* Thème Rouge */
+  --tf-border-color: #dee2e6;
+  --tf-header-bg: #f8f9fa;
+  --tf-modified-bg: #ffeeba;
+}
 
-    <script type="module">
-        // Script pour la navigation (identique à la version précédente)
-        console.log("Documentation TableFlow chargée.");
+/* Surcharger le style des boutons de pagination */
+.tf-page-button {
+  /* Styles de vos boutons personnalisés */
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+}
+.tf-page-button.active {
+  background-color: var(--tf-primary-color);
+}
+.tf-page-button:disabled {
+  background-color: #ced4da;
+}
+
+/* Personnaliser les cellules d'action */
+table[data-tableflow-id] td.td-actions .cell-wrapper {
+    justify-content: flex-end; /* Aligner à droite */
+    gap: 12px;
+}
+</code></pre>
+
+                <h3>Configuration JavaScript</h3>
+                <p>
+                    La configuration passée à `new TableFlow(...)` et spécifiquement l'objet `plugins` permet une personnalisation fine :
+                </p>
+                <ul>
+                    <li>Activer/désactiver des plugins (`plugins.names`).</li>
+                    <li>Configurer le comportement de chaque plugin (ex: `plugins.sort.ignoreCase`, `plugins.actions.showOnChange`).</li>
+                    <li>Définir des listes d'options dynamiques (`plugins.choice.columns[id].values`).</li>
+                    <li>Fournir des fonctions `handler` personnalisées pour les actions (`plugins.actions.actions[name].handler`).</li>
+                    <li>Ajouter ou surcharger des validateurs (`plugins.validation.validators`).</li>
+                    <li>Modifier les textes et icônes (`plugins.filterandpaginate.labels`, `plugins.actions.icons`).</li>
+                </ul>
+
+                <h3>Extension via Plugins</h3>
+                <p>
+                    Si les options existantes ne suffisent pas, vous pouvez créer vos propres plugins pour ajouter des fonctionnalités spécifiques ou modifier le comportement des plugins existants en utilisant le système de hooks (si exposé par le plugin cible, comme `Edit`) ou en interagissant avec l'API `TableInstance`.
+                </p>
+            </section>
+
+            <section id="contribution">
+                <h2>Contribution</h2>
+                <p>
+                    (Section à compléter si le projet est open source)
+                    Informations sur la manière de rapporter des bugs, proposer des améliorations, ou contribuer au code. Liens vers le dépôt Git, guide de contribution, etc.
+                </p>
+            </section>
+
+        </div> </div> <script type="module">
+        // Script pour mettre à jour le lien actif dans la navigation latérale
+        // en fonction de la section visible à l'écran.
         const updateNavActiveLink = () => {
-            let currentSectionId = 'introduction';
+            let currentSectionId = 'introduction'; // Défaut
             const sections = document.querySelectorAll('.content section[id], .content article[id]');
             const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-            const offset = 150; // Augmenter l'offset pour mieux détecter la section
+            const offset = 150; // Décalage pour la détection
 
             sections.forEach(section => {
+                 // Vérifie si le haut de la section est visible ou dépassé
                  if (section.offsetTop <= scrollPosition + offset) {
                     currentSectionId = section.id;
                  }
             });
 
             const currentHash = '#' + currentSectionId;
+            // Retirer 'active' de tous les liens
             document.querySelectorAll('.nav a.active').forEach(link => link.classList.remove('active'));
 
-            const directLink = document.querySelector(`.nav a[href="${currentHash}"]`);
+            // Trouver le lien direct ou le lien parent pour les exemples
+            const directLink = document.querySelector(`.nav a[href$="${currentHash}"]`); // Utilise $= pour matcher la fin
              if(directLink) {
                  directLink.classList.add('active');
-                 const parentLi = directLink.closest('ul')?.closest('li');
-                 // Activer le parent si c'est un sous-menu
-                 if (parentLi && parentLi.parentElement.previousElementSibling?.tagName === 'LI') {
-                      parentLi.parentElement.previousElementSibling.querySelector('a')?.classList.add('active');
+                 // Activer aussi le parent si c'est un sous-menu de plugin ou d'exemple
+                 const parentUl = directLink.closest('ul');
+                 const parentLi = parentUl?.parentElement; // Li contenant le sous-menu ul
+                 if (parentLi && parentLi.tagName === 'LI' && parentLi.parentElement.classList.contains('nav')) {
+                     // C'est un sous-menu, activer le lien parent
+                     parentLi.querySelector('a')?.classList.add('active');
+                 } else if (parentUl?.closest('li')?.parentElement?.closest('li')) {
+                      // Encore un niveau plus haut (ex: lien d'exemple sous "Exemples Complets")
+                      parentUl.closest('li').parentElement.closest('li').querySelector('a')?.classList.add('active');
                  }
-             } else {
-                 // Fallback si l'ID est dans un article (exemple)
-                 const articleLink = document.querySelector(`.nav a[href="#exemples-complets"]`);
-                 if (articleLink && currentSectionId.startsWith('exemple-')) {
-                     articleLink.classList.add('active');
-                     const subLink = document.querySelector(`.nav a[href="#${currentSectionId}"]`);
-                     if (subLink) subLink.classList.add('active');
-                 }
+
              }
         };
+        // Attacher les écouteurs
         window.addEventListener('load', updateNavActiveLink);
-        window.addEventListener('scroll', updateNavActiveLink, { passive: true }); // Utiliser passive pour la performance
+        window.addEventListener('scroll', updateNavActiveLink, { passive: true });
         window.addEventListener('hashchange', updateNavActiveLink);
+        // Mettre à jour au clic pour une meilleure réactivité
         document.querySelectorAll('.nav a').forEach(link => {
             link.addEventListener('click', () => {
-                setTimeout(() => { updateNavActiveLink(); }, 50);
+                // Léger délai pour laisser le scroll se faire avant de recalculer
+                setTimeout(updateNavActiveLink, 100);
             });
         });
     </script>

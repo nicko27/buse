@@ -5,99 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentation Plugin Highlight - TableFlow</title>
     <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="../src/tableFlow.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Styles additionnels spécifiques si nécessaire */
+        /* Styles spécifiques à cette page */
         body { padding: 2rem; }
-        .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
+        .content { margin-left: 0; } /* Pas de nav latérale */
          h1 { margin-bottom: 2rem; }
-         tr.modified td { background-color: #fffbeb; } /* Style pour la cohérence */
+         /* Style pour la cohérence */
+         tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
+         td.td-edit { cursor: pointer; } /* Pour l'exemple avec Edit */
 
-         /* Styles par défaut du plugin Highlight */
-         .tf-highlight-span { /* Classe pour le span de surlignage */
-             /* Le style (couleur, fond) est appliqué inline */
+         /* Styles pour Highlight (normalement dans tableFlow.css) */
+         .tf-highlight-span { /* Classe pour les spans de surlignage */
              border-radius: 3px;
-             padding: 0.1em 0; /* Léger padding vertical */
+             padding: 0.1em 0;
+             box-decoration-break: clone;
+             -webkit-box-decoration-break: clone;
          }
-         /* Styles pour l'édition avec surlignage */
-         .tf-highlight-edit-container {
-            position: relative;
-            width: 100%;
-            min-height: 24px; /* Assurer une hauteur minimale */
-            padding: 4px 6px; /* Simuler le padding de l'input */
-            box-sizing: border-box;
-         }
-         .tf-highlight-edit-input { /* L'input réel, rendu transparent */
-            position: absolute; /* Changé en absolute pour superposer */
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: transparent !important; /* Force la transparence */
-            color: transparent !important; /* Masque le texte réel */
-            caret-color: black !important; /* Curseur visible */
-            border: none !important; /* Pas de bordure visible */
-            padding: 4px 6px !important; /* Doit correspondre au padding du conteneur/overlay */
-            margin: 0 !important;
-            font-size: inherit !important;
-            font-family: inherit !important;
-            line-height: inherit !important;
-            box-sizing: border-box !important;
-            z-index: 1; /* Au-dessus de l'overlay */
-            white-space: pre-wrap; /* Important pour le positionnement */
-            outline: none; /* Pas d'outline sur l'input */
-         }
-         .tf-highlight-edit-overlay { /* Couche de texte surligné */
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Ne capture pas les clics */
-            white-space: pre-wrap; /* Respecte les retours à la ligne */
-            overflow: hidden;
-            padding: 4px 6px; /* Doit correspondre au padding de l'input */
-            box-sizing: border-box;
-            font-size: inherit;
-            font-family: inherit;
-            line-height: inherit;
-            color: #666; /* Couleur de base si pas surligné */
-            z-index: 0; /* Derrière l'input */
-         }
+         /* Styles pour l'édition surlignée */
+         .tf-highlight-edit-container { position: relative; width: 100%; min-height: calc(1.5em + 2 * var(--tf-input-padding, 4px)); padding: var(--tf-input-padding, 4px 6px); box-sizing: border-box; cursor: text; }
+         .tf-highlight-edit-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent !important; color: transparent !important; caret-color: var(--tf-highlight-edit-caret-color, black) !important; border: none !important; outline: none !important; padding: var(--tf-input-padding, 4px 6px) !important; margin: 0 !important; font: inherit !important; line-height: inherit !important; box-sizing: border-box !important; z-index: 1; white-space: pre-wrap; resize: none; }
+         .tf-highlight-edit-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; white-space: pre-wrap; word-break: break-word; overflow: hidden; padding: var(--tf-input-padding, 4px 6px); box-sizing: border-box; font: inherit; line-height: inherit; color: var(--tf-text-muted-color, #666); z-index: 0; }
 
-         /* Styles pour la modale de gestion (peuvent être dans documentation.css) */
-         .tf-highlight-modal {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 600px; max-width: 90%;
-            max-height: 80vh;
-            background-color: white;
-            border: 1px solid #ccc; border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            padding: 20px; z-index: 2000; overflow: auto;
-         }
-         .tf-modal-overlay { /* Ajout pour le fond */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); z-index: 1999;
-         }
-         .tf-modal-close { background: none; border: none; font-size: 20px; cursor: pointer; float: right; }
-         .tf-rules-container { margin-bottom: 20px; max-height: 300px; overflow-y: auto; border: 1px solid #eee; padding: 10px; }
-         .tf-highlight-button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; color: white; }
-         .tf-highlight-button.add { background: #4CAF50; }
-         .tf-highlight-button.export { background: #2196F3; margin-right: 8px;}
-         .tf-highlight-button.import { background: #FF9800; }
-         .tf-highlight-button.cancel { background: #ccc; color: black;}
-         .tf-highlight-button.submit { background: #4CAF50; }
-         .tf-highlight-form label { display: block; margin-bottom: 5px; font-weight: bold; }
-         .tf-highlight-form input[type=text],
-         .tf-highlight-form select,
-         .tf-highlight-form textarea { width: 100%; padding: 8px; box-sizing: border-box; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
-         .tf-highlight-form textarea { height: 80px; }
-         .tf-rule-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 8px; }
-         .tf-rule-item-regex { flex: 1; font-family: monospace; font-size: 0.9em; margin-right: 10px; }
-         .tf-rule-item-actions button { background: none; border: 1px solid #ddd; border-radius: 3px; padding: 3px 8px; cursor: pointer; margin-left: 5px; }
-
+         /* Styles pour la modale (exemple simple, normalement dans tableFlow.css) */
+         .tf-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 1040; }
+         .tf-highlight-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; max-width: 95%; max-height: 90vh; background-color: var(--tf-bg-color, white); border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1050; display: flex; flex-direction: column; }
+         .tf-highlight-modal-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--tf-border-color, #ccc); display: flex; justify-content: space-between; align-items: center; }
+         .tf-highlight-modal-header h3 { margin: 0; font-size: 1.25rem; }
+         .tf-modal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: var(--tf-text-muted-color, #6c757d); cursor: pointer; padding: 0.5rem; margin: -0.5rem; opacity: 0.7; }
+         .tf-modal-close:hover { opacity: 1; }
+         .tf-highlight-modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+         .tf-highlight-modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--tf-border-color, #ccc); display: flex; justify-content: flex-end; gap: 0.5rem; }
+         .tf-highlight-button { /* Classe de base pour boutons modale */ padding: 0.5rem 1rem; border: 1px solid transparent; border-radius: var(--tf-border-radius, 4px); cursor: pointer; font-size: 0.9rem; line-height: 1.5; transition: all 0.15s ease-in-out; }
+         .tf-highlight-button-primary { color: #fff; background-color: var(--tf-primary-color, #4f46e5); border-color: var(--tf-primary-color, #4f46e5); }
+         .tf-highlight-button-primary:hover { opacity: 0.9; }
+         .tf-highlight-button-secondary { color: var(--tf-text-color); background-color: #e9ecef; border-color: #dee2e6; }
+         .tf-highlight-button-secondary:hover { background-color: #ced4da; }
+         /* Styles pour formulaire dans modale */
+         .tf-highlight-form { display: flex; flex-direction: column; gap: 1rem; }
+         .tf-highlight-form-group { margin-bottom: 1rem; }
+         .tf-highlight-form-label { display: block; margin-bottom: 0.3rem; font-weight: 500; }
+         .tf-highlight-input, .tf-highlight-form select, .tf-highlight-form textarea { display: block; width: 100%; padding: 0.5rem 0.75rem; font-size: 0.9rem; line-height: 1.5; color: var(--tf-text-color); background-color: var(--tf-bg-color, white); background-clip: padding-box; border: 1px solid var(--tf-border-color, #ccc); border-radius: var(--tf-border-radius, 4px); transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; box-sizing: border-box; }
+         .tf-highlight-input:focus, .tf-highlight-form select:focus, .tf-highlight-form textarea:focus { border-color: var(--tf-primary-color, #4f46e5); outline: 0; box-shadow: 0 0 0 0.2rem var(--tf-focus-ring-color, rgba(79, 70, 229, 0.25)); }
+         .tf-highlight-form textarea { min-height: 80px; resize: vertical; }
+         /* Styles liste des règles */
+         .highlight-rules-list { display: flex; flex-direction: column; gap: 0.5rem; border: 1px solid var(--tf-border-color); padding: 0.5rem; border-radius: var(--tf-border-radius); margin-top: 1rem; max-height: 300px; overflow-y: auto; }
+         .highlight-rule-item { display: flex; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--tf-border-color); gap: 0.5rem; }
+         .highlight-rule-item:last-child { border-bottom: none; }
+         .highlight-rule-color { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--tf-border-color); flex-shrink: 0; }
+         .highlight-rule-pattern { font-family: monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85em; }
+         .highlight-rule-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
+         .highlight-rule-actions button { background: none; border: none; cursor: pointer; padding: 2px 4px; color: var(--tf-text-muted-color); }
+         .highlight-rule-actions button:hover { color: var(--tf-text-color); }
     </style>
 </head>
 <body>
@@ -108,227 +68,167 @@
             <section id="plugin-highlight-intro">
                 <h2>Objectif</h2>
                 <p>
-                    Le plugin <strong>Highlight</strong> permet de surligner automatiquement des portions de texte à l'intérieur des cellules éditables d'un tableau TableFlow. Le surlignage est basé sur des **règles** définies par l'utilisateur, utilisant des **expressions régulières** pour identifier les textes à mettre en évidence.
+                    Le plugin <strong>Highlight</strong> permet de surligner automatiquement des mots ou des motifs spécifiques dans le contenu textuel des cellules éditables (`th-edit`). Il utilise des <strong>groupes de style</strong> (couleur de texte, couleur de fond) et des <strong>règles</strong> basées sur des expressions régulières pour déterminer quel texte surligner et comment.
                 </p>
                 <p>
-                    Les règles sont organisées en **groupes**, chaque groupe ayant un style de surlignage spécifique (couleur de texte, couleur de fond) et une **priorité**. Le plugin gère intelligemment les chevauchements : si plusieurs règles correspondent à la même portion de texte, c'est la règle du groupe ayant la plus haute priorité (valeur numérique la plus basse) qui s'applique. Un groupe spécial "Ignoré" permet de définir des motifs qui ne doivent jamais être surlignés, même s'ils correspondent à une autre règle.
-                </p>
-                <p>
-                    Le plugin offre également :
+                    Fonctionnalités clés :
                 </p>
                 <ul>
-                    <li>La persistance des groupes et des règles dans le `localStorage`.</li>
-                    <li>Une interface utilisateur (modale) pour gérer les règles (ajouter, modifier, supprimer, activer/désactiver).</li>
-                    <li>La possibilité d'importer et d'exporter la configuration (groupes et règles) au format JSON.</li>
-                    <li>Une intégration avec le plugin <a href="#plugin-edit">Edit</a> pour appliquer le surlignage et (optionnellement) le maintenir pendant l'édition de la cellule.</li>
-                    <li>Une intégration avec le plugin <a href="#plugin-contextmenu">ContextMenu</a> pour ajouter des actions contextuelles (activer/désactiver, gérer les règles, ajouter une règle à partir du texte sélectionné).</li>
+                    <li>Définition de groupes de styles (couleur, fond, priorité).</li>
+                    <li>Création de règles associant une expression régulière (regex) à un groupe.</li>
+                    <li>Surlignage automatique du texte dans les cellules correspondantes.</li>
+                    <li>Gestion des chevauchements de règles basée sur la priorité des groupes.</li>
+                    <li>Possibilité d'exclure certains motifs du surlignage (via des règles d'exclusion ou des groupes spéciaux).</li>
+                    <li>Option pour maintenir le surlignage visible <strong>pendant l'édition</strong> de la cellule (via une technique d'overlay).</li>
+                    <li>Intégration optionnelle avec le <a href="contextmenu.html">ContextMenu</a> pour ajouter des règles rapidement depuis une sélection de texte.</li>
+                    <li>Interface utilisateur (modale) pour gérer les groupes et les règles (ajout, modification, suppression, import/export).</li>
+                    <li>Persistance des groupes et règles via `localStorage`.</li>
                 </ul>
                  <div class="warning-block">
-                    <strong>Dépendances :</strong> Ce plugin <strong>nécessite</strong> que le plugin <strong>Edit</strong> soit activé. Son intégration au menu contextuel nécessite le plugin <strong>ContextMenu</strong>. Il repose également sur des hooks (`onRender`, `afterEdit`) du plugin Edit.
-                </div>
+                    <strong>Dépendances :</strong> Ce plugin <strong>nécessite</strong> le plugin <strong>Edit</strong> pour fonctionner, car il s'accroche à ses hooks (`onRender`, `afterEdit`). L'intégration au menu contextuel nécessite le plugin <strong>ContextMenu</strong>.
+                 </div>
             </section>
 
             <section id="plugin-highlight-activation">
                 <h2>Activation et Configuration HTML</h2>
                 <p>
-                    Ce plugin ne nécessite <strong>aucun attribut HTML spécifique</strong> sur les éléments <code>&lt;th&gt;</code> ou <code>&lt;td&gt;</code> pour son activation. Il s'applique automatiquement aux cellules rendues éditables par le plugin Edit.
+                    Ce plugin est activé uniquement via la configuration JavaScript (`plugins.names: ['Highlight', ...]`). Il ne nécessite <strong>aucun attribut HTML spécifique</strong> sur les éléments `<th>` ou `<td>`.
                 </p>
                 <p>
-                    Son activation et toute sa configuration (groupes, règles, comportement) se font via JavaScript.
+                    Il s'appliquera automatiquement à toutes les cellules rendues éditables par le plugin Edit (`th-edit`).
                 </p>
             </section>
 
             <section id="plugin-highlight-config-js">
                 <h2>Configuration JavaScript</h2>
                 <p>
-                    La configuration détaillée du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.highlight</code>.
+                    La configuration du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.highlight</code>.
                 </p>
-                <pre><code class="language-javascript">const tableInstance = new TableFlow({
-    tableId: 'maTable',
+                <pre><code class="language-javascript">// Exemple d'initialisation de TableFlow
+import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
+
+const tableH = new TableFlow({
+    tableId: 'maTableHighlight',
     pluginsPath: '../plugins', // Ajustez
+    debug: true,
     plugins: {
-        // IMPORTANT: 'Edit' est requis. 'ContextMenu' est optionnel.
-        names: ['Edit', 'ContextMenu', 'Highlight', /* ... autres ... */],
+        // Activer Edit, ContextMenu (optionnel), et Highlight
+        names: ['Edit', 'ContextMenu', 'Highlight'],
         highlight: { // Configuration spécifique pour 'Highlight'
             // --- Options Générales ---
-            highlightEnabled: true, // Activer le surlignage (défaut: true)
-            highlightDuringEdit: true, // Maintenir le surlignage pendant l'édition (défaut: true)
-            highlightClass: 'tf-highlight', // Classe CSS ajoutée aux cellules surlignées (non utilisé activement dans v1.0.0)
-            spanClass: 'tf-highlight-span', // Classe CSS ajoutée aux <span> de surlignage (défaut)
-            debug: false, // Activer les logs spécifiques
+            highlightEnabled: true, // Activer/désactiver globalement (défaut: true)
+            highlightDuringEdit: true, // Maintenir surlignage pendant édition (défaut: true)
+            // spanClass: 'tf-highlight-span', // Classe CSS des spans (défaut)
 
             // --- Persistance ---
-            storageKey: 'tableflow-highlight-rules', // Clé localStorage (défaut)
-            // Mettre à null ou false pour désactiver la persistance
+            storageKey: 'monApp-highlight-rules', // Clé localStorage personnalisée
 
-            // --- Groupes de Surlignage ---
-            groups: [ // Tableau définissant les groupes
-                // Structure d'un groupe:
-                {
-                    id: 'keyword', // ID unique du groupe
-                    name: 'Mot-Clé', // Nom affiché dans l'UI
-                    color: '#ffffff', // Couleur du texte (CSS)
-                    backgroundColor: '#4f46e5', // Couleur de fond (CSS) (Indigo)
-                    priority: 1 // Priorité (0 = plus haute)
-                    // isExclusion: false (défaut)
-                },
-                {
-                    id: 'mention',
-                    name: 'Mention (@)',
-                    color: '#1d4ed8', // Bleu foncé
-                    backgroundColor: '#dbeafe', // Bleu très pâle
-                    priority: 2
-                },
-                {
-                    id: 'ignored', // Groupe spécial pour les exclusions
-                    name: 'Ignoré (Exclusion)',
-                    isExclusion: true, // Marque ce groupe comme exclusion
-                    priority: 10 // Priorité basse pour être surchargé facilement
-                }
-                // ... autres groupes
+            // --- Groupes de Style ---
+            // Surcharge ou remplace les groupes par défaut
+            groups: [
+                { id: 'keyword', name: 'Mot-Clé', color: '#FFFFFF', backgroundColor: '#007bff', priority: 1 },
+                { id: 'mention', name: 'Mention (@)', color: '#000000', backgroundColor: '#FFFF00', priority: 2 },
+                { id: 'hashtag', name: '#Hashtag', color: '#17a2b8', backgroundColor: 'transparent', priority: 3, fontStyle: 'italic' }, // Style de police ajouté
+                { id: 'exclude', name: 'Exclusion', isExclusion: true, priority: 0 } // Priorité haute pour exclure
             ],
 
             // --- Règles de Surlignage ---
             // Sera chargé depuis localStorage si storageKey est défini et contient des données.
-            // Peut être pré-rempli ici.
+            // Sinon, ces règles par défaut seront utilisées.
             rules: [
-                // Structure d'une règle:
-                {
-                    id: 'rule1', // ID unique (optionnel, sera généré si absent)
-                    group: 'keyword', // ID du groupe auquel cette règle appartient
-                    regex: '\\b(urgent|important|critique)\\b', // Expression régulière (chaîne)
-                    exclusions: ['ne pas traiter'], // Optionnel: Regex (chaînes) à exclure de ce match
-                    enabled: true // Optionnel: règle active par défaut
-                },
-                {
-                    id: 'rule2',
-                    group: 'mention',
-                    regex: '@[\\w-]+', // Correspond à @utilisateur
-                    enabled: true
-                },
-                 {
-                    id: 'rule3',
-                    group: 'ignored', // Règle d'exclusion
-                    regex: 'TODO\\s*:', // Ignorer les "TODO :"
-                    enabled: true
-                }
-                // ... autres règles
+                // Règle pour les mentions (@utilisateur)
+                { id: 'r1', group: 'mention', regex: '@[\\w-]+', enabled: true, description: 'Mentions utilisateur' },
+                // Règle pour les hashtags (#sujet)
+                { id: 'r2', group: 'hashtag', regex: '#[\\w]+', flags: 'g', enabled: true }, // flags 'g' (implicite)
+                // Règle pour des mots-clés spécifiques (insensible à la casse)
+                { id: 'r3', group: 'keyword', regex: '\\b(urgent|important|todo)\\b', flags: 'gi', enabled: true, description: 'Mots-clés importants' },
+                // Règle d'exclusion pour les URL (pour ne pas surligner les @ dans les emails par ex.)
+                { id: 'r4', group: 'exclude', regex: '\\b(?:https?|ftp):\\/\\/[^\\s/$.?#].[^\\s]*|\\bwww\\.[^\\s/$.?#].[^\\s]*', flags: 'gi', enabled: true, description: 'Exclure les URLs' }
             ],
 
-            // --- Intégration Menu Contextuel ---
-            menuEnabled: true, // Activer les options dans le menu contextuel (défaut: true)
-            menuSection: 'Surlignage', // Titre de la section dans le menu (défaut)
+            // --- Options Menu Contextuel ---
+            menuEnabled: true, // Activer l'intégration (défaut: true, nécessite ContextMenuPlugin)
+            menuSection: 'Surlignage Texte', // Titre de la section
 
-            // --- Création de Règles (via UI ou API) ---
+            // --- Options Création de Règles ---
             ruleCreation: {
-                enabled: true, // Autoriser l'ajout de règles via UI/API (défaut: true)
-                useAjax: false, // Envoyer les nouvelles règles à un serveur? (défaut: false)
-                ajaxUrl: '/api/highlight-rules', // URL du serveur si useAjax=true
-                ajaxMethod: 'POST', // Méthode HTTP
-                ajaxHeaders: {}, // En-têtes HTTP additionnels
-                ajaxCallback: null // Fonction (rule, serverResponse) => {} appelée après succès AJAX
+                enabled: true, // Permettre ajout rapide depuis menu contextuel (défaut: true)
+                // Options AJAX si vous voulez synchroniser les règles avec un serveur
+                // useAjax: false,
+                // ajaxUrl: '/api/highlight-rules',
+                // ajaxMethod: 'POST',
             },
 
-            // --- Options de l'Interface Utilisateur (Modale de gestion) ---
+            // --- Options Interface Utilisateur (Modale) ---
             ui: {
-                showGroupHeaders: true, // Afficher les en-têtes de groupe dans la liste des règles (défaut: true)
-                groupByColor: true, // Regrouper les règles par groupe dans la liste (défaut: true)
-                allowExport: true, // Afficher le bouton Exporter (défaut: true)
-                allowImport: true, // Afficher le bouton Importer (défaut: true)
-                modalClass: 'tf-highlight-modal', // Classe CSS pour la modale (défaut)
-                buttonClass: 'tf-highlight-button', // Classe CSS pour les boutons (défaut)
-                formClass: 'tf-highlight-form', // Classe CSS pour les formulaires (défaut)
-                inputClass: 'tf-highlight-input' // Classe CSS pour les inputs (défaut)
-            }
+                // showGroupHeaders: true, // Défaut
+                // groupByColor: true, // Défaut
+                allowExport: true, // Permettre export JSON (défaut: true)
+                allowImport: true, // Permettre import JSON (défaut: true)
+                // modalClass: 'tf-highlight-modal', // Défaut
+                // buttonClass: 'tf-highlight-button', // Défaut
+                // formClass: 'tf-highlight-form', // Défaut
+                // inputClass: 'tf-highlight-input', // Défaut
+                // showPreview: true // Défaut
+            },
+
+            // --- Debug ---
+            // debug: true // Logs spécifiques (hérite de global si non défini)
         },
-        edit: { /* ... config Edit ... */ },
-        contextmenu: { /* ... config ContextMenu ... */ }
+        edit: { /* ... */ },
+        contextmenu: { /* ... */ }
     }
-    // ... autres options TableFlow ...
-});</code></pre>
+});
+</code></pre>
 
-                <h3>Tableau Complet des Options de Configuration JS (`plugins.highlight`)</h3>
-                <div class="info-block">
-                    Ce tableau liste toutes les options configurables pour le plugin Highlight via l'objet `plugins.highlight`.
-                </div>
-                <table class="documentation-table">
-                    <thead>
-                        <tr><th>Option (dans `plugins.highlight`)</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><code class="attr">highlightEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Active ou désactive globalement le surlignage.</td></tr>
-                        <tr><td><code class="attr">highlightDuringEdit</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, tente de maintenir le surlignage visible pendant que l'utilisateur tape dans le champ d'édition (utilise une superposition).</td></tr>
-                        <tr><td><code class="attr">highlightClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight'</code></td><td>Classe CSS théoriquement ajoutée aux cellules contenant du texte surligné (peu utilisé dans la version actuelle).</td></tr>
-                        <tr><td><code class="attr">spanClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-span'</code></td><td>Classe CSS ajoutée à chaque élément `&lt;span&gt;` qui enveloppe un morceau de texte surligné. Le style (couleur, fond) est appliqué inline sur le span.</td></tr>
-                        <tr><td><code class="attr">storageKey</code></td><td class="type">string | null</td><td><code class="default">'tableflow-highlight-rules'</code></td><td>Clé utilisée pour sauvegarder/charger les groupes et règles dans le `localStorage`. Mettre à `null` ou `false` pour désactiver la persistance.</td></tr>
-                        <tr><td><code class="attr">groups</code></td><td class="type">Array&lt;object&gt;</td><td><code class="default">[...]</code> (voir code)</td><td>Tableau définissant les groupes de surlignage disponibles (voir structure ci-dessous).</td></tr>
-                        <tr><td><code class="attr">rules</code></td><td class="type">Array&lt;object&gt;</td><td><code class="default">[]</code></td><td>Tableau contenant les règles de surlignage initiales (voir structure ci-dessous). Sera écrasé par les données du `localStorage` si `storageKey` est valide.</td></tr>
-                        <tr><td><code class="attr">menuEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true` et si le plugin ContextMenu est actif, ajoute les options de surlignage au menu contextuel.</td></tr>
-                        <tr><td><code class="attr">menuSection</code></td><td class="type">string</td><td><code class="default">'Surlignage'</code></td><td>Titre de la section dans le menu contextuel.</td></tr>
-                        <tr><td><code class="attr">ruleCreation</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Options relatives à la création de nouvelles règles (voir structure ci-dessous).</td></tr>
-                        <tr><td><code class="attr">ui</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Options relatives à l'interface utilisateur de la modale de gestion des règles (voir structure ci-dessous).</td></tr>
-                        <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Highlight.</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>Structure d'un Objet Groupe (dans `plugins.highlight.groups`)</h3>
+                 <h3>Tableau Complet des Options de Configuration JS (`plugins.highlight`)</h3>
+                 <div class="info-block">
+                    Ce tableau liste les options principales configurables pour le plugin Highlight via l'objet `plugins.highlight`.
+                 </div>
                  <table class="documentation-table">
                      <thead>
-                         <tr><th>Propriété</th><th>Type</th><th>Requis?</th><th>Description</th></tr>
+                         <tr><th>Option</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
                      </thead>
                      <tbody>
-                         <tr><td><code class="attr">id</code></td><td class="type">string</td><td>Oui</td><td>Identifiant unique pour le groupe (utilisé dans les règles).</td></tr>
-                         <tr><td><code class="attr">name</code></td><td class="type">string</td><td>Oui</td><td>Nom lisible du groupe (affiché dans l'UI).</td></tr>
-                         <tr><td><code class="attr">color</code></td><td class="type">string</td><td>Non</td><td>Couleur CSS pour le texte surligné (ex: `'#FF0000'`, `'white'`). Défaut: hérité.</td></tr>
-                         <tr><td><code class="attr">backgroundColor</code></td><td class="type">string</td><td>Non</td><td>Couleur CSS pour le fond du texte surligné (ex: `'yellow'`, `'#a855f7'`). Défaut: transparent.</td></tr>
-                         <tr><td><code class="attr">priority</code></td><td class="type">number</td><td>Non</td><td>Priorité du groupe pour résoudre les chevauchements (0 = plus haute priorité). Défaut: 0.</td></tr>
-                         <tr><td><code class="attr">isExclusion</code></td><td class="type">boolean</td><td>Non</td><td>Si `true`, les règles de ce groupe définissent des motifs à ne *jamais* surligner, même s'ils correspondent à une règle d'un autre groupe. Défaut: `false`.</td></tr>
+                         <tr><td><code class="attr">highlightEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Active ou désactive globalement le surlignage.</td></tr>
+                         <tr><td><code class="attr">highlightDuringEdit</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true`, tente de maintenir le surlignage visible pendant l'édition de la cellule via une technique d'overlay.</td></tr>
+                         <tr><td><code class="attr">spanClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-span'</code></td><td>Classe CSS ajoutée aux éléments `<span>` qui enveloppent le texte surligné.</td></tr>
+                         <tr><td><code class="attr">storageKey</code></td><td class="type">string</td><td><code class="default">'tableflow-highlight-rules'</code></td><td>Clé utilisée pour sauvegarder/charger les groupes et règles dans `localStorage`. Mettre à `null` pour désactiver la persistance.</td></tr>
+                         <tr><td><code class="attr">groups</code></td><td class="type">Array&lt;object&gt;</td><td><code class="default">[...]</code> (voir code source)</td><td>Tableau définissant les groupes de style. Chaque objet doit avoir au moins `id` (unique), `name`, `priority` (nombre, 0=max). Propriétés optionnelles : `color`, `backgroundColor`, `fontStyle`, `fontWeight`, etc. (styles CSS valides), `isExclusion: true` (pour marquer un groupe comme servant à exclure des motifs).</td></tr>
+                         <tr><td><code class="attr">rules</code></td><td class="type">Array&lt;object&gt;</td><td><code class="default">[]</code></td><td>Tableau définissant les règles de surlignage. Chaque objet doit avoir au moins `id` (unique), `group` (ID d'un groupe défini), `regex` (chaîne de l'expression régulière). Propriétés optionnelles : `flags` (string, ex: 'gi'), `exclusions` (Array&lt;string&gt; de motifs regex à exclure), `enabled` (boolean, défaut `true`), `description` (string). Sera écrasé par `localStorage` si `storageKey` est défini et contient des données.</td></tr>
+                         <tr><td><code class="attr">menuEnabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Si `true` et si `ContextMenuPlugin` est actif, ajoute des options au menu contextuel (Activer/Désactiver, Ajouter règle depuis sélection, Gérer règles).</td></tr>
+                         <tr><td><code class="attr">menuSection</code></td><td class="type">string</td><td><code class="default">'Surlignage'</code></td><td>Titre de la section dans le menu contextuel.</td></tr>
+                         <tr><td><code class="attr">ruleCreation</code></td><td class="type">object</td><td><code class="default">{enabled: true, ...}</code></td><td>Options pour la création de règles, notamment via le menu contextuel (`enabled`) et la synchronisation AJAX (`useAjax`, `ajaxUrl`, etc.).</td></tr>
+                         <tr><td><code class="attr">ui</code></td><td class="type">object</td><td><code class="default">{...}</code></td><td>Options pour l'interface utilisateur de la modale de gestion des règles (classes CSS, options d'affichage, import/export).</td></tr>
+                         <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs spécifiques à ce plugin.</td></tr>
                      </tbody>
                  </table>
 
-                 <h3>Structure d'un Objet Règle (dans `plugins.highlight.rules`)</h3>
+                 <h3>Structure d'un Groupe (dans `plugins.highlight.groups`)</h3>
                  <table class="documentation-table">
-                     <thead>
-                         <tr><th>Propriété</th><th>Type</th><th>Requis?</th><th>Description</th></tr>
-                     </thead>
+                     <thead> <tr><th>Propriété</th><th>Type</th><th>Requis?</th><th>Description</th></tr> </thead>
                      <tbody>
-                         <tr><td><code class="attr">id</code></td><td class="type">string</td><td>Non</td><td>Identifiant unique pour la règle. Sera généré automatiquement si absent lors de l'ajout.</td></tr>
-                         <tr><td><code class="attr">group</code></td><td class="type">string</td><td>Oui</td><td>ID du groupe (défini dans `config.groups`) auquel cette règle appartient. Détermine le style et la priorité.</td></tr>
-                         <tr><td><code class="attr">regex</code></td><td class="type">string</td><td>Oui</td><td>L'expression régulière (fournie comme chaîne) utilisée pour trouver les correspondances dans le texte.</td></tr>
-                         <tr><td><code class="attr">exclusions</code></td><td class="type">Array&lt;string&gt;</td><td>Non</td><td>Tableau optionnel d'expressions régulières (chaînes). Si une correspondance trouvée par `regex` correspond également à l'une de ces exclusions, elle sera ignorée pour *cette règle spécifique*.</td></tr>
-                         <tr><td><code class="attr">enabled</code></td><td class="type">boolean</td><td>Non</td><td>Indique si la règle est active. Défaut: `true`.</td></tr>
+                         <tr><td><code class="attr">id</code></td><td>string</td><td>Oui</td><td>Identifiant unique du groupe (utilisé dans les règles).</td></tr>
+                         <tr><td><code class="attr">name</code></td><td>string</td><td>Oui</td><td>Nom lisible du groupe (affiché dans l'UI).</td></tr>
+                         <tr><td><code class="attr">priority</code></td><td>number</td><td>Oui</td><td>Priorité numérique. <strong>Plus la valeur est basse, plus la priorité est élevée</strong>. Utilisée pour résoudre les chevauchements (0 est la plus haute priorité).</td></tr>
+                         <tr><td><code class="attr">color</code></td><td>string</td><td>Non</td><td>Couleur CSS pour le texte surligné (ex: '#FF0000', 'white').</td></tr>
+                         <tr><td><code class="attr">backgroundColor</code></td><td>string</td><td>Non</td><td>Couleur CSS pour le fond du texte surligné (ex: 'yellow', 'rgba(0,0,255,0.1)').</td></tr>
+                         <tr><td><code class="attr">isExclusion</code></td><td>boolean</td><td>Non</td><td>Si `true`, les règles associées à ce groupe serviront à <strong>exclure</strong> des motifs du surlignage par d'autres groupes (ne surligne rien elle-même).</td></tr>
+                         <tr><td><i>autres styles CSS</i></td><td>string</td><td>Non</td><td>Vous pouvez ajouter d'autres propriétés de style CSS valides (ex: `fontStyle: 'italic'`, `fontWeight: 'bold'`) qui seront appliquées via l'attribut `style` du `<span>`.</td></tr>
                      </tbody>
                  </table>
 
-                 <h3>Structure de l'Objet `ruleCreation` (dans `plugins.highlight`)</h3>
+                 <h3>Structure d'une Règle (dans `plugins.highlight.rules`)</h3>
                  <table class="documentation-table">
-                     <thead>
-                         <tr><th>Propriété</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
-                     </thead>
+                     <thead> <tr><th>Propriété</th><th>Type</th><th>Requis?</th><th>Description</th></tr> </thead>
                      <tbody>
-                         <tr><td><code class="attr">enabled</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Autorise ou interdit l'ajout de nouvelles règles via l'interface utilisateur ou l'API `addRule`.</td></tr>
-                         <tr><td><code class="attr">useAjax</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Si `true`, chaque nouvelle règle ajoutée via `addRule` sera envoyée au serveur à l'`ajaxUrl` avant d'être ajoutée localement.</td></tr>
-                         <tr><td><code class="attr">ajaxUrl</code></td><td class="type">string</td><td><code class="default">'/api/rules'</code></td><td>URL du endpoint serveur pour enregistrer les nouvelles règles.</td></tr>
-                         <tr><td><code class="attr">ajaxMethod</code></td><td class="type">string</td><td><code class="default">'POST'</code></td><td>Méthode HTTP à utiliser pour l'appel AJAX.</td></tr>
-                         <tr><td><code class="attr">ajaxHeaders</code></td><td class="type">object</td><td><code class="default">{}</code></td><td>Objet contenant les en-têtes HTTP additionnels à envoyer avec la requête AJAX (ex: token d'authentification).</td></tr>
-                         <tr><td><code class="attr">ajaxCallback</code></td><td class="type">function | null</td><td><code class="default">null</code></td><td>Fonction de callback `(rule, serverResponse) => {}` exécutée après une réponse réussie du serveur lors de l'ajout d'une règle via AJAX.</td></tr>
-                     </tbody>
-                 </table>
-
-                 <h3>Structure de l'Objet `ui` (dans `plugins.highlight`)</h3>
-                 <table class="documentation-table">
-                     <thead>
-                         <tr><th>Propriété</th><th>Type</th><th>Défaut</th><th>Description</th></tr>
-                     </thead>
-                     <tbody>
-                         <tr><td><code class="attr">showGroupHeaders</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Dans la modale de gestion, affiche des en-têtes pour chaque groupe avant de lister ses règles.</td></tr>
-                         <tr><td><code class="attr">groupByColor</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Dans la modale de gestion, regroupe visuellement les règles par leur groupe associé. Si `false`, affiche une liste plate.</td></tr>
-                         <tr><td><code class="attr">allowExport</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Affiche le bouton "Exporter" dans la modale de gestion.</td></tr>
-                         <tr><td><code class="attr">allowImport</code></td><td class="type">boolean</td><td><code class="default">true</code></td><td>Affiche le bouton "Importer" dans la modale de gestion.</td></tr>
-                         <tr><td><code class="attr">modalClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-modal'</code></td><td>Classe CSS pour la fenêtre modale de gestion des règles.</td></tr>
-                         <tr><td><code class="attr">buttonClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-button'</code></td><td>Classe CSS pour les boutons dans la modale.</td></tr>
-                         <tr><td><code class="attr">formClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-form'</code></td><td>Classe CSS pour les formulaires dans la modale.</td></tr>
-                         <tr><td><code class="attr">inputClass</code></td><td class="type">string</td><td><code class="default">'tf-highlight-input'</code></td><td>Classe CSS pour les champs de saisie dans la modale.</td></tr>
+                         <tr><td><code class="attr">id</code></td><td>string</td><td>Oui</td><td>Identifiant unique de la règle (peut être généré automatiquement si absent lors de l'ajout).</td></tr>
+                         <tr><td><code class="attr">group</code></td><td>string</td><td>Oui</td><td>ID du groupe de style (défini dans `groups`) à appliquer si la règle correspond.</td></tr>
+                         <tr><td><code class="attr">regex</code></td><td>string</td><td>Oui</td><td>L'expression régulière (sous forme de chaîne) à rechercher dans le texte.</td></tr>
+                         <tr><td><code class="attr">flags</code></td><td>string</td><td>Non</td><td>Flags pour l'expression régulière (ex: `'i'` pour insensible à la casse, `'g'` est ajouté par défaut si absent).</td></tr>
+                         <tr><td><code class="attr">exclusions</code></td><td>Array&lt;string&gt;</td><td>Non</td><td>Tableau optionnel de motifs regex (chaînes). Si une correspondance de la `regex` principale correspond également à l'un de ces motifs d'exclusion, elle sera ignorée.</td></tr>
+                         <tr><td><code class="attr">enabled</code></td><td>boolean</td><td>Non</td><td>Si `false`, la règle est ignorée. Défaut `true`.</td></tr>
+                         <tr><td><code class="attr">description</code></td><td>string</td><td>Non</td><td>Description optionnelle de la règle (affichée dans l'UI).</td></tr>
                      </tbody>
                  </table>
             </section>
@@ -336,87 +236,99 @@
             <section id="plugin-highlight-how-it-works">
                 <h2>Fonctionnement Interne</h2>
                 <ul>
-                    <li><strong>Initialisation (`init`):</strong> Récupère les plugins Edit et ContextMenu. Charge les règles depuis `localStorage` (`loadRules`). S'enregistre auprès d'Edit (`registerWithEditPlugin`) et de ContextMenu (`registerProvider`). Applique le surlignage initial (`highlightAllCells`).</li>
-                    <li><strong>Intégration Edit (`registerWithEditPlugin`, `handleRender`, `setupHighlightedEditing`):</strong>
+                    <li><strong>Initialisation (`init`):</strong> Récupère les dépendances (`Edit`, `ContextMenu`). S'enregistre aux hooks `onRender` et `afterEdit` de `Edit`. S'enregistre comme fournisseur auprès de `ContextMenu` si activé. Charge les règles depuis `localStorage` si configuré. Applique le surlignage initial (`highlightAllCells`).</li>
+                    <li><strong>Hook `onRender` (`handleRender`):</strong> Appelé par `Edit` pour afficher le contenu normal d'une cellule. Utilise `highlightText` pour obtenir le HTML surligné (avec cache), puis l'insère dans le wrapper de la cellule via le sanitizer. Retourne `false` pour indiquer à `Edit` que le rendu est géré.</li>
+                    <li><strong>Hook `afterEdit` (`setupHighlightedEditing`):</strong> Appelé par `Edit` après création de l'input. Si `highlightDuringEdit` est `true`, remplace l'input par une structure `div > div.overlay + input.transparent`. L'overlay affiche le texte surligné (`highlightText`), l'input transparent capture la saisie. Un listener `input` sur l'input transparent met à jour l'overlay en temps réel.</li>
+                    <li><strong>Surlignage (`highlightText`):</strong>
                         <ul>
-                            <li>Hook `onRender`: Intercepte le rendu du contenu de la cellule par Edit. Appelle `highlightText` pour générer le HTML surligné et l'insère dans le wrapper de la cellule. Retourne `false` pour indiquer à Edit de ne pas faire son rendu par défaut.</li>
-                            <li>Hook `afterEdit`: Si `highlightDuringEdit` est `true`, remplace l'input standard créé par Edit par une structure `div` contenant l'input rendu transparent et une `div` de superposition (`overlay`). L'overlay affiche le texte surligné (`highlightText`) et est mis à jour en temps réel (`input` listener) pendant que l'utilisateur tape dans l'input transparent.</li>
+                            <li>Prend le texte brut en entrée.</li>
+                            <li>Identifie les règles d'exclusion globales.</li>
+                            <li>Itère sur les règles de surlignage actives.</li>
+                            <li>Pour chaque règle, compile la regex (`getCompiledRegex` avec cache) et trouve toutes les correspondances dans le texte.</li>
+                            <li>Vérifie chaque correspondance contre les règles d'exclusion (globales et spécifiques à la règle).</li>
+                            <li>Stocke les correspondances valides avec leur position, groupe et priorité.</li>
+                            <li>Résout les chevauchements (`resolveOverlaps`) : si des correspondances se chevauchent, garde celle dont le groupe a la priorité la plus haute (valeur `priority` la plus basse). À priorité égale, la plus longue est préférée (mais la construction HTML gère cela).</li>
+                            <li>Construit le HTML final en insérant des `<span>` (avec `spanClass` et styles inline du groupe) autour des correspondances finales, et en échappant le texte non surligné.</li>
+                            <li>Met en cache le résultat HTML (`cache.highlightedTexts`).</li>
                         </ul>
                     </li>
-                    <li><strong>Surlignage (`highlightText`, `resolveOverlaps`):</strong>
-                        <ul>
-                            <li>Trouve toutes les correspondances pour toutes les règles actives (non-exclusion) en utilisant leurs `regex`.</li>
-                            <li>Filtre les correspondances qui matchent une règle d'exclusion (`isExclusion: true` ou `rule.exclusions`).</li>
-                            <li>Résout les chevauchements (`resolveOverlaps`) en ne gardant que le match ayant la plus haute priorité (`group.priority`) pour chaque segment de texte.</li>
-                            <li>Construit la chaîne HTML finale en enveloppant les correspondances non chevauchantes dans des `<span>` avec la classe `spanClass` et les styles inline (couleur, fond) définis par le groupe.</li>
-                        </ul>
-                    </li>
-                    <li><strong>Application Globale (`highlightAllCells`):</strong> Parcourt toutes les cellules éditables, récupère leur valeur, appelle `highlightText`, et met à jour le contenu du wrapper.</li>
-                    <li><strong>Persistance (`loadRules`, `saveRules`):</strong> Lit/écrit la configuration des groupes et des règles dans `localStorage` au format JSON, en utilisant `storageKey`.</li>
-                    <li><strong>Gestion des Règles (API & UI):</strong>
-                        <ul>
-                            <li>`addRule`, `updateRule`, `deleteRule`: Modifient le tableau `config.rules`.</li>
-                            <li>`addRule` peut optionnellement envoyer la règle au serveur via `fetch` si `ruleCreation.useAjax` est `true`.</li>
-                            <li>Appellent `saveRules()` et `highlightAllCells()` après modification.</li>
-                            <li>`showRulesManager`: Crée et affiche une fenêtre modale.</li>
-                            <li>`renderRulesList`, `renderRuleItem`: Génèrent le HTML pour afficher les règles dans la modale.</li>
-                            <li>`showAddRuleForm`, `showEditRuleForm`: Génèrent les formulaires d'ajout/modification.</li>
-                            <li>`exportRules`, `importRules`: Gèrent l'export/import de la configuration en JSON.</li>
-                        </ul>
-                    </li>
-                    <li><strong>Intégration ContextMenu (`getMenuItems`, `executeAction`, `createRuleFromSelection`):</strong>
-                        <ul>
-                            <li>`getMenuItems`: Retourne les options "Activer/Désactiver", "Gérer les règles". Si du texte est sélectionné dans la cellule, retourne aussi des options "Ajouter une règle au groupe X" pour chaque groupe (y compris "Ignoré").</li>
-                            <li>`executeAction`: Gère les clics sur les options du menu, appelant `toggleHighlighting`, `showRulesManager`, ou `createRuleFromSelection`.</li>
-                            <li>`createRuleFromSelection`: Récupère le texte sélectionné, l'échappe pour créer une regex simple, et appelle `addRule` pour créer une nouvelle règle associée au groupe choisi.</li>
-                        </ul>
-                    </li>
+                    <li><strong>Gestion des Règles (Modale - simplifiée ici):</strong> Des méthodes (`showRulesManager`, `addRule`, `updateRule`, `deleteRule`, `exportRules`, `importRules`) existent pour gérer les groupes et règles. L'UI (modale) n'est pas entièrement détaillée ici mais impliquerait la création/gestion d'éléments DOM pour afficher/modifier les règles et groupes, et interagir avec ces méthodes. `addRule` peut utiliser AJAX si configuré.</li>
+                    <li><strong>Intégration Menu Contextuel (`getMenuItems`, `executeAction`):</strong> Fournit les options (Activer/Désactiver, Ajouter règle depuis sélection, Gérer règles) à `ContextMenu`. Exécute l'action correspondante lorsque l'utilisateur clique sur un item. `createRuleFromSelection` génère une regex simple à partir du texte sélectionné.</li>
+                     <li><strong>Nettoyage (`destroy`):</strong> Se désenregistre des hooks `Edit` et du fournisseur `ContextMenu`. Vide les caches.</li>
                 </ul>
             </section>
 
              <section id="plugin-highlight-api">
                 <h2>API Publique</h2>
-                <p>
-                    Si vous récupérez l'instance du plugin via `tableInstance.getPlugin('Highlight')`, vous pouvez accéder aux méthodes suivantes :
-                </p>
+                <p>Le plugin Highlight expose plusieurs méthodes pour gérer les règles et le comportement par programmation.</p>
+                 <pre><code class="language-javascript">// Obtenir l'instance du plugin
+const myTableFlowInstance = new TableFlow({ tableId: 'maTableHighlight', /* ... */ });
+await myTableFlowInstance.ready();
+const highlightPlugin = myTableFlowInstance.getPlugin('highlight');
+
+if (highlightPlugin) {
+    // Activer/Désactiver le surlignage
+    const isEnabled = highlightPlugin.toggleHighlighting(); // Bascule
+    highlightPlugin.toggleHighlighting(true); // Force l'activation
+
+    // Ajouter une règle
+    const newRule = { group: 'keyword', regex: '\\bimportant\\b', flags: 'i', description: 'Mot important' };
+    const addedRule = await highlightPlugin.addRule(newRule); // Peut être une promesse si AJAX
+    if (addedRule) console.log('Règle ajoutée:', addedRule);
+
+    // Mettre à jour une règle (besoin de l'ID)
+    if (addedRule) {
+        highlightPlugin.updateRule(addedRule.id, { enabled: false }); // Désactiver la règle ajoutée
+    }
+
+    // Supprimer une règle
+    if (addedRule) {
+        highlightPlugin.deleteRule(addedRule.id);
+    }
+
+    // Forcer le surlignage de toutes les cellules
+    highlightPlugin.highlightAllCells();
+
+    // Effacer les caches (utile si les règles sont modifiées par un autre moyen)
+    highlightPlugin.clearCache();
+
+    // Exporter/Importer (déclenche le téléchargement/l'ouverture de fichier)
+    // highlightPlugin.exportRules();
+    // highlightPlugin.importRules(() => console.log('Import terminé!'));
+
+    // Afficher la modale de gestion (si implémentée)
+    // highlightPlugin.showRulesManager();
+}
+</code></pre>
                  <table class="documentation-table">
                      <thead>
                          <tr><th>Méthode</th><th>Arguments</th><th>Description</th><th>Retour</th></tr>
                      </thead>
                      <tbody>
-                         <tr><td><code>getGroupById(groupId)</code></td><td><code class="attr">groupId</code> <span class="type">(string)</span></td><td>Retourne l'objet de configuration du groupe correspondant à l'ID.</td><td class="type">object | undefined</td></tr>
-                         <tr><td><code>addRule(rule)</code></td><td><code class="attr">rule</code> <span class="type">(object)</span></td><td>Ajoute une nouvelle règle de surlignage. Si `ruleCreation.useAjax` est `true`, retourne une promesse résolue avec la règle ajoutée (potentiellement modifiée par le serveur) ou `null` en cas d'erreur. Sinon, retourne la règle ajoutée ou `null` si invalide.</td><td class="type">object | Promise&lt;object|null&gt; | null</td></tr>
-                         <tr><td><code>updateRule(ruleId, updates)</code></td><td><code class="attr">ruleId</code> <span class="type">(string)</span>, <code class="attr">updates</code> <span class="type">(object)</span></td><td>Met à jour une règle existante identifiée par `ruleId` avec les propriétés fournies dans `updates`. Sauvegarde et rafraîchit l'affichage.</td><td class="type">boolean (succès/échec)</td></tr>
-                         <tr><td><code>deleteRule(ruleId)</code></td><td><code class="attr">ruleId</code> <span class="type">(string)</span></td><td>Supprime la règle identifiée par `ruleId`. Sauvegarde et rafraîchit l'affichage.</td><td class="type">boolean (succès/échec)</td></tr>
-                         <tr><td><code>toggleHighlighting(enabled)</code></td><td><code class="attr">enabled</code> <span class="type">(boolean, optionnel)</span></td><td>Active ou désactive le surlignage. Si `enabled` est omis, bascule l'état actuel. Rafraîchit l'affichage.</td><td class="type">boolean (nouvel état activé)</td></tr>
-                         <tr><td><code>highlightAllCells()</code></td><td>-</td><td>Force le re-surlignage de toutes les cellules éditables.</td><td class="type">void</td></tr>
-                         <tr><td><code>loadRules()</code></td><td>-</td><td>Recharge les groupes et règles depuis `localStorage` (si `storageKey` est défini).</td><td class="type">void</td></tr>
-                         <tr><td><code>saveRules()</code></td><td>-</td><td>Sauvegarde les groupes et règles actuels dans `localStorage` (si `storageKey` est défini).</td><td class="type">void</td></tr>
-                         <tr><td><code>showRulesManager()</code></td><td>-</td><td>Affiche la fenêtre modale pour gérer les règles.</td><td class="type">void</td></tr>
+                         <tr><td><code>toggleHighlighting(enabled?)</code></td><td><code class="attr">enabled</code> <span class="type">(boolean, optionnel)</span></td><td>Active ou désactive globalement le surlignage. Si `enabled` est omis, bascule l'état actuel.</td><td class="type">boolean (nouvel état)</td></tr>
+                         <tr><td><code>addRule(rule)</code></td><td><code class="attr">rule</code> <span class="type">(object)</span></td><td>Ajoute une nouvelle règle de surlignage. Valide la règle et le groupe associé. Retourne la règle ajoutée (avec ID généré si absent) ou `null` si invalide. Retourne une promesse si `ruleCreation.useAjax` est `true`.</td><td class="type">object | null | Promise&lt;object|null&gt;</td></tr>
+                         <tr><td><code>updateRule(ruleId, updates)</code></td><td><code class="attr">ruleId</code> <span class="type">(string)</span><br><code class="attr">updates</code> <span class="type">(object)</span></td><td>Met à jour les propriétés d'une règle existante identifiée par `ruleId`. Valide les `updates`. Retourne `true` si succès, `false` sinon.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>deleteRule(ruleId)</code></td><td><code class="attr">ruleId</code> <span class="type">(string)</span></td><td>Supprime la règle identifiée par `ruleId`. Retourne `true` si succès, `false` sinon.</td><td class="type">boolean</td></tr>
+                         <tr><td><code>highlightAllCells()</code></td><td>-</td><td>Force le re-surlignage de toutes les cellules éditables visibles.</td><td class="type">void</td></tr>
+                         <tr><td><code>clearCache()</code></td><td>-</td><td>Vide les caches internes (texte surligné, regex compilées).</td><td class="type">void</td></tr>
                          <tr><td><code>exportRules()</code></td><td>-</td><td>Déclenche le téléchargement d'un fichier JSON contenant la configuration actuelle des groupes et règles.</td><td class="type">void</td></tr>
-                         <tr><td><code>importRules(callback)</code></td><td><code class="attr">callback</code> <span class="type">(function, optionnel)</span></td><td>Ouvre une boîte de dialogue pour sélectionner un fichier JSON. Si le fichier est valide, remplace la configuration actuelle, sauvegarde, rafraîchit l'affichage et appelle le `callback`.</td><td class="type">void</td></tr>
-                         <tr><td><code>refresh()</code></td><td>-</td><td>Ré-applique le surlignage à toutes les cellules si le surlignage est activé.</td><td class="type">void</td></tr>
-                     </tbody>
+                         <tr><td><code>importRules(callback?)</code></td><td><code class="attr">callback</code> <span class="type">(function, optionnel)</span></td><td>Ouvre une boîte de dialogue pour sélectionner un fichier JSON. Si un fichier valide est choisi, remplace la configuration actuelle par celle importée et appelle le `callback` optionnel.</td><td class="type">void</td></tr>
+                         <tr><td><code>showRulesManager()</code></td><td>-</td><td>(Si implémenté) Affiche l'interface utilisateur (modale) pour gérer les groupes et les règles.</td><td class="type">void</td></tr>
+                         </tbody>
                  </table>
             </section>
 
             <section id="plugin-highlight-events">
                 <h2>Événements</h2>
                 <ul>
-                    <li><strong>Écoutés :</strong>
-                        <ul>
-                            <li>Hooks de `Edit` (`onRender`, `afterEdit`).</li>
-                            <li>Événements de l'interface utilisateur de la modale de gestion (clics, soumissions).</li>
-                            <li>Événements du menu contextuel (via l'interface `ContextMenu`).</li>
-                        </ul>
-                    </li>
-                    <li><strong>Déclenchés :</strong> Aucun événement DOM spécifique déclenché par ce plugin. Il modifie l'affichage des cellules et interagit avec `localStorage`.</li>
+                    <li><strong>Écoutés :</strong> Aucun événement DOM direct. S'appuie sur les hooks `onRender` et `afterEdit` du plugin `Edit` et l'interface de `ContextMenu`.</li>
+                    <li><strong>Déclenchés :</strong> Aucun événement spécifique déclenché par ce plugin.</li>
                 </ul>
             </section>
 
             <section id="plugin-highlight-example">
                 <h2>Exemple Complet</h2>
-                <p>Cet exemple montre une table avec une colonne de notes où certains mots-clés et mentions sont surlignés.</p>
+                <p>Cet exemple configure le surlignage pour les mentions (@utilisateur) et les hashtags (#sujet) dans une colonne de notes, avec persistance et intégration du menu contextuel.</p>
 
                 <strong>HTML (`index.html`):</strong>
                 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
@@ -424,90 +336,98 @@
 &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
     &lt;title&gt;Exemple Highlight Plugin&lt;/title&gt;
-    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        body { padding: 2rem; }
+    &lt;link rel="stylesheet" href="../src/tableFlow.css"&gt;
+    &lt;link rel="stylesheet" href="documentation.css"&gt;
+    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"&gt;
+    &lt;style&gt;
+        body { padding: 2rem; font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top;}
+        thead th { background-color: #f2f2f2; }
         tr.modified td { background-color: #fffbeb; }
-        /* Styles Highlight */
-        .tf-highlight-span { border-radius: 3px; padding: 0.1em 0; }
-        /* Styles Edit */
         td.td-edit { cursor: pointer; }
-        /* Styles ContextMenu */
-        .tf-context-menu{position:absolute;z-index:1000;display:none;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.2);padding:5px 0;min-width:180px}
-        .tf-menu-item{padding:8px 15px;cursor:pointer;display:flex;align-items:center}
-        .tf-menu-item:hover{background:#f5f5f5}
-        .tf-menu-separator{height:1px;background:#ddd;margin:5px 0}
-        .tf-menu-header{padding:5px 10px;font-weight:700;color:#666;font-size:.9em}
-        .menu-icon{margin-right:8px;font-size:1.1em;width:20px;text-align:center}
-        /* Styles Modale */
-        .tf-highlight-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;max-width:90%;max-height:80vh;background-color:#fff;border:1px solid #ccc;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,.2);padding:20px;z-index:2000;overflow:auto}
-        .tf-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,.5);z-index:1999}
-        .tf-modal-close{background:0 0;border:none;font-size:20px;cursor:pointer;float:right}
-        .tf-rules-container{margin-bottom:20px;max-height:300px;overflow-y:auto;border:1px solid #eee;padding:10px}
-        .tf-highlight-button{padding:8px 16px;border:none;border-radius:4px;cursor:pointer;color:#fff}
-        .tf-highlight-button.add{background:#4caf50}
-        .tf-highlight-button.export{background:#2196f3;margin-right:8px}
-        .tf-highlight-button.import{background:#ff9800}
-        .tf-rule-item{display:flex;align-items:center;padding:10px;border-bottom:1px solid #eee;margin-bottom:8px}
-        .tf-rule-item-regex{flex:1;font-family:monospace;font-size:.9em;margin-right:10px}
-        .tf-rule-item-actions button{background:0 0;border:1px solid #ddd;border-radius:3px;padding:3px 8px;cursor:pointer;margin-left:5px}
-    </style>
+        /* Styles Highlight (normalement dans tableFlow.css) */
+        .tf-highlight-span{border-radius:3px;padding:.1em 0;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+        .tf-highlight-edit-container{position:relative;width:100%;min-height:calc(1.5em + 8px);padding:4px 6px;box-sizing:border-box;cursor:text}
+        .tf-highlight-edit-input{position:absolute;top:0;left:0;width:100%;height:100%;background:transparent!important;color:transparent!important;caret-color:black!important;border:none!important;outline:none!important;padding:4px 6px!important;margin:0!important;font:inherit!important;line-height:inherit!important;box-sizing:border-box!important;z-index:1;white-space:pre-wrap;resize:none}
+        .tf-highlight-edit-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;white-space:pre-wrap;word-break:break-word;overflow:hidden;padding:4px 6px;box-sizing:border-box;font:inherit;line-height:inherit;color:#666;z-index:0}
+        /* Styles Menu (normalement dans tableFlow.css) */
+        .tf-context-menu{position:fixed;z-index:1050;display:none;min-width:180px;padding:5px 0;margin:0;font-size:.9rem;color:#1f2937;text-align:left;list-style:none;background-color:#fff;background-clip:padding-box;border:1px solid rgba(0,0,0,.15);border-radius:4px;box-shadow:0 .5rem 1rem rgba(0,0,0,.175)}
+        .tf-menu-item{display:flex;align-items:center;padding:8px 15px;font-weight:400;color:#1f2937;text-align:inherit;white-space:nowrap;background-color:transparent;border:0;cursor:pointer;} .tf-menu-item:hover{background-color:#f5f5f5}
+        .tf-menu-item .menu-icon{margin-right:8px;font-size:1.1em;width:20px;text-align:center;flex-shrink:0} .tf-menu-item .menu-label{flex-grow:1}
+        .tf-menu-separator{height:1px;margin:5px 0;overflow:hidden;background-color:#e5e7eb} .tf-menu-header{display:block;padding:5px 15px;margin-bottom:0;font-size:.8em;color:#6b7280;white-space:nowrap;font-weight:700}
+    &lt;/style&gt;
 &lt;/head&gt;
 &lt;body&gt;
     &lt;h1&gt;TableFlow - Exemple Plugin Highlight&lt;/h1&gt;
-    &lt;p&gt;Double-cliquez pour éditer. Clic droit pour le menu.&lt;/p&gt;
+    &lt;p&gt;Double-cliquez pour éditer. Le surlignage @mention et #hashtag est appliqué. Clic droit pour options.&lt;/p&gt;
 
-    &lt;table id="notesTable"&gt;
+    &lt;table id="highlightTable"&gt;
         &lt;thead&gt;
             &lt;tr&gt;
-                &lt;th id="noteId" th-noreorder&gt;ID&lt;/th&gt;
-                &lt;th id="noteText" th-edit&gt;Note (Éditable & Surlignable)&lt;/th&gt;
+                &lt;th id="hNote" th-edit&gt;Note&lt;/th&gt;
             &lt;/tr&gt;
         &lt;/thead&gt;
         &lt;tbody&gt;
-            &lt;tr id="n1"&gt;
-                &lt;td id="noteId_n1"&gt;1&lt;/td&gt;
-                &lt;td id="noteText_n1"&gt;Tâche urgente: contacter @bob avant midi. C'est important! TODO: vérifier email.&lt;/td&gt;
+            &lt;tr id="hn1"&gt;
+                &lt;td id="hNote_hn1"&gt;Contacter @alice pour le projet #alpha. C'est urgent!&lt;/td&gt;
             &lt;/tr&gt;
-            &lt;tr id="n2"&gt;
-                &lt;td id="noteId_n2"&gt;2&lt;/td&gt;
-                &lt;td id="noteText_n2"&gt;Idée pour @alice: utiliser le composant critique existant.&lt;/td&gt;
+            &lt;tr id="hn2"&gt;
+                &lt;td id="hNote_hn2"&gt;Voir le ticket #123 et demander à @bob. Ne pas oublier la promo.&lt;/td&gt;
             &lt;/tr&gt;
         &lt;/tbody&gt;
     &lt;/table&gt;
+    &lt;button onclick="exportHighlightRules()"&gt;Exporter Règles&lt;/button&gt;
+    &lt;button onclick="importHighlightRules()"&gt;Importer Règles&lt;/button&gt;
+    &lt;button onclick="toggleHighlighting()"&gt;Activer/Désactiver Surlignage&lt;/button&gt;
 
     &lt;script type="module"&gt;
         import TableFlow from '../src/tableFlow.js'; // Ajustez
 
-        const notesTable = new TableFlow({
-            tableId: 'notesTable',
+        const highlightTable = new TableFlow({
+            tableId: 'highlightTable',
             pluginsPath: '../plugins', // Ajustez
             debug: true,
             plugins: {
                 names: ['Edit', 'ContextMenu', 'Highlight'],
                 highlight: {
-                    storageKey: 'myAppNotesHighlight', // Clé spécifique
-                    groups: [
-                        { id: 'urgent', name: 'Urgent', color: 'white', backgroundColor: 'red', priority: 0 },
-                        { id: 'keyword', name: 'Mot-Clé', color: 'white', backgroundColor: 'blue', priority: 1 },
-                        { id: 'mention', name: 'Mention', color: 'purple', backgroundColor: '#f3e8ff', priority: 2 },
-                        { id: 'ignored', name: 'Ignoré', isExclusion: true, priority: 10 }
+                    storageKey: 'highlight-example-rules', // Sauvegarde locale
+                    groups: [ // Groupes spécifiques à cet exemple
+                        { id: 'mention', name: 'Mention', color: '#000', backgroundColor: '#ffff99', priority: 1 },
+                        { id: 'hashtag', name: 'Hashtag', color: '#007bff', backgroundColor: 'transparent', priority: 2, fontStyle: 'italic' },
+                        { id: 'keyword', name: 'Mot-Clé', color: '#dc3545', backgroundColor: 'transparent', priority: 0, fontWeight: 'bold' },
+                        { id: 'excludeLink', name: 'Exclusion Lien', isExclusion: true, priority: -1 } // Priorité max pour exclure
                     ],
-                    rules: [
-                        // Règles initiales (seront chargées/sauvegardées via localStorage)
-                        { id: 'r_urgent', group: 'urgent', regex: '\\b(urgent|critique)\\b', enabled: true },
-                        { id: 'r_keyword', group: 'keyword', regex: '\\b(important|contacter)\\b', enabled: true },
-                        { id: 'r_mention', group: 'mention', regex: '@[\\w-]+', enabled: true },
-                        { id: 'r_ignore_todo', group: 'ignored', regex: 'TODO\\s*:', enabled: true }
+                    rules: [ // Règles par défaut (seront chargées depuis localStorage si existe)
+                        { id: 'r_mention', group: 'mention', regex: '@[\\w-]+' },
+                        { id: 'r_hashtag', group: 'hashtag', regex: '#[\\w]+', flags: 'g' },
+                        { id: 'r_keyword', group: 'keyword', regex: '\\b(urgent|promo)\\b', flags: 'gi' },
+                        { id: 'r_exclude_link', group: 'excludeLink', regex: 'https?:\\/\\/[^\\s]+', flags: 'gi'} // Exclure les liens
                     ],
                     menuEnabled: true,
                     ruleCreation: { enabled: true },
                     ui: { allowExport: true, allowImport: true }
-                },
-                edit: { /* Config par défaut */ },
-                contextmenu: { /* Config par défaut */ }
+                }
             }
         });
+
+        // Fonctions globales pour les boutons de démo
+        window.exportHighlightRules = async () => {
+            await highlightTable.ready();
+            highlightTable.getPlugin('highlight')?.exportRules();
+        };
+        window.importHighlightRules = async () => {
+            await highlightTable.ready();
+            highlightTable.getPlugin('highlight')?.importRules(() => {
+                console.log('Import terminé et appliqué !');
+            });
+        };
+        window.toggleHighlighting = async () => {
+            await highlightTable.ready();
+            const newState = highlightTable.getPlugin('highlight')?.toggleHighlighting();
+            console.log('Surlignage maintenant:', newState ? 'Activé' : 'Désactivé');
+        };
+
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -515,26 +435,13 @@
 
                 <strong>Fonctionnement de l'exemple :</strong>
                 <ol>
-                    <li>Au chargement, les mots "urgente", "important", "critique", "contacter" et les mentions "@bob", "@alice" sont surlignés avec les couleurs de leurs groupes respectifs. "TODO :" n'est pas surligné car il correspond à une règle d'exclusion.</li>
-                    <li>Si vous double-cliquez sur une note, le surlignage devrait être maintenu pendant l'édition (si `highlightDuringEdit` est `true`).</li>
-                    <li>Faites un clic droit sur une note :
-                        <ul>
-                            <li>Le menu "Surlignage" apparaît.</li>
-                            <li>Vous pouvez activer/désactiver le surlignage globalement.</li>
-                            <li>Vous pouvez cliquer sur "Gérer les règles de surlignage" pour ouvrir la modale.</li>
-                            <li>Si vous sélectionnez du texte (ex: "midi") avant le clic droit, des options "Ajouter une règle au groupe X" apparaîtront. Cliquer sur l'une d'elles créera une règle pour surligner "midi" avec le style du groupe choisi.</li>
-                        </ul>
-                    </li>
-                    <li>Dans la modale "Gérer les règles" :
-                        <ul>
-                            <li>Vous voyez les règles existantes, groupées par couleur.</li>
-                            <li>Vous pouvez activer/désactiver, modifier (✏️) ou supprimer (🗑️) chaque règle.</li>
-                            <li>Vous pouvez ajouter une nouvelle règle via le bouton.</li>
-                            <li>Vous pouvez exporter la configuration actuelle (groupes + règles) en JSON.</li>
-                            <li>Vous pouvez importer une configuration depuis un fichier JSON.</li>
-                        </ul>
-                    </li>
-                    <li>Toutes les modifications de règles sont sauvegardées dans le `localStorage` (clé `myAppNotesHighlight`) et appliquées immédiatement au tableau.</li>
+                    <li>La table s'affiche. Le texte dans la colonne "Note" est surligné : les mentions (@alice, @bob) en jaune, les hashtags (#alpha, #123) en bleu italique, et les mots "urgent", "promo" en rouge gras.</li>
+                    <li>Double-cliquez sur une cellule : l'édition commence, mais le surlignage reste visible sous le texte que vous tapez (grâce à `highlightDuringEdit: true`).</li>
+                    <li>Faites un clic droit sur une cellule : le menu contextuel apparaît avec une section "Surlignage Texte".</li>
+                    <li>Sélectionnez un mot (ex: "projet") dans une cellule, puis faites un clic droit. Le menu propose maintenant "Ajouter règle pour 'projet'..." avec des options pour chaque groupe (Mention, Hashtag, Mot-Clé, Exclusion Lien). Cliquer sur une option crée une nouvelle règle pour ce mot et ce groupe.</li>
+                    <li>Le menu propose aussi "Activer/Désactiver Surlignage" et "Gérer les règles..." (qui affiche une alerte dans cet exemple simplifié).</li>
+                    <li>Les boutons sous la table permettent d'exporter la configuration actuelle (groupes+règles) en JSON, d'importer un fichier JSON, et d'activer/désactiver le surlignage globalement.</li>
+                    <li>Les règles créées/modifiées sont sauvegardées dans `localStorage` (clé `highlight-example-rules`) et restaurées au rechargement.</li>
                 </ol>
             </section>
 

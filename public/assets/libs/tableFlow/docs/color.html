@@ -5,18 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documentation Plugin Color - TableFlow</title>
     <link rel="stylesheet" href="documentation.css">
+    <link rel="stylesheet" href="../src/tableFlow.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Styles additionnels spécifiques si nécessaire */
+        /* Styles spécifiques à cette page de documentation */
+        /* NOTE: Il est préférable de définir les styles TableFlow dans un fichier CSS dédié (ex: ../src/tableFlow.css ou un thème personnalisé) */
         body { padding: 2rem; }
         .content { margin-left: 0; } /* Pas de nav latérale dans ce doc standalone */
          h1 { margin-bottom: 2rem; }
-         /* Style pour les cellules readonly (exemple) */
-         .readonly-color {
+         /* Style pour la cohérence (ligne modifiée) */
+         tr.modified td { background-color: var(--tf-modified-bg, #fffbeb); }
+         /* Style pour les cellules readonly (si pertinent pour ce plugin) */
+         .readonly-color { /* Exemple, si une classe est utilisée */
              cursor: not-allowed !important;
              opacity: 0.6;
          }
-         /* Style par défaut du plugin (peut être surchargé par documentation.css) */
+         /* Styles par défaut du plugin Color (normalement dans tableFlow.css) */
+         /* Assurez-vous que ces classes correspondent à celles dans tableFlow.css et la config JS */
          .tf-color-wrapper {
             display: flex;
             align-items: center;
@@ -24,22 +29,33 @@
             gap: 5px; /* Espace entre preview et input */
             padding: 0; /* Le padding est sur le TD */
          }
-         .tf-color-wrapper .color-preview { /* Style pour l'aperçu ajouté par ColorFlow */
-            width: 20px;
-            height: 20px;
-            border: 1px solid #e5e7eb; /* var(--border-color) */
-            border-radius: 4px;
+         /* Classe pour l'aperçu ajouté par ColorFlow */
+         .tf-color-preview {
+            width: var(--tf-color-preview-size, 20px); /* Utilise variable CSS */
+            height: var(--tf-color-preview-size, 20px);
+            border: 1px solid var(--tf-border-color, #e5e7eb);
+            border-radius: var(--tf-border-radius, 4px);
             cursor: pointer;
+            box-sizing: border-box;
+            display: inline-block; /* Assurer visibilité */
+            vertical-align: middle; /* Aligner avec l'input */
          }
-         .tf-color-wrapper .color-input {
-            width: 80px;
+         /* Classe pour l'input géré par ColorFlow */
+         .tf-color-input {
+            width: var(--tf-color-input-width, 80px); /* Utilise variable CSS */
             text-align: center;
-            border: 1px solid #e5e7eb; /* var(--border-color) */
-            border-radius: 4px;
+            border: 1px solid var(--tf-border-color, #e5e7eb);
+            border-radius: var(--tf-border-radius, 4px);
             padding: 3px 5px;
             font-size: inherit; /* Hériter la taille de police */
+            box-sizing: border-box;
+            vertical-align: middle; /* Aligner avec le preview */
          }
-         tr.modified td { background-color: #fffbeb; }
+          .tf-color-input:focus {
+             border-color: var(--tf-primary-color, #4f46e5);
+             box-shadow: 0 0 0 2px var(--tf-focus-ring-color, rgba(79, 70, 229, 0.25));
+             outline: none;
+         }
     </style>
 </head>
 <body>
@@ -53,25 +69,27 @@
                     Le plugin <strong>Color</strong> permet aux utilisateurs de sélectionner une couleur pour une cellule à l'aide d'un sélecteur de couleur visuel. Il transforme le contenu textuel initial de la cellule (qui peut être un nom de couleur CSS, un code hexadécimal, RGB, etc.) en une représentation visuelle (un carré de couleur) et un champ de saisie affichant le code hexadécimal.
                 </p>
                 <p>
-                    Ce plugin repose sur une bibliothèque externe (implicitement `ColorFlow` d'après le code) qui doit être incluse dans votre page pour que le sélecteur de couleur fonctionne correctement.
+                    Ce plugin repose sur une bibliothèque externe (nommée <strong>ColorFlow</strong> dans le code source) qui doit être chargée et disponible dans la portée globale (`window`) pour que le sélecteur de couleur fonctionne correctement.
                 </p>
                 <p>
-                    Il met à jour la valeur `data-value` de la cellule avec le code hexadécimal de la couleur sélectionnée et marque la ligne comme modifiée.
+                    Il met à jour l'attribut `data-value` de la cellule avec le code hexadécimal de la couleur sélectionnée (`#RRGGBB`) et participe à la détection des modifications de la ligne (via l'événement `cell:change`).
                 </p>
                  <div class="warning-block">
-                    <strong>Dépendance Externe :</strong> Ce plugin nécessite une bibliothèque externe (probablement `ColorFlow`) pour fonctionner. Assurez-vous d'inclure le script de cette bibliothèque dans votre page HTML avant d'initialiser TableFlow avec le plugin Color.
+                    <strong>Dépendance Externe Requise :</strong> Ce plugin nécessite que la bibliothèque `ColorFlow` soit chargée dans la page HTML <strong>avant</strong> l'initialisation de TableFlow avec le plugin Color. Assurez-vous que `ColorFlow` est accessible globalement (ex: `window.ColorFlow`).
                  </div>
             </section>
 
             <section id="plugin-color-activation">
                 <h2>Activation et Configuration HTML</h2>
                 <p>
-                    Pour activer le plugin Color sur une colonne, ajoutez l'attribut <code class="attr">th-color</code> à l'élément <code>&lt;th&gt;</code> correspondant. Aucune valeur n'est nécessaire pour cet attribut.
+                    Pour activer le plugin Color sur une colonne, ajoutez l'attribut <code class="attr">th-color</code> (configurable via `colorAttribute`) à l'élément <code>&lt;th&gt;</code> correspondant. Aucune valeur n'est nécessaire pour cet attribut, la configuration se fait via JavaScript.
                 </p>
-                <pre><code class="language-html">&lt;table id="maTable"&gt;
+                <pre><code class="language-html">&lt;!-- Assurez-vous que la table a un ID unique --&gt;
+&lt;table id="maTableCouleurs"&gt;
   &lt;thead&gt;
     &lt;tr&gt;
       &lt;th id="colItem"&gt;Article&lt;/th&gt;
+      &lt;!-- Activation du plugin sur cette colonne --&gt;
       &lt;th id="colCouleur" th-color&gt;Couleur&lt;/th&gt;
     &lt;/tr&gt;
   &lt;/thead&gt;
@@ -79,17 +97,23 @@
     &lt;!-- Lignes de données --&gt;
     &lt;tr id="row1"&gt;
         &lt;td id="colItem_row1"&gt;T-shirt&lt;/td&gt;
-        &lt;!-- La valeur initiale peut être n'importe quel format de couleur CSS valide --&gt;
+        &lt;!-- Valeur initiale recommandée: format hexadécimal dans data-value --&gt;
         &lt;td id="colCouleur_row1" data-value="#FF0000"&gt;Rouge&lt;/td&gt;
     &lt;/tr&gt;
     &lt;tr id="row2"&gt;
         &lt;td id="colItem_row2"&gt;Pantalon&lt;/td&gt;
-        &lt;td id="colCouleur_row2" data-value="#0000FF"&gt;blue&lt;/td&gt; &lt;!-- Le plugin convertira en HEX --&gt;
+        &lt;!-- Le plugin tentera de convertir 'blue' en #0000FF --&gt;
+        &lt;td id="colCouleur_row2" data-value="blue"&gt;Bleu&lt;/td&gt;
+    &lt;/tr&gt;
+     &lt;tr id="row3"&gt;
+        &lt;td id="colItem_row3"&gt;Chaussures&lt;/td&gt;
+        &lt;!-- Si data-value manque, le contenu textuel est utilisé --&gt;
+        &lt;td id="colCouleur_row3"&gt;#008000&lt;/td&gt;
     &lt;/tr&gt;
   &lt;/tbody&gt;
 &lt;/table&gt;</code></pre>
                 <p>
-                    Le plugin lira le contenu textuel initial ou l'attribut `data-value` de la cellule `<td>`, tentera de le convertir en code hexadécimal, et l'utilisera comme valeur initiale. Il est recommandé de fournir la valeur initiale via `data-value` en format hexadécimal pour plus de fiabilité.
+                    Le plugin lira la valeur initiale depuis l'attribut `data-value` en priorité. Si cet attribut manque, il utilisera le contenu textuel de la cellule `<td>`. Il tentera ensuite de convertir cette valeur en code hexadécimal (`#RRGGBB`) via sa méthode interne `toHexColor()` pour l'affichage et le stockage interne. Il est donc préférable de fournir directement la valeur hexadécimale dans `data-value`.
                 </p>
             </section>
 
@@ -98,28 +122,44 @@
                 <p>
                     La configuration du plugin se fait dans l'objet d'options de `TableFlow`, sous la clé <code class="value">plugins.color</code>.
                 </p>
-                <pre><code class="language-javascript">const tableInstance = new TableFlow({
-    tableId: 'maTable',
-    pluginsPath: '../plugins', // Ajustez
-    plugins: {
-        names: ['Color', /* ... autres plugins ... */], // Activer le plugin
-        color: { // Configuration spécifique pour 'Color'
-            // --- Options Générales du Plugin ---
-            colorAttribute: 'th-color', // Attribut HTML pour activer (défaut)
-            cellClass: 'td-color', // Classe CSS pour les cellules gérées (défaut)
-            readOnlyClass: 'readonly-color', // Classe CSS pour les cellules non modifiables (défaut: 'readonly')
-            modifiedClass: 'modified', // Classe CSS pour les lignes modifiées (défaut)
-            debug: false, // Activer les logs spécifiques
-            customClass: '' // Classe CSS additionnelle à ajouter au conteneur du picker ColorFlow
-        }
-    }
-    // ... autres options TableFlow ...
-});
+                <pre><code class="language-javascript">// Exemple d'initialisation de TableFlow avec le plugin Color
+import TableFlow from '../src/tableFlow.js'; // Ajustez le chemin
 
-// Assurez-vous que ColorFlow est chargé et disponible
-// Exemple d'instanciation si ColorFlow est une classe globale
-// const colorFlowInstance = new ColorFlow({ customClass: 'mon-picker' });
-// Le plugin Color utilisera l'instance globale ou en créera une si nécessaire (basé sur le code actuel)
+// Assurez-vous que ColorFlow est chargé avant cette initialisation !
+if (typeof window.ColorFlow === 'undefined') {
+    console.error("ERREUR CRITIQUE: La bibliothèque ColorFlow est manquante !");
+    // Gérer l'erreur, ne pas initialiser TableFlow ou désactiver le plugin Color
+} else {
+    const tableInstance = new TableFlow({
+        tableId: 'maTableCouleurs',
+        pluginsPath: '../plugins', // Ajustez ce chemin
+        debug: true, // Activer les logs globaux
+        plugins: {
+            names: ['Color'], // Activer le plugin Color
+            color: { // Configuration spécifique pour 'Color'
+                // --- Options Générales du Plugin ---
+                // colorAttribute: 'th-color', // Attribut HTML pour activer (défaut)
+                // cellClass: 'td-color', // Classe CSS pour les <td> gérées (défaut)
+                // readOnlyClass: 'readonly-color', // Classe si cellule non modifiable
+                // modifiedClass: 'modified', // Classe CSS pour lignes modifiées (défaut)
+                wrapperClass: 'tf-color-wrapper', // Classe du conteneur interne (défaut)
+                inputClass: 'tf-color-input',   // Classe de l'input hex (défaut)
+                previewClass: 'tf-color-preview', // Classe attendue de l'aperçu (défaut)
+                // debug: false, // Logs spécifiques (hérite de global si non défini)
+
+                // --- Options pour ColorFlow ---
+                // Ces options sont passées au constructeur de ColorFlow
+                colorFlowConfig: {
+                    // Exemple: Options spécifiques à la bibliothèque ColorFlow
+                    // popupOptions: { placement: 'bottom-start' },
+                    // swatches: ['#ff0000', '#00ff00', '#0000ff'] // Palettes personnalisées
+                    // customClass: 'mon-picker-perso' // Pour ajouter une classe au picker
+                }
+            }
+        }
+        // ... autres options TableFlow ...
+    });
+}
 </code></pre>
 
                 <h3>Tableau Complet des Options de Configuration JS (`plugins.color`)</h3>
@@ -133,10 +173,13 @@
                     <tbody>
                         <tr><td><code class="attr">colorAttribute</code></td><td class="type">string</td><td><code class="default">'th-color'</code></td><td>Nom de l'attribut HTML sur `<th>` pour activer le plugin sur une colonne.</td></tr>
                         <tr><td><code class="attr">cellClass</code></td><td class="type">string</td><td><code class="default">'td-color'</code></td><td>Classe CSS ajoutée aux `<td>` gérées par ce plugin.</td></tr>
-                        <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS ajoutée aux `<td>` si elles doivent être considérées comme non modifiables (logique à implémenter séparément, le plugin ne gère pas nativement le readonly).</td></tr>
-                        <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour marquer les lignes (`<tr>`) modifiées lorsque la couleur change.</td></tr>
+                        <tr><td><code class="attr">readOnlyClass</code></td><td class="type">string</td><td><code class="default">'readonly'</code></td><td>Classe CSS standard pour indiquer une cellule non modifiable (la logique de blocage doit être externe ou via d'autres plugins).</td></tr>
+                        <tr><td><code class="attr">modifiedClass</code></td><td class="type">string</td><td><code class="default">'modified'</code></td><td>Classe CSS utilisée pour marquer les lignes (`<tr>`) modifiées lorsque la couleur change par rapport à sa valeur initiale.</td></tr>
+                        <tr><td><code class="attr">wrapperClass</code></td><td class="type">string</td><td><code class="default">'tf-color-wrapper'</code></td><td>Classe CSS ajoutée au `<div>` interne créé dans la cellule pour contenir l'aperçu et l'input.</td></tr>
+                        <tr><td><code class="attr">inputClass</code></td><td class="type">string</td><td><code class="default">'tf-color-input'</code></td><td>Classe CSS ajoutée à l'élément `<input>` créé pour afficher la valeur hexadécimale et interagir avec ColorFlow.</td></tr>
+                        <tr><td><code class="attr">previewClass</code></td><td class="type">string</td><td><code class="default">'tf-color-preview'</code></td><td>Classe CSS attendue pour l'élément d'aperçu de couleur généré par la bibliothèque externe ColorFlow (souvent ajouté avant l'input). Le plugin Color utilise cette classe pour trouver et mettre à jour l'aperçu.</td></tr>
                         <tr><td><code class="attr">debug</code></td><td class="type">boolean</td><td><code class="default">false</code></td><td>Active les logs de débogage spécifiques au plugin Color. Hérite de l'option `debug` globale de TableFlow si non spécifiée ici.</td></tr>
-                        <tr><td><code class="attr">customClass</code></td><td class="type">string</td><td><code class="default">''</code></td><td>Classe CSS personnalisée qui sera ajoutée à l'élément conteneur du sélecteur de couleur généré par la bibliothèque externe (ColorFlow).</td></tr>
+                        <tr><td><code class="attr">colorFlowConfig</code></td><td class="type">object</td><td><code class="default">{}</code></td><td>Objet contenant les options à passer directement au constructeur de la bibliothèque externe `ColorFlow` lors de son instanciation par le plugin. Consultez la documentation de ColorFlow pour les options disponibles. L'option `previewClass` y sera ajoutée automatiquement si non présente.</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -144,36 +187,51 @@
             <section id="plugin-color-how-it-works">
                 <h2>Fonctionnement Interne</h2>
                 <ul>
-                    <li><strong>Initialisation (`init`, `setupColorCells`, `setupColorCell`):</strong> Identifie les colonnes `th-color`. Pour chaque cellule `<td>` correspondante :
+                    <li><strong>Initialisation (`init`, `setupColorCells`, `setupColorCell`):</strong>
                         <ul>
-                            <li>Ajoute la classe `cellClass`.</li>
-                            <li>Lit la valeur initiale (`data-value` ou texte) et la convertit en hexadécimal via `toHexColor()`.</li>
-                            <li>Stocke la valeur hexadécimale dans `data-value` et `data-initial-value`.</li>
-                            <li>Crée un wrapper `div.tf-color-wrapper`.</li>
-                            <li>Crée un input texte (`input.color-input`) avec la valeur hexadécimale et l'attribut `cf-format="hex"`.</li>
-                            <li>Vide la cellule et y ajoute le wrapper contenant l'input.</li>
-                            <li>Utilise `setTimeout` pour s'assurer que le DOM est prêt, puis instancie `ColorFlow` (si pas déjà fait) et appelle `this.colorHandler.setupInput(input)` pour attacher le picker de couleur à l'input. La bibliothèque ColorFlow ajoute généralement un aperçu (`.color-preview`) à côté de l'input.</li>
-                            <li>Ajoute des écouteurs (`input`, `change`) à l'input pour détecter les changements de couleur (via le picker ou saisie directe).</li>
-                        </ul>
-                    </li>
-                    <li><strong>Sélection de Couleur (via ColorFlow et écouteurs) :</strong>
-                        <ul>
-                            <li>Lorsque la couleur est modifiée, la fonction `updateValue` est appelée.</li>
-                            <li>Elle compare la nouvelle valeur (toujours en hexadécimal) avec l'ancienne (`data-value`).</li>
-                            <li>Si la valeur a changé :
+                            <li>Vérifie si `window.ColorFlow` est disponible. Si non, lève une erreur.</li>
+                            <li>Instancie `ColorFlow` une fois avec les options `colorFlowConfig`.</li>
+                            <li>Identifie les colonnes `<th>` ayant l'attribut `colorAttribute`.</li>
+                            <li>Pour chaque cellule `<td>` correspondante :
                                 <ul>
-                                    <li>Met à jour `data-value`.</li>
-                                    <li>Met à jour la couleur de fond de l'aperçu (`.color-preview`).</li>
-                                    <li>Marque la ligne comme modifiée (`modifiedClass`) si la nouvelle valeur diffère de `data-initial-value`.</li>
-                                    <li>Déclenche l'événement `cell:change` avec les détails (IDs, ancienne/nouvelle valeur hex, cellule).</li>
+                                    <li>Ajoute `cellClass` et `data-plugin="color"`.</li>
+                                    <li>Lit la valeur initiale (`data-value` ou texte), la convertit en hexadécimal via `toHexColor()`.</li>
+                                    <li>Stocke la valeur hexadécimale normalisée dans `data-value` et `data-initial-value`.</li>
+                                    <li>Trouve/crée le wrapper interne (`div.cell-wrapper`), le vide, et lui ajoute `wrapperClass`.</li>
+                                    <li>Crée un `<input>` texte avec `inputClass`, la valeur hexadécimale, et l'attribut `cf-format="hex"`.</li>
+                                    <li>Ajoute l'input au wrapper.</li>
+                                    <li>Via `requestAnimationFrame`, appelle `this.colorHandler.setupInput(input)` pour que ColorFlow attache son picker et son aperçu (qui devrait avoir la classe `previewClass`) à l'input.</li>
+                                    <li>Ajoute un écouteur d'événement `change` à l'input, qui appellera `updateValueHandler`.</li>
                                 </ul>
                             </li>
                         </ul>
                     </li>
-                     <li><strong>Conversion de Couleur (`toHexColor`):</strong> Fonction utilitaire interne pour convertir différentes notations de couleur CSS (nom, rgb, etc.) en leur équivalent hexadécimal majuscule (`#RRGGBB`). Utilise une astuce DOM pour obtenir la couleur calculée.</li>
-                    <li><strong>Gestion des Sauvegardes (`cell:saved`, `row:saved`):</strong> Met à jour `data-initial-value` avec la valeur hexadécimale actuelle (`data-value`) pour que la ligne ne soit plus considérée comme modifiée après une sauvegarde.</li>
-                    <li><strong>Nouvelles Lignes (`row:added`):</strong> Appelle `setupColorCells` pour initialiser correctement les cellules couleur de la nouvelle ligne.</li>
+                    <li><strong>Sélection de Couleur (via ColorFlow et écouteur `change`) :</strong>
+                        <ul>
+                            <li>Lorsque la couleur est modifiée dans le picker ColorFlow, ColorFlow met à jour la valeur de l'`<input>` et déclenche l'événement `change`.</li>
+                            <li>Le handler `updateValueHandler` (défini dans `setupColorCell`) est appelé.</li>
+                            <li>Il lit la nouvelle valeur hexadécimale depuis `input.value`.</li>
+                            <li>Si la valeur a changé par rapport à `data-value` :
+                                <ul>
+                                    <li>Met à jour `data-value`.</li>
+                                    <li>Met à jour le `background-color` de l'aperçu (`.tf-color-preview`) trouvé à côté de l'input.</li>
+                                    <li>Déclenche l'événement `cell:change` avec les détails (IDs, ancienne/nouvelle valeur hex, cellule, source 'color').</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                     <li><strong>Conversion de Couleur (`toHexColor`):</strong> Fonction utilitaire interne pour convertir différentes notations de couleur CSS (nom, rgb, etc.) en leur équivalent hexadécimal majuscule (`#RRGGBB`). Utilise une astuce DOM (`getComputedStyle`) pour obtenir la couleur calculée. Retourne `null` si la conversion échoue.</li>
+                    <li><strong>Gestion des Sauvegardes (`_handleCellSaved`, `_handleRowSaved`):</strong> Écoute les événements `cell:saved` et `row:saved`. Met à jour `data-initial-value` avec la valeur hexadécimale actuelle (`data-value`) pour que la ligne ne soit plus considérée comme modifiée après une sauvegarde. Met également à jour l'affichage (input/preview) via `updateCellDisplay`.</li>
+                    <li><strong>Nouvelles Lignes (`_handleRowAdded`):</strong> Écoute `row:added`. Appelle `setupColorCells(newRow)` pour initialiser correctement les cellules couleur de la nouvelle ligne.</li>
+                    <li><strong>Nettoyage (`destroy`):</strong> Supprime les écouteurs d'événements système, supprime les listeners `change` ajoutés aux inputs, et appelle potentiellement `colorHandler.destroy()` si cette méthode existe sur l'instance ColorFlow.</li>
                 </ul>
+            </section>
+
+             <section id="plugin-color-api">
+                <h2>API Publique</h2>
+                <p>
+                    Le plugin Color n'expose pas de méthodes publiques spécifiques dans cette version. L'interaction se fait via le sélecteur de couleur fourni par la bibliothèque externe ColorFlow.
+                </p>
             </section>
 
             <section id="plugin-color-events">
@@ -181,14 +239,15 @@
                 <ul>
                     <li><strong>Écoutés :</strong>
                         <ul>
-                            <li><code>cell:saved</code> : Pour mettre à jour `data-initial-value` après sauvegarde.</li>
-                            <li><code>row:saved</code> : Pour mettre à jour `data-initial-value` des cellules couleur de la ligne.</li>
-                            <li><code>row:added</code> : Pour initialiser les nouvelles lignes.</li>
+                            <li><code>change</code> (sur les `<input>` créés) : Déclenché par ColorFlow après sélection d'une couleur.</li>
+                            <li><code>cell:saved</code> (sur la table) : Pour mettre à jour `data-initial-value` après sauvegarde.</li>
+                            <li><code>row:saved</code> (sur la table) : Pour mettre à jour `data-initial-value` des cellules couleur de la ligne.</li>
+                            <li><code>row:added</code> (sur la table) : Pour initialiser les nouvelles lignes.</li>
                         </ul>
                     </li>
                     <li><strong>Déclenchés :</strong>
                         <ul>
-                            <li><code>cell:change</code> : Après qu'un utilisateur a sélectionné une nouvelle couleur. Contient `{ detail: { cellId, columnId, rowId, oldValue, newValue, cell } }` où les valeurs sont en hexadécimal.</li>
+                            <li><code>cell:change</code> (sur la table) : Après qu'un utilisateur a sélectionné une nouvelle couleur. Contient `{ detail: { cell, cellId, columnId, rowId, value, oldValue, initialValue, isModified, source: 'color', tableId } }` où les valeurs sont en hexadécimal.</li>
                         </ul>
                     </li>
                 </ul>
@@ -198,7 +257,7 @@
                 <h2>Exemple Complet</h2>
                 <p>Cet exemple montre une table où l'on peut choisir la couleur d'un produit.</p>
                 <div class="warning-block">
-                    <strong>Rappel :</strong> Cet exemple suppose que la bibliothèque `ColorFlow` est correctement chargée sur la page.
+                    <strong>Rappel :</strong> Cet exemple <strong>nécessite</strong> que la bibliothèque `ColorFlow` soit chargée et accessible globalement sur la page (`window.ColorFlow`). Le code ci-dessous inclut une simulation très basique de `ColorFlow` à des fins de démonstration uniquement. Remplacez-la par la vraie bibliothèque.
                 </div>
 
                 <strong>HTML (`index.html`):</strong>
@@ -207,20 +266,30 @@
 &lt;head&gt;
     &lt;meta charset="UTF-8"&gt;
     &lt;title&gt;Exemple Color Plugin&lt;/title&gt;
-    <link rel="stylesheet" href="../src/tableFlow.css"> <link rel="stylesheet" href="documentation.css"> <style>
+    &lt;!-- Inclure les CSS TableFlow --&gt;
+    &lt;link rel="stylesheet" href="../src/tableFlow.css"&gt;
+    &lt;link rel="stylesheet" href="documentation.css"&gt;
+    &lt;style&gt;
+        /* Styles de base pour l'exemple */
+        body { padding: 2rem; font-family: sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        thead th { background-color: #f2f2f2; }
         tr.modified td { background-color: #fffbeb; }
-        /* Styles par défaut du plugin Color */
-        .tf-color-wrapper{display:flex;align-items:center;justify-content:flex-start;gap:5px;padding:0}
-        .tf-color-wrapper .color-preview{width:20px;height:20px;border:1px solid #e5e7eb;border-radius:4px;cursor:pointer}
-        .tf-color-wrapper .color-input{width:80px;text-align:center;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;font-size:inherit}
-    </style>
-    &lt;!-- Inclure ColorFlow ici --&gt;
+        /* Styles spécifiques au plugin Color (normalement dans tableFlow.css) */
+        .tf-color-wrapper { display: flex; align-items: center; gap: 5px; }
+        .tf-color-preview { width: 20px; height: 20px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; display: inline-block; vertical-align: middle; }
+        .tf-color-input { width: 80px; text-align: center; border: 1px solid #ccc; border-radius: 4px; padding: 3px 5px; vertical-align: middle; }
+    &lt;/style&gt;
+
+    &lt;!-- !!! IMPORTANT: Inclure la vraie bibliothèque ColorFlow ici !!! --&gt;
     &lt;!-- &lt;script src="path/to/colorFlow.js"&gt;&lt;/script&gt; --&gt;
+
 &lt;/head&gt;
 &lt;body&gt;
     &lt;h1&gt;TableFlow - Exemple Plugin Color&lt;/h1&gt;
 
-    &lt;table id="productTable"&gt;
+    &lt;table id="productTableColor"&gt;
         &lt;thead&gt;
             &lt;tr&gt;
                 &lt;th id="prodName"&gt;Produit&lt;/th&gt;
@@ -230,59 +299,82 @@
         &lt;tbody&gt;
             &lt;tr id="p1"&gt;
                 &lt;td id="prodName_p1"&gt;Casquette&lt;/td&gt;
-                &lt;td id="prodColor_p1" data-value="#008000"&gt;green&lt;/td&gt;
+                &lt;td id="prodColor_p1" data-value="#008000"&gt;Vert&lt;/td&gt; &lt;!-- data-value prioritaire --&gt;
             &lt;/tr&gt;
             &lt;tr id="p2"&gt;
                 &lt;td id="prodName_p2"&gt;Écharpe&lt;/td&gt;
-                &lt;td id="prodColor_p2" data-value="#FFA500"&gt;Orange&lt;/td&gt;
+                &lt;td id="prodColor_p2"&gt;orange&lt;/td&gt; &lt;!-- Sera converti en #FFA500 --&gt;
             &lt;/tr&gt;
         &lt;/tbody&gt;
     &lt;/table&gt;
 
     &lt;!-- Script d'initialisation --&gt;
     &lt;script type="module"&gt;
-        import TableFlow from '../src/tableFlow.js'; // Ajustez
+        // Importe TableFlow (ajustez le chemin)
+        import TableFlow from '../src/tableFlow.js';
 
-        // Simuler ColorFlow si non disponible pour l'exemple
-        if (typeof ColorFlow === 'undefined') {
+        // --- Simulation de ColorFlow (UNIQUEMENT POUR LA DÉMO) ---
+        if (typeof window.ColorFlow === 'undefined') {
+            console.warn("ColorFlow n'est pas chargé. Utilisation d'une simulation basique.");
             window.ColorFlow = class {
-                constructor(config) { console.log('Simulating ColorFlow init with config:', config); }
+                constructor(config) {
+                    console.log('Simulating ColorFlow init with config:', config);
+                    // Récupérer la classe CSS attendue pour le preview
+                    this.previewClass = config?.previewClass || 'tf-color-preview';
+                }
                 setupInput(input) {
                     console.log('Simulating ColorFlow setupInput for:', input);
-                    // Ajouter un faux preview pour le style
                     const preview = document.createElement('span');
-                    preview.className = 'color-preview';
+                    preview.className = this.previewClass; // Utiliser la classe configurée
                     preview.style.backgroundColor = input.value;
-                    preview.onclick = () => { // Simuler un changement de couleur au clic sur le preview
+                    preview.style.display = 'inline-block';
+                    preview.style.verticalAlign = 'middle';
+                    preview.setAttribute('title', 'Cliquer pour couleur aléatoire (simulation)');
+                    // Simuler un changement de couleur au clic
+                    preview.onclick = () => {
                         const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
                         input.value = randomColor.toUpperCase();
                         input.dispatchEvent(new Event('change', { bubbles: true })); // Déclencher 'change'
+                        preview.style.backgroundColor = input.value;
+                        console.log(`Simulation: Couleur changée en ${input.value}`);
                     };
+                    // Insérer le preview avant l'input
                     input.parentNode.insertBefore(preview, input);
-
-                    // Mettre à jour le preview si l'input change
+                    // Mettre à jour le preview si l'input change manuellement (pour la démo)
                      input.addEventListener('change', () => {
-                         if(input.previousElementSibling && input.previousElementSibling.classList.contains('color-preview')) {
-                            input.previousElementSibling.style.backgroundColor = input.value;
+                         const currentPreview = input.previousElementSibling;
+                         if(currentPreview && currentPreview.classList.contains(this.previewClass)) {
+                            currentPreview.style.backgroundColor = input.value;
                          }
                      });
                 }
+                // Ajouter une méthode destroy factice si nécessaire
+                // destroyInput(input) { console.log('Simulating ColorFlow destroyInput for:', input); }
+                // destroy() { console.log('Simulating ColorFlow destroy.'); }
             }
-            console.warn("ColorFlow n'est pas chargé. Utilisation d'une simulation basique.");
         }
+        // --- Fin de la Simulation ---
 
-
-        const productTable = new TableFlow({
-            tableId: 'productTable',
-            pluginsPath: '../plugins', // Ajustez
-            debug: true,
-            plugins: {
-                names: ['Color'], // Activer le plugin
-                color: {
-                    // Utiliser les options par défaut
+        // Initialiser TableFlow
+        try {
+            const productTable = new TableFlow({
+                tableId: 'productTableColor',
+                pluginsPath: '../plugins', // Ajustez
+                debug: true, // Activer les logs
+                plugins: {
+                    names: ['Color'], // Activer le plugin Color
+                    color: {
+                        // Utiliser les options par défaut pour les classes etc.
+                        // Passer des options à ColorFlow si nécessaire:
+                        // colorFlowConfig: { swatches: ['#FF0000', '#00FF00', '#0000FF'] }
+                    }
                 }
-            }
-        });
+            });
+            console.log('TableFlow initialisé avec succès.');
+        } catch (error) {
+            console.error("Erreur lors de l'initialisation de TableFlow:", error);
+            alert("Erreur lors de l'initialisation de la table. Vérifiez la console et assurez-vous que ColorFlow est chargé.");
+        }
     &lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
@@ -290,10 +382,11 @@
 
                 <strong>Fonctionnement de l'exemple :</strong>
                 <ol>
-                    <li>La table s'affiche. Dans la colonne "Couleur Choisie", chaque cellule contient un carré de couleur (l'aperçu) et un champ de texte avec le code hexadécimal (`#RRGGBB`).</li>
-                    <li>Cliquer sur le carré de couleur ou sur le champ de texte devrait ouvrir le sélecteur de couleur (fourni par ColorFlow). Dans la simulation, cliquer sur le carré change la couleur aléatoirement.</li>
-                    <li>Lorsque vous choisissez une nouvelle couleur via le picker (ou via la simulation), l'aperçu, le champ de texte et l'attribut `data-value` sont mis à jour avec le nouveau code hexadécimal.</li>
-                    <li>Si la couleur choisie est différente de la couleur initiale, la ligne est marquée en jaune pâle (classe `modified`).</li>
+                    <li>La table s'affiche. Dans la colonne "Couleur Choisie", chaque cellule contient un carré de couleur (l'aperçu ajouté par la simulation de ColorFlow) et un champ de texte avec le code hexadécimal (`#RRGGBB`).</li>
+                    <li>Cliquer sur le carré de couleur (dans cette simulation) change la couleur de manière aléatoire et met à jour l'input et l'aperçu. Avec la vraie bibliothèque ColorFlow, cela ouvrirait le sélecteur de couleur.</li>
+                    <li>Lorsque la valeur de l'input change (via le picker ou la simulation), l'événement `change` est déclenché.</li>
+                    <li>Le plugin Color écoute cet événement, met à jour l'attribut `data-value` de la cellule `<td>`, et déclenche l'événement `cell:change` de TableFlow.</li>
+                    <li>Si la nouvelle couleur est différente de la couleur initiale (`data-initial-value`), la ligne est marquée en jaune pâle (classe `modified`).</li>
                 </ol>
             </section>
 
