@@ -29,7 +29,7 @@ class PluginRegistry {
          */
         this.loadingPlugins = new Map();
 
-        // Initialiser un logger simple (peut être surchargé)
+        // Initialiser un logger simple
         this.logger = console;
     }
 
