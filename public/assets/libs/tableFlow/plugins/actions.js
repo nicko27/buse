@@ -1,34 +1,70 @@
+import { DOMSanitizer } from '../src/domSanitizer.js';
+
+/**
+ * ActionsPlugin - Gestion des actions pour TableFlow
+ * 
+ * Ce plugin ajoute des boutons d'action dans les cellules du tableau.
+ * 
+ * Attributs HTML supportés :
+ * - th-actions : Liste des actions à afficher (séparées par des virgules)
+ * - th-sql-exclude : Exclut la colonne des données SQL/exports
+ * 
+ * @version 1.2.0
+ */
 export default class ActionsPlugin {
     constructor(config = {}) {
         this.name = 'actions';
-        this.version = '1.1.0';
+        this.version = '1.2.0';
         this.type = 'action';
         this.table = null;
         this.dependencies = [];
-        this.config = { ...this.getDefaultConfig(), ...config };
+        
+        // Configuration par défaut
+        this.config = { 
+            ...this.getDefaultConfig(), 
+            ...config 
+        };
+        
+        // Fonction de debug conditionnelle
         this.debug = this.config.debug === true ?
             (...args) => console.log('[ActionsPlugin]', ...args) :
             () => { };
+
+        // Système amélioré de gestion des événements déjà traités
+        this._processedEvents = new Map();
+        this._cleanupInterval = null;
+        this._maxProcessedEvents = 100;
+        this._cleanupIntervalTime = 60000; // 1 minute
 
         // Lier les méthodes pour préserver le contexte
         this.handleCellChange = this.handleCellChange.bind(this);
         this.handleRowSaved = this.handleRowSaved.bind(this);
         this.handleRowAdded = this.handleRowAdded.bind(this);
+        this.cleanupProcessedEvents = this.cleanupProcessedEvents.bind(this);
     }
 
     getDefaultConfig() {
         return {
-            actionAttribute: 'th-actions',
-            sqlExcludeAttribute: 'th-sql-exclude',
-            cellClass: 'td-actions',
-            useIcons: true,
-            debug: false,
-            showOnChange: [],
-            modifiedClass: 'modified',
-            actions: {},
-            icons: {},
-            confirmMessages: {},
-            autoSave: false
+            // Attributs HTML personnalisés
+            actionAttribute: 'th-actions',       // Attribut pour définir les actions
+            sqlExcludeAttribute: 'th-sql-exclude', // Attribut pour exclure des données SQL
+            
+            // Classes CSS
+            cellClass: 'td-actions',             // Classe pour les cellules d'action
+            modifiedClass: 'modified',           // Classe pour les lignes modifiées
+            
+            // Configuration des actions
+            useIcons: true,                      // Utiliser des icônes
+            showOnChange: [],                    // Actions à afficher lors des changements
+            autoSave: false,                     // Sauvegarde automatique
+            
+            // Actions disponibles
+            actions: {},                         // Configuration des actions
+            icons: {},                           // Icônes des actions
+            confirmMessages: {},                 // Messages de confirmation
+            
+            // Debug
+            debug: false
         };
     }
 
@@ -42,6 +78,9 @@ export default class ActionsPlugin {
         }
 
         this.setupEventListeners();
+        
+        // Configuration du nettoyage automatique des événements traités
+        this.startCleanupInterval();
 
         const hasActions = this.hasActionColumns();
         this.debug('Colonnes d\'actions détectées:', hasActions);
@@ -49,6 +88,49 @@ export default class ActionsPlugin {
         if (hasActions) {
             this.setupActionColumns();
         }
+    }
+
+    /**
+     * Démarre l'intervalle de nettoyage des événements traités
+     */
+    startCleanupInterval() {
+        if (this._cleanupInterval) {
+            clearInterval(this._cleanupInterval);
+        }
+        
+        this._cleanupInterval = setInterval(
+            this.cleanupProcessedEvents, 
+            this._cleanupIntervalTime
+        );
+    }
+
+    /**
+     * Nettoie les événements traités pour éviter les fuites mémoire
+     */
+    cleanupProcessedEvents() {
+        const now = Date.now();
+        const maxAge = 5 * 60 * 1000; // 5 minutes
+        
+        // Supprimer les événements plus anciens que maxAge
+        for (const [eventId, timestamp] of this._processedEvents.entries()) {
+            if (now - timestamp > maxAge) {
+                this._processedEvents.delete(eventId);
+            }
+        }
+        
+        // Si encore trop d'événements, garder seulement les plus récents
+        if (this._processedEvents.size > this._maxProcessedEvents) {
+            const sortedEvents = Array.from(this._processedEvents.entries())
+                .sort((a, b) => b[1] - a[1]) // Trier par timestamp décroissant
+                .slice(0, this._maxProcessedEvents);
+            
+            this._processedEvents.clear();
+            for (const [eventId, timestamp] of sortedEvents) {
+                this._processedEvents.set(eventId, timestamp);
+            }
+        }
+        
+        this.debug(`Événements traités après nettoyage: ${this._processedEvents.size}`);
     }
 
     hasActionColumns() {
@@ -71,37 +153,97 @@ export default class ActionsPlugin {
         this.table.table.addEventListener('row:added', this.handleRowAdded);
     }
 
-    handleRowSaved(event) {
-        const row = event.detail.row;
-        if (!row) {
-            this.debug('ERREUR: Ligne non trouvée dans handleRowSaved');
+    handleCellChange(event) {
+        // Vérifier que l'événement vient de notre table
+        if (event.detail && event.detail.tableId && event.detail.tableId !== this.table.table.id) {
+            this.debug('Événement ignoré car il vient d\'une autre table:', event.detail.tableId);
             return;
         }
 
-        this.debug('Gestion de row:saved pour la ligne:', row.id);
-        row.classList.remove(this.config.modifiedClass);
-
-        if (this.hasActionColumns()) {
-            this.updateActionButtons(row, { showOnModified: false });
+        // Vérifier si cet événement a déjà été traité
+        if (event.detail && event.detail.eventId) {
+            const eventId = event.detail.eventId;
+            
+            // Si l'événement a déjà été traité, l'ignorer
+            if (this._processedEvents.has(eventId)) {
+                this.debug('Événement ignoré car déjà traité:', eventId);
+                return;
+            }
+            
+            // Marquer l'événement comme traité avec timestamp
+            this._processedEvents.set(eventId, Date.now());
         }
-    }
 
-    handleRowAdded(event) {
-        const row = event.detail.row;
+        const row = event.detail.rowId ?
+            this.table.table.querySelector(`tr[id="${event.detail.rowId}"]`) :
+            event.target?.closest('tr');
+
         if (!row) {
-            this.debug('ERREUR: Ligne non trouvée dans handleRowAdded');
+            this.debug('ERREUR: Ligne non trouvée dans handleCellChange');
             return;
         }
 
-        this.debug('Gestion de row:added pour la ligne:', row.id);
+        const cell = event.detail.cell || event.target?.closest('td');
+        this.debug('Gestion du changement de cellule:', {
+            rowId: row.id,
+            cellId: cell?.id,
+            eventType: event.type,
+            eventSource: event.detail ? 'custom' : 'dom',
+            tableId: this.table.table.id
+        });
 
-        if (this.hasActionColumns()) {
-            this.setupActionColumns();
-            this.updateActionButtons(row, { showOnModified: false });
-        }
+        // Vérification de la modification
+        const modifiedCells = Array.from(row.cells)
+            .filter(cell => {
+                if (!cell.hasAttribute('data-initial-value')) {
+                    return false;
+                }
 
-        if (typeof this.table.refreshPlugins === 'function') {
-            this.table.refreshPlugins();
+                const currentValue = cell.getAttribute('data-value');
+                const initialValue = cell.getAttribute('data-initial-value');
+                const isModified = currentValue !== initialValue;
+
+                if (isModified) {
+                    this.debug('Cellule modifiée:', {
+                        cellId: cell.id,
+                        initialValue,
+                        currentValue
+                    });
+                }
+
+                return isModified;
+            });
+
+        const isModified = modifiedCells.length > 0;
+        this.debug('État de modification de la ligne:', {
+            rowId: row.id,
+            isModified,
+            modifiedCellCount: modifiedCells.length
+        });
+
+        if (isModified) {
+            row.classList.add(this.config.modifiedClass);
+
+            if (this.hasActionColumns()) {
+                this.updateActionButtons(row, { showOnModified: true });
+            }
+
+            // Gestion de l'autoSave
+            if (this.config.autoSave) {
+                const saveAction = Object.entries(this.config.actions).find(([name]) => name === 'save');
+                if (saveAction) {
+                    this.debug('Déclenchement de l\'autoSave');
+                    this.executeAction('save', cell, {
+                        skipConfirm: true,
+                        source: 'autoSave'
+                    });
+                }
+            }
+        } else {
+            row.classList.remove(this.config.modifiedClass);
+            if (this.hasActionColumns()) {
+                this.updateActionButtons(row, { showOnModified: false });
+            }
         }
     }
 
@@ -135,7 +277,6 @@ export default class ActionsPlugin {
 
             this.debug(`Colonne ${index + 1}: actions configurées:`, actions);
 
-            // Utiliser tbody du tableau courant et nth-child
             const tbody = this.table.table.querySelector('tbody');
             if (!tbody) {
                 this.debug('ERREUR: tbody non trouvé');
@@ -147,8 +288,6 @@ export default class ActionsPlugin {
                 this.debug(`ATTENTION: Aucune cellule trouvée pour la colonne ${index + 1}`);
                 return;
             }
-
-            this.debug(`${cells.length} cellule(s) trouvée(s) pour la colonne ${index + 1}`);
 
             cells.forEach((cell, cellIndex) => {
                 if (!cell) {
@@ -170,11 +309,6 @@ export default class ActionsPlugin {
         const wrapper = cell.querySelector('.cell-wrapper') || cell;
         wrapper.innerHTML = '';
 
-        this.debug('Configuration des actions pour la cellule:', {
-            cellId: cell.id,
-            actions: actions
-        });
-
         actions.forEach(actionName => {
             const actionConfig = this.config.actions[actionName];
             if (!actionConfig) {
@@ -188,7 +322,11 @@ export default class ActionsPlugin {
                 return;
             }
 
-            wrapper.insertAdjacentHTML('beforeend', icon);
+            // Utiliser DOMSanitizer pour insérer l'icône de manière sécurisée
+            DOMSanitizer.insertAdjacentHTML(wrapper, 'beforeend', icon, { 
+                isTrustedIcon: true 
+            });
+            
             const actionElement = wrapper.lastElementChild;
 
             if (!actionElement) {
@@ -200,12 +338,6 @@ export default class ActionsPlugin {
             const computedStyle = window.getComputedStyle(actionElement);
             const originalDisplay = computedStyle.display || 'inline-block';
             actionElement.setAttribute('data-original-display', originalDisplay);
-
-            this.debug(`Action "${actionName}" configurée:`, {
-                showOnChange: this.shouldShowOnChange(actionName),
-                autoSave: this.shouldAutoSave(actionName),
-                originalDisplay: originalDisplay
-            });
 
             if (this.shouldShowOnChange(actionName)) {
                 actionElement.style.display = 'none';
@@ -219,89 +351,15 @@ export default class ActionsPlugin {
         });
     }
 
-    shouldShowOnChange(actionName) {
-        const actionConfig = this.config.actions[actionName] || {};
-        const showOnChange = actionConfig.showOnChange === true ||
-            (actionConfig.showOnChange !== false &&
-                (this.config.showOnChange === true ||
-                    (Array.isArray(this.config.showOnChange) &&
-                        this.config.showOnChange.includes(actionName))));
-
-        this.debug(`Calcul de showOnChange pour "${actionName}":`, {
-            actionShowOnChange: actionConfig.showOnChange,
-            globalShowOnChange: this.config.showOnChange,
-            result: showOnChange
-        });
-
-        return showOnChange;
-    }
-
-    shouldAutoSave(actionName) {
-        const actionConfig = this.config.actions[actionName] || {};
-        const autoSave = actionConfig.autoSave === true ||
-            (actionConfig.autoSave !== false && this.config.autoSave === true);
-
-        this.debug(`Calcul de autoSave pour "${actionName}":`, {
-            actionAutoSave: actionConfig.autoSave,
-            globalAutoSave: this.config.autoSave,
-            result: autoSave
-        });
-
-        return autoSave;
-    }
-
-    executeAction(actionName, cell, options = {}) {
-        const row = cell?.closest('tr');
-        if (!row) {
-            this.debug('ERREUR: Ligne non trouvée dans executeAction');
-            return;
-        }
-
-        const actionConfig = this.config.actions[actionName];
-        if (!actionConfig) {
-            this.debug(`ERREUR: Configuration non trouvée pour l'action "${actionName}"`);
-            return;
-        }
-
-        this.debug(`Exécution de l'action "${actionName}":`, {
-            rowId: row.id,
-            cellId: cell?.id,
-            options: options
-        });
-
-        if (this.config.confirmMessages[actionName] && !options.skipConfirm) {
-            const message = this.config.confirmMessages[actionName];
-            this.debug(`Demande de confirmation pour "${actionName}":`, message);
-            if (!confirm(message)) {
-                this.debug('Action annulée par l\'utilisateur');
-                return;
-            }
-        }
-
-        const data = this.getRowData(row);
-        this.debug('Données collectées:', data);
-
-        const context = {
-            row,
-            cell,
-            tableHandler: this.table,
-            data,
-            source: options.source || 'manual'
-        };
-
-        try {
-            if (typeof actionConfig.handler === 'function') {
-                this.debug(`Appel du handler pour "${actionName}" (source: ${context.source})`);
-                actionConfig.handler(context);
-            } else {
-                this.debug(`ERREUR: Pas de handler défini pour l'action "${actionName}"`);
-            }
-        } catch (error) {
-            this.debug(`ERREUR lors de l'exécution de l'action "${actionName}":`, error);
-            console.error(`Erreur lors de l'exécution de l'action "${actionName}":`, error);
-        }
-    }
-
+    /**
+     * Récupère les données d'une ligne avec support pour th-sql-exclude
+     * 
+     * L'attribut th-sql-exclude permet d'exclure certaines colonnes des données
+     * exportées, utile pour les colonnes d'action ou d'affichage uniquement.
+     * 
+     * @param {HTMLTableRowElement} row - La ligne dont on veut extraire les données
+     * @returns {Object} Les données de la ligne, excluant les colonnes marquées
+     */
     getRowData(row) {
         if (!row) {
             this.debug('ERREUR: Ligne non trouvée dans getRowData');
@@ -316,7 +374,7 @@ export default class ActionsPlugin {
             return data;
         }
 
-        // Collecte des colonnes exclues
+        // Collecte des colonnes exclues (marquées avec th-sql-exclude)
         Array.from(thead.querySelectorAll('th')).forEach(header => {
             if (header.hasAttribute(this.config.sqlExcludeAttribute)) {
                 excludedColumns.add(header.id);
@@ -328,14 +386,13 @@ export default class ActionsPlugin {
             data.id = row.id;
         }
 
-        this.debug('Collecte des données de la ligne:', row.id);
-
         Array.from(row.cells).forEach((cell, i) => {
             const header = thead.querySelector(`tr:first-child th:nth-child(${i + 1})`);
             if (!header?.id || cell.classList.contains(this.config.cellClass)) {
                 return;
             }
 
+            // Ignorer les colonnes exclues
             if (excludedColumns.has(header.id)) {
                 this.debug(`Colonne ignorée (exclue): ${header.id}`);
                 return;
@@ -356,128 +413,101 @@ export default class ActionsPlugin {
             }
 
             data[header.id] = convertedValue;
-
-            this.debug(`Valeur collectée pour ${header.id}:`, {
-                raw: value,
-                converted: convertedValue,
-                type: typeof convertedValue
-            });
         });
 
         return data;
     }
 
-    handleCellChange(event) {
-        // Vérifier que l'événement vient de notre table
-        if (event.detail && event.detail.tableId && event.detail.tableId !== this.table.table.id) {
-            this.debug('Événement ignoré car il vient d\'une autre table:', event.detail.tableId);
+    shouldShowOnChange(actionName) {
+        const actionConfig = this.config.actions[actionName] || {};
+        const showOnChange = actionConfig.showOnChange === true ||
+            (actionConfig.showOnChange !== false &&
+                (this.config.showOnChange === true ||
+                    (Array.isArray(this.config.showOnChange) &&
+                        this.config.showOnChange.includes(actionName))));
+        
+        return showOnChange;
+    }
+
+    shouldAutoSave(actionName) {
+        const actionConfig = this.config.actions[actionName] || {};
+        const autoSave = actionConfig.autoSave === true ||
+            (actionConfig.autoSave !== false && this.config.autoSave === true);
+        
+        return autoSave;
+    }
+
+    executeAction(actionName, cell, options = {}) {
+        const row = cell?.closest('tr');
+        if (!row) {
+            this.debug('ERREUR: Ligne non trouvée dans executeAction');
             return;
         }
 
-        // Vérifier si cet événement a déjà été traité (via l'ID unique)
-        if (event.detail && event.detail.eventId) {
-            // Utiliser une variable statique pour stocker les événements traités
-            if (!this.constructor._processedEvents) {
-                this.constructor._processedEvents = new Set();
-            }
+        const actionConfig = this.config.actions[actionName];
+        if (!actionConfig) {
+            this.debug(`ERREUR: Configuration non trouvée pour l'action "${actionName}"`);
+            return;
+        }
 
-            const eventId = event.detail.eventId;
-
-            // Si l'événement a déjà été traité, l'ignorer
-            if (this.constructor._processedEvents.has(eventId)) {
-                this.debug('Événement ignoré car déjà traité:', eventId);
+        if (this.config.confirmMessages[actionName] && !options.skipConfirm) {
+            const message = this.config.confirmMessages[actionName];
+            if (!confirm(message)) {
+                this.debug('Action annulée par l\'utilisateur');
                 return;
             }
-
-            // Marquer l'événement comme traité
-            this.constructor._processedEvents.add(eventId);
-
-            // Nettoyer la liste des événements traités (garder seulement les 100 derniers)
-            if (this.constructor._processedEvents.size > 100) {
-                const toRemove = Array.from(this.constructor._processedEvents).slice(0,
-                    this.constructor._processedEvents.size - 100);
-                toRemove.forEach(id => this.constructor._processedEvents.delete(id));
-            }
         }
 
-        const row = event.detail.rowId ?
-            this.table.table.querySelector(`tr[id="${event.detail.rowId}"]`) :
-            event.target?.closest('tr');
+        const data = this.getRowData(row);
+        
+        const context = {
+            row,
+            cell,
+            tableHandler: this.table,
+            data,
+            source: options.source || 'manual'
+        };
 
+        try {
+            if (typeof actionConfig.handler === 'function') {
+                actionConfig.handler(context);
+            } else {
+                this.debug(`ERREUR: Pas de handler défini pour l'action "${actionName}"`);
+            }
+        } catch (error) {
+            this.debug(`ERREUR lors de l'exécution de l'action "${actionName}":`, error);
+            console.error(`Erreur lors de l'exécution de l'action "${actionName}":`, error);
+        }
+    }
+
+    handleRowSaved(event) {
+        const row = event.detail.row;
         if (!row) {
-            this.debug('ERREUR: Ligne non trouvée dans handleCellChange');
+            this.debug('ERREUR: Ligne non trouvée dans handleRowSaved');
             return;
         }
 
-        const cell = event.detail.cell || event.target?.closest('td');
-        this.debug('Gestion du changement de cellule:', {
-            rowId: row.id,
-            cellId: cell?.id,
-            eventType: event.type,
-            eventSource: event.detail ? 'custom' : 'dom',
-            tableId: this.table.table.id
-        });
+        row.classList.remove(this.config.modifiedClass);
 
-        // Vérification de la modification
-        const modifiedCells = Array.from(row.cells)
-            .filter(cell => {
-                if (!cell.hasAttribute('data-initial-value')) {
-                    this.debug(`Cellule sans valeur initiale:`, {
-                        cellId: cell.id,
-                        content: cell.textContent.trim()
-                    });
-                    return false;
-                }
+        if (this.hasActionColumns()) {
+            this.updateActionButtons(row, { showOnModified: false });
+        }
+    }
 
-                const currentValue = cell.getAttribute('data-value');
-                const initialValue = cell.getAttribute('data-initial-value');
-                const isModified = currentValue !== initialValue;
+    handleRowAdded(event) {
+        const row = event.detail.row;
+        if (!row) {
+            this.debug('ERREUR: Ligne non trouvée dans handleRowAdded');
+            return;
+        }
 
-                if (isModified) {
-                    this.debug('Cellule modifiée:', {
-                        cellId: cell.id,
-                        initialValue,
-                        currentValue,
-                        element: cell
-                    });
-                }
+        if (this.hasActionColumns()) {
+            this.setupActionColumns();
+            this.updateActionButtons(row, { showOnModified: false });
+        }
 
-                return isModified;
-            });
-
-        const isModified = modifiedCells.length > 0;
-        this.debug('État de modification de la ligne:', {
-            rowId: row.id,
-            isModified,
-            modifiedCellCount: modifiedCells.length,
-            modifiedCellIds: modifiedCells.map(cell => cell.id)
-        });
-
-        if (isModified) {
-            row.classList.add(this.config.modifiedClass);
-
-            if (this.hasActionColumns()) {
-                this.debug('Mise à jour des boutons d\'action pour la ligne modifiée');
-                this.updateActionButtons(row, { showOnModified: true });
-            }
-
-            // Gestion de l'autoSave
-            if (this.config.autoSave) {
-                const saveAction = Object.entries(this.config.actions).find(([name]) => name === 'save');
-                if (saveAction) {
-                    this.debug('Déclenchement de l\'autoSave');
-                    this.executeAction('save', cell, {
-                        skipConfirm: true,
-                        source: 'autoSave'
-                    });
-                }
-            }
-        } else {
-            row.classList.remove(this.config.modifiedClass);
-            if (this.hasActionColumns()) {
-                this.debug('Mise à jour des boutons d\'action pour la ligne non modifiée');
-                this.updateActionButtons(row, { showOnModified: false });
-            }
+        if (typeof this.table.refreshPlugins === 'function') {
+            this.table.refreshPlugins();
         }
     }
 
@@ -492,13 +522,6 @@ export default class ActionsPlugin {
             hideSpecificAction = null
         } = options;
 
-        this.debug('Mise à jour des boutons d\'action:', {
-            rowId: row.id,
-            showOnModified,
-            hideSpecificAction
-        });
-
-        // Trouver les cellules d'action uniquement dans cette ligne
         const actionCells = Array.from(row.cells).filter(cell =>
             cell.classList.contains(this.config.cellClass)
         );
@@ -513,11 +536,9 @@ export default class ActionsPlugin {
 
                 if (hideSpecificAction && actionName === hideSpecificAction) {
                     shouldShow = false;
-                    this.debug(`Action "${actionName}" masquée spécifiquement`);
                 }
                 else if (this.shouldShowOnChange(actionName)) {
                     shouldShow = showOnModified;
-                    this.debug(`Visibilité de l'action "${actionName}" basée sur l'état de modification:`, showOnModified);
                 }
 
                 button.style.display = shouldShow ? originalDisplay : 'none';
@@ -531,82 +552,28 @@ export default class ActionsPlugin {
             return;
         }
 
-        this.debug('Marquage de la ligne comme sauvegardée:', {
-            rowId: row.id,
-            options
-        });
-
         const pluginOptions = Object.entries(options).find(
             ([key]) => key.toLowerCase() === 'actions'
         )?.[1] || {};
 
         // Mise à jour des valeurs initiales
-        const updatedCells = [];
         Array.from(row.cells).forEach(cell => {
             if (cell.classList.contains(this.config.cellClass)) return;
 
             const currentValue = cell.getAttribute('data-value');
             if (currentValue !== null) {
-                const oldInitialValue = cell.getAttribute('data-initial-value');
                 cell.setAttribute('data-initial-value', currentValue);
-
-                updatedCells.push({
-                    cellId: cell.id,
-                    oldInitialValue,
-                    newInitialValue: currentValue
-                });
-
-                this.debug('Mise à jour de la valeur initiale:', {
-                    cellId: cell.id,
-                    oldInitialValue,
-                    newInitialValue: currentValue
-                });
-
-                const cellSavedEvent = new CustomEvent('cell:saved', {
-                    detail: {
-                        cellId: cell.id,
-                        columnId: cell.id.split('_')[0],
-                        rowId: row.id,
-                        value: currentValue,
-                        cell: cell,
-                        pluginOptions,
-                        tableId: this.table.table.id
-                    },
-                    bubbles: false
-                });
-
-                this.table.table.dispatchEvent(cellSavedEvent);
             }
         });
 
         row.classList.remove(this.config.modifiedClass);
+        
         if (this.hasActionColumns()) {
             this.updateActionButtons(row, {
                 showOnModified: false,
                 hideSpecificAction: pluginOptions.hideAction
             });
         }
-
-        const rowSavedEvent = new CustomEvent('row:saved', {
-            detail: {
-                row,
-                rowId: row.id,
-                cells: Array.from(row.cells)
-                    .filter(cell => !cell.classList.contains(this.config.cellClass))
-                    .map(cell => ({
-                        id: cell.id,
-                        value: cell.getAttribute('data-value'),
-                        initialValue: cell.getAttribute('data-initial-value')
-                    })),
-                pluginOptions,
-                updatedCells,
-                tableId: this.table.table.id
-            },
-            bubbles: false
-        });
-
-        this.debug('Déclenchement de l\'événement row:saved:', rowSavedEvent.detail);
-        this.table.table.dispatchEvent(rowSavedEvent);
     }
 
     refresh() {
@@ -618,6 +585,17 @@ export default class ActionsPlugin {
 
     destroy() {
         this.debug('Destruction du plugin');
+        
+        // Arrêter le nettoyage automatique
+        if (this._cleanupInterval) {
+            clearInterval(this._cleanupInterval);
+            this._cleanupInterval = null;
+        }
+        
+        // Nettoyer les événements traités
+        this._processedEvents.clear();
+        
+        // Retirer les écouteurs d'événements
         if (this.table?.table) {
             this.table.table.removeEventListener('cell:change', this.handleCellChange);
             this.table.table.removeEventListener('row:saved', this.handleRowSaved);

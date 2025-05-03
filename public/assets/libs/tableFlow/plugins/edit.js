@@ -1,12 +1,19 @@
+import { DOMSanitizer } from '../src/domSanitizer.js';
+
+/**
+ * EditPlugin - Gestion de l'édition en ligne pour TableFlow
+ * 
+ * @version 2.1.0
+ */
 export default class EditPlugin {
     constructor(config = {}) {
         this.name = 'edit';
-        this.version = '2.0.0';
+        this.version = '2.1.0';
         this.type = 'edit';
         this.table = null;
         this.dependencies = [];
         
-        // Système de hooks pour extensions
+        // Système de hooks amélioré avec namespaces
         this.hooks = {
             beforeEdit: [],    // Avant de commencer l'édition
             afterEdit: [],     // Après avoir créé le champ d'édition
@@ -16,6 +23,11 @@ export default class EditPlugin {
             onRender: []       // Lors du rendu du contenu
         };
         
+        // Map pour stocker les hooks avec leurs IDs uniques et namespaces
+        this.hookRegistry = new Map();
+        this.hookIdCounter = 0;
+        this.namespaceRegistry = new Map(); // Nouveau: registre des namespaces
+        
         // Configuration de base
         this.config = {
             editAttribute: 'th-edit',
@@ -23,6 +35,10 @@ export default class EditPlugin {
             readOnlyClass: 'readonly',
             inputClass: 'edit-input',
             modifiedClass: 'modified',
+            doubleClickDelay: 300, // Délai pour le double-clic
+            autoSelectOnEdit: true, // Sélectionner automatiquement le texte
+            allowEmptyValue: true, // Permettre les valeurs vides
+            trimValues: true, // Supprimer les espaces en début/fin
             debug: false
         };
         
@@ -32,6 +48,10 @@ export default class EditPlugin {
         this.debug = this.config.debug ? 
             (...args) => console.log('[EditPlugin]', ...args) : 
             () => {};
+            
+        // Stockage des handlers d'événements pour le nettoyage
+        this._eventHandlers = new Map();
+        this._cellHandlers = new WeakMap();
     }
 
     init(tableHandler) {
@@ -60,7 +80,10 @@ export default class EditPlugin {
                 index: Array.from(headerCells).indexOf(header)
             }));
 
-        if (!editColumns.length) return;
+        if (!editColumns.length) {
+            this.debug('No editable columns found');
+            return;
+        }
 
         const rows = this.table.table.querySelectorAll('tbody tr');
         rows.forEach(row => {
@@ -78,8 +101,12 @@ export default class EditPlugin {
 
                 // Ajouter le gestionnaire de double-clic s'il n'existe pas déjà
                 if (!cell.hasAttribute('data-edit-initialized')) {
-                    cell.addEventListener('dblclick', (e) => this.startEditing(e));
+                    const dblClickHandler = (e) => this.startEditing(e);
+                    cell.addEventListener('dblclick', dblClickHandler);
                     cell.setAttribute('data-edit-initialized', 'true');
+                    
+                    // Stocker le handler pour pouvoir le supprimer plus tard
+                    this._cellHandlers.set(cell, dblClickHandler);
                 }
 
                 // Récupérer la valeur actuelle
@@ -109,7 +136,7 @@ export default class EditPlugin {
         this.debug('Setting up event listeners');
 
         // Écouter l'événement cell:saved
-        this.table.table.addEventListener('cell:saved', (event) => {
+        const cellSavedHandler = (event) => {
             this.debug('cell:saved event received', event.detail);
             const cell = event.detail.cell;
             if (!cell || !cell.classList.contains(this.config.cellClass)) {
@@ -129,20 +156,23 @@ export default class EditPlugin {
             if (wrapper) {
                 // Si un hook a géré le rendu, on ne fait rien
                 if (renderResult !== false) {
-                    wrapper.innerHTML = currentValue;
+                    DOMSanitizer.setHTML(wrapper, currentValue, { isPlainText: true });
                 }
             } else {
                 if (renderResult !== false) {
-                    cell.innerHTML = currentValue;
+                    DOMSanitizer.setHTML(cell, currentValue, { isPlainText: true });
                 }
                 if (this.table.initializeWrappers) {
                     this.table.initializeWrappers();
                 }
             }
-        });
+        };
+        
+        this.table.table.addEventListener('cell:saved', cellSavedHandler);
+        this._eventHandlers.set('cell:saved', cellSavedHandler);
 
         // Écouter l'événement row:saved
-        this.table.table.addEventListener('row:saved', (event) => {
+        const rowSavedHandler = (event) => {
             this.debug('row:saved event received');
             const row = event.detail.row;
             if (!row) return;
@@ -163,24 +193,30 @@ export default class EditPlugin {
                 
                 if (wrapper) {
                     if (renderResult !== false) {
-                        wrapper.innerHTML = currentValue;
+                        DOMSanitizer.setHTML(wrapper, currentValue, { isPlainText: true });
                     }
                 } else {
                     if (renderResult !== false) {
-                        cell.innerHTML = currentValue;
+                        DOMSanitizer.setHTML(cell, currentValue, { isPlainText: true });
                     }
                     if (this.table.initializeWrappers) {
                         this.table.initializeWrappers();
                     }
                 }
             });
-        });
+        };
+        
+        this.table.table.addEventListener('row:saved', rowSavedHandler);
+        this._eventHandlers.set('row:saved', rowSavedHandler);
 
         // Écouter l'ajout de nouvelles lignes
-        this.table.table.addEventListener('row:added', () => {
+        const rowAddedHandler = () => {
             this.debug('row:added event received');
             this.setupEditCells();
-        });
+        };
+        
+        this.table.table.addEventListener('row:added', rowAddedHandler);
+        this._eventHandlers.set('row:added', rowAddedHandler);
     }
 
     startEditing(event) {
@@ -223,11 +259,20 @@ export default class EditPlugin {
         
         // Focus et sélection
         input.focus();
-        input.select();
+        if (this.config.autoSelectOnEdit) {
+            input.select();
+        }
         
         // Ajout des événements de base
-        input.addEventListener('blur', () => this.finishEditing(cell, input));
-        input.addEventListener('keydown', (e) => this.handleKeydown(e, cell, input));
+        const blurHandler = () => this.finishEditing(cell, input);
+        const keydownHandler = (e) => this.handleKeydown(e, cell, input);
+        
+        input.addEventListener('blur', blurHandler);
+        input.addEventListener('keydown', keydownHandler);
+        
+        // Stocker les handlers pour le nettoyage
+        input._editBlurHandler = blurHandler;
+        input._editKeydownHandler = keydownHandler;
         
         // Point d'extension après création du champ d'édition
         this.executeHook('afterEdit', cell, input, currentValue);
@@ -252,7 +297,19 @@ export default class EditPlugin {
     }
 
     finishEditing(cell, input) {
-        const newValue = input.value.trim();
+        let newValue = input.value;
+        
+        // Appliquer le trimming si configuré
+        if (this.config.trimValues) {
+            newValue = newValue.trim();
+        }
+        
+        // Vérifier si la valeur vide est autorisée
+        if (!this.config.allowEmptyValue && newValue === '') {
+            this.cancelEditing(cell);
+            return;
+        }
+        
         const oldValue = cell.getAttribute('data-value');
         
         // Point d'extension avant sauvegarde
@@ -273,12 +330,12 @@ export default class EditPlugin {
         
         if (renderResult !== false) {
             if (wrapper === cell) {
-                cell.innerHTML = newValue;
+                DOMSanitizer.setHTML(cell, newValue, { isPlainText: true });
                 if (this.table.initializeWrappers) {
                     this.table.initializeWrappers();
                 }
             } else {
-                wrapper.innerHTML = newValue;
+                DOMSanitizer.setHTML(wrapper, newValue, { isPlainText: true });
             }
         }
         
@@ -304,7 +361,7 @@ export default class EditPlugin {
         const renderResult = this.executeHook('onRender', cell, originalValue);
         
         if (renderResult !== false) {
-            wrapper.innerHTML = originalValue;
+            DOMSanitizer.setHTML(wrapper, originalValue, { isPlainText: true });
         }
     }
 
@@ -327,16 +384,159 @@ export default class EditPlugin {
         this.table.table.dispatchEvent(changeEvent);
     }
 
-    // Méthodes pour gérer les hooks
-    addHook(hookName, callback) {
+    /**
+     * Ajoute un hook avec un namespace et un identifiant unique
+     * @param {string} hookName - Nom du hook
+     * @param {Function} callback - Fonction callback
+     * @param {string} [namespace] - Namespace optionnel
+     * @returns {string} - ID du hook pour suppression ultérieure
+     */
+    addHook(hookName, callback, namespace = 'default') {
         if (!this.hooks[hookName]) {
-            this.hooks[hookName] = [];
+            throw new Error(`Hook inconnu: ${hookName}`);
         }
         
-        this.hooks[hookName].push(callback);
-        return this;
+        // Générer un ID unique pour ce hook
+        const hookId = `${namespace}_${hookName}_${++this.hookIdCounter}`;
+        
+        // Créer un wrapper qui inclut le namespace
+        const wrappedCallback = (...args) => {
+            try {
+                return callback.apply(null, args);
+            } catch (error) {
+                console.error(`Error in hook ${hookName} (namespace: ${namespace}):`, error);
+                // Ne pas propager l'erreur pour éviter de casser le flux
+                return undefined;
+            }
+        };
+        
+        // Stocker le callback avec son ID et namespace
+        this.hooks[hookName].push(wrappedCallback);
+        this.hookRegistry.set(hookId, {
+            name: hookName,
+            callback: wrappedCallback,
+            originalCallback: callback,
+            namespace: namespace,
+            index: this.hooks[hookName].length - 1
+        });
+        
+        // Enregistrer dans le registre des namespaces
+        if (!this.namespaceRegistry.has(namespace)) {
+            this.namespaceRegistry.set(namespace, new Set());
+        }
+        this.namespaceRegistry.get(namespace).add(hookId);
+        
+        this.debug(`Hook ajouté: ${hookName} (namespace: ${namespace}, ID: ${hookId})`);
+        
+        return hookId;
     }
 
+    /**
+     * Supprime un hook spécifique par son ID
+     * @param {string} hookId - ID du hook à supprimer
+     * @returns {boolean} - true si supprimé, false sinon
+     */
+    removeHook(hookId) {
+        const hookInfo = this.hookRegistry.get(hookId);
+        
+        if (!hookInfo) {
+            this.debug(`Hook non trouvé: ${hookId}`);
+            return false;
+        }
+        
+        const { name, callback, namespace } = hookInfo;
+        
+        // Trouver et supprimer le callback du tableau
+        const index = this.hooks[name].indexOf(callback);
+        if (index !== -1) {
+            this.hooks[name].splice(index, 1);
+            this.hookRegistry.delete(hookId);
+            
+            // Retirer du registre des namespaces
+            const namespaceHooks = this.namespaceRegistry.get(namespace);
+            if (namespaceHooks) {
+                namespaceHooks.delete(hookId);
+                if (namespaceHooks.size === 0) {
+                    this.namespaceRegistry.delete(namespace);
+                }
+            }
+            
+            this.debug(`Hook supprimé: ${name} (namespace: ${namespace}, ID: ${hookId})`);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Supprime tous les hooks d'un namespace donné
+     * @param {string} namespace - Namespace des hooks à supprimer
+     * @returns {number} - Nombre de hooks supprimés
+     */
+    removeHooksByNamespace(namespace) {
+        const namespaceHooks = this.namespaceRegistry.get(namespace);
+        if (!namespaceHooks) return 0;
+        
+        let count = 0;
+        for (const hookId of namespaceHooks) {
+            if (this.removeHook(hookId)) {
+                count++;
+            }
+        }
+        
+        this.debug(`${count} hooks supprimés pour le namespace: ${namespace}`);
+        return count;
+    }
+
+    /**
+     * Supprime tous les hooks d'un type donné
+     * @param {string} hookName - Nom du hook
+     * @param {string} [namespace] - Namespace optionnel
+     * @returns {number} - Nombre de hooks supprimés
+     */
+    removeAllHooks(hookName, namespace = null) {
+        if (!this.hooks[hookName]) {
+            throw new Error(`Hook inconnu: ${hookName}`);
+        }
+        
+        let count = 0;
+        
+        // Si un namespace est spécifié, filtrer par namespace
+        if (namespace) {
+            const namespaceHooks = this.namespaceRegistry.get(namespace);
+            if (namespaceHooks) {
+                for (const hookId of namespaceHooks) {
+                    const hookInfo = this.hookRegistry.get(hookId);
+                    if (hookInfo && hookInfo.name === hookName) {
+                        if (this.removeHook(hookId)) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Sinon, supprimer tous les hooks de ce type
+            const hooksToRemove = Array.from(this.hookRegistry.entries())
+                .filter(([_, info]) => info.name === hookName)
+                .map(([id, _]) => id);
+                
+            for (const hookId of hooksToRemove) {
+                if (this.removeHook(hookId)) {
+                    count++;
+                }
+            }
+        }
+        
+        this.debug(`${count} hooks supprimés pour: ${hookName}${namespace ? ` (namespace: ${namespace})` : ''}`);
+        return count;
+    }
+
+    /**
+     * Exécute tous les callbacks d'un hook
+     * @param {string} hookName - Nom du hook
+     * @param {...any} args - Arguments à passer aux callbacks
+     * @returns {boolean} - true sauf si un callback retourne false
+     */
     executeHook(hookName, ...args) {
         if (!this.hooks[hookName] || !this.hooks[hookName].length) {
             return true;
@@ -355,6 +555,41 @@ export default class EditPlugin {
         return true;
     }
 
+    /**
+     * Liste tous les hooks enregistrés
+     * @returns {Object} - État actuel des hooks
+     */
+    getHooksInfo() {
+        const info = {
+            namespaces: {},
+            hooks: {}
+        };
+        
+        // Info par namespace
+        for (const [namespace, hookIds] of this.namespaceRegistry.entries()) {
+            info.namespaces[namespace] = {
+                count: hookIds.size,
+                hooks: Array.from(hookIds).map(id => {
+                    const hookInfo = this.hookRegistry.get(id);
+                    return `${hookInfo.name} (${id})`;
+                })
+            };
+        }
+        
+        // Info par type de hook
+        Object.keys(this.hooks).forEach(hookName => {
+            info.hooks[hookName] = {
+                count: this.hooks[hookName].length,
+                namespaces: Array.from(this.hookRegistry.values())
+                    .filter(info => info.name === hookName)
+                    .map(info => info.namespace)
+                    .filter((v, i, a) => a.indexOf(v) === i) // unique
+            };
+        });
+        
+        return info;
+    }
+
     refresh() {
         this.setupEditCells();
     }
@@ -362,18 +597,33 @@ export default class EditPlugin {
     destroy() {
         // Nettoyage des événements et des références
         if (this.table?.table) {
+            // Supprimer les gestionnaires d'événements globaux
+            this._eventHandlers.forEach((handler, eventName) => {
+                this.table.table.removeEventListener(eventName, handler);
+            });
+            this._eventHandlers.clear();
+            
+            // Supprimer les gestionnaires de double-clic des cellules
             const editCells = this.table.table.querySelectorAll('.' + this.config.cellClass);
             editCells.forEach(cell => {
-                if (cell.hasAttribute('data-edit-initialized')) {
-                    cell.removeEventListener('dblclick', (e) => this.startEditing(e));
+                const handler = this._cellHandlers.get(cell);
+                if (handler) {
+                    cell.removeEventListener('dblclick', handler);
                     cell.removeAttribute('data-edit-initialized');
                 }
             });
+            this._cellHandlers = new WeakMap();
         }
         
-        // Vider les hooks
-        Object.keys(this.hooks).forEach(key => {
-            this.hooks[key] = [];
+        // Vider tous les hooks
+        Object.keys(this.hooks).forEach(hookName => {
+            this.hooks[hookName] = [];
         });
+        
+        // Nettoyer les registres
+        this.hookRegistry.clear();
+        this.namespaceRegistry.clear();
+        
+        this.debug('Plugin détruit');
     }
 }
