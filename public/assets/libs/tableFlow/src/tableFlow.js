@@ -10,740 +10,566 @@ export default class TableFlow {
             onChoice: options.onChoice,
             cellWrapperClass: options.cellWrapperClass || 'cell-wrapper',
             headWrapperClass: options.headWrapperClass || 'head-wrapper',
+            logLevel: options.logLevel || 'info', // 'error', 'warn', 'info', 'debug'
             debug: options.debug || false,
-            verbosity: options.verbosity || 0,
-            notifications: {}
+            notifications: options.notifications || {}
         };
 
-        // Configurer le système de journalisation
+        // État initial
+        this.initialized = false;
+        this.plugins = new Map();
+        this.initialValues = new Map();
+        this.eventListeners = new Map();
+        
+        // Configurer le logger
+        this.setupLogger();
+        
+        // Validation des options requises
+        if (!this.options.tableId) {
+            throw new Error("L'option 'tableId' est requise");
+        }
+        
+        // Configuration des notifications
+        this.notifications = {
+            info: (msg) => console.info(`[TableFlow] ℹ️ ${msg}`),
+            warning: (msg) => console.warn(`[TableFlow] ⚠️ ${msg}`),
+            success: (msg) => console.log(`[TableFlow] ✅ ${msg}`),
+            error: (msg) => console.error(`[TableFlow] ❌ ${msg}`),
+            ...this.options.notifications
+        };
+    }
+
+    /**
+     * Configure le système de logging
+     */
+    setupLogger() {
+        const levels = {
+            error: 0,
+            warn: 1,
+            info: 2,
+            debug: 3
+        };
+
+        const currentLevel = levels[this.options.logLevel] || levels.info;
+
         this.logger = {
-            error: (message, data) => {
-                console.error(`[TableFlow] ❌ ERROR: ${message}`, data || '');
-                this.notify('error', message);
-            },
-            warn: (message, data) => {
-                console.warn(`[TableFlow] ⚠️ WARNING: ${message}`, data || '');
-                this.notify('warning', message);
-            },
-            info: (message, data) => {
-                if (this.options.debug || this.options.verbosity > 0) {
-                    console.info(`[TableFlow] ℹ️ INFO: ${message}`, data || '');
-                }
-                this.notify('info', message);
-            },
-            debug: (message, data) => {
-                if (this.options.debug || this.options.verbosity > 1) {
-                    console.log(`[TableFlow] 🔍 DEBUG: ${message}`, data || '');
+            error: (...args) => {
+                if (currentLevel >= levels.error) {
+                    console.error('[TableFlow]', ...args);
+                    this.notify('error', args[0]);
                 }
             },
-            success: (message, data) => {
-                if (this.options.debug || this.options.verbosity > 0) {
-                    console.log(`[TableFlow] ✅ SUCCESS: ${message}`, data || '');
+            warn: (...args) => {
+                if (currentLevel >= levels.warn) {
+                    console.warn('[TableFlow]', ...args);
+                    this.notify('warning', args[0]);
                 }
-                this.notify('success', message);
+            },
+            info: (...args) => {
+                if (currentLevel >= levels.info) {
+                    console.info('[TableFlow]', ...args);
+                    this.notify('info', args[0]);
+                }
+            },
+            debug: (...args) => {
+                if (currentLevel >= levels.debug) {
+                    console.log('[TableFlow]', ...args);
+                }
+            },
+            success: (...args) => {
+                if (currentLevel >= levels.info) {
+                    console.log('[TableFlow]', ...args);
+                    this.notify('success', args[0]);
+                }
             }
         };
+    }
+
+    /**
+     * Initialise TableFlow
+     * @returns {Promise<TableFlow>}
+     */
+    async init() {
+        if (this.initialized) {
+            this.logger.warn('TableFlow déjà initialisé');
+            return this;
+        }
 
         try {
-            // Vérifier que l'ID de la table est fourni
-            if (!this.options.tableId) {
-                throw new Error("L'option 'tableId' est requise");
-            }
-
-            // Récupérer la table
+            this.logger.info('Initialisation de TableFlow...');
+            
+            // Récupérer et valider la table
             this.table = document.getElementById(this.options.tableId);
             if (!this.table) {
-                throw new Error(`Table avec l'id "${this.options.tableId}" non trouvée dans le DOM`);
+                throw new Error(`Table avec l'id "${this.options.tableId}" non trouvée`);
             }
-
-            // Vérifier que l'élément est bien une table
+            
             if (this.table.tagName.toLowerCase() !== 'table') {
                 throw new Error(`L'élément avec l'id "${this.options.tableId}" n'est pas une table`);
             }
 
-            // Stocker les valeurs initiales des cellules
-            this.initialValues = new Map();
+            // Initialiser les composants
             this.storeInitialValues();
-
-            this.plugins = new Map();
-            this.notifications = options.notifications || {
-                info: message => this.logger.info(message),
-                warning: message => this.logger.warn(message),
-                success: message => this.logger.success(message),
-                error: message => this.logger.error(message)
-            };
-
-            // Initialisation asynchrone
-            this.initialize().catch(error => {
-                this.logger.error(`Échec de l'initialisation: ${error.message}`, error);
-                // Re-throw pour permettre à l'appelant de capturer l'erreur
-                throw error;
-            });
-
-            this.logger.info(`TableFlow initialisé pour la table #${this.options.tableId}`);
+            this.initializeWrappers();
+            await this.loadPlugins();
+            
+            this.initialized = true;
+            this.logger.success('TableFlow initialisé avec succès');
+            
+            return this;
         } catch (error) {
-            this.logger.error(`Échec de la création de TableFlow: ${error.message}`, error);
-            // Re-throw pour permettre à l'appelant de capturer l'erreur
+            this.logger.error('Échec de l\'initialisation:', error);
             throw error;
         }
     }
 
+    /**
+     * Stocke les valeurs initiales des cellules
+     */
     storeInitialValues() {
         try {
             const rows = this.table.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const rowValues = new Map();
                 Array.from(row.cells).forEach(cell => {
-                    const columnId = this.table.querySelector(`thead th:nth-child(${cell.cellIndex + 1})`).id;
+                    const columnId = this.getColumnId(cell);
                     const value = cell.textContent.trim();
-                    rowValues.set(columnId, value);
                     
-                    // Ajouter les attributs data-initial-value et data-value
+                    rowValues.set(columnId, value);
                     cell.setAttribute('data-initial-value', value);
                     cell.setAttribute('data-value', value);
                 });
-                this.initialValues.set(row.id, rowValues);
+                
+                if (row.id) {
+                    this.initialValues.set(row.id, rowValues);
+                }
             });
-            this.logger.debug('Valeurs initiales stockées avec succès');
+            
+            this.logger.debug('Valeurs initiales stockées');
         } catch (error) {
-            this.logger.error(`Échec du stockage des valeurs initiales: ${error.message}`, error);
+            this.logger.error('Erreur lors du stockage des valeurs initiales:', error);
             throw error;
         }
     }
 
-    async initialize() {
+    /**
+     * Récupère l'ID de colonne pour une cellule
+     */
+    getColumnId(cell) {
+        const columnIndex = cell.cellIndex;
+        const headerCell = this.table.querySelector(`thead th:nth-child(${columnIndex + 1})`);
+        return headerCell ? headerCell.id : `col${columnIndex}`;
+    }
+
+    /**
+     * Initialise les wrappers pour les cellules
+     */
+    initializeWrappers() {
         try {
-            this.logger.info('Démarrage de l\'initialisation...');
-            await this.loadPlugins();
-            this.initializeWrappers();
-            this.logger.success('Initialisation terminée avec succès');
+            // En-têtes
+            const headerCells = this.table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                if (!cell.querySelector(`.${this.options.headWrapperClass}`)) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = this.options.headWrapperClass;
+                    wrapper.innerHTML = cell.innerHTML;
+                    cell.innerHTML = '';
+                    cell.appendChild(wrapper);
+                }
+            });
+
+            // Cellules du corps
+            const bodyCells = this.table.querySelectorAll('tbody td');
+            bodyCells.forEach(cell => {
+                if (!cell.querySelector(`.${this.options.cellWrapperClass}`)) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = this.options.cellWrapperClass;
+                    wrapper.innerHTML = cell.innerHTML;
+                    cell.innerHTML = '';
+                    cell.appendChild(wrapper);
+                }
+            });
+            
+            this.logger.debug('Wrappers initialisés');
         } catch (error) {
-            this.logger.error(`Échec de l'initialisation: ${error.message}`, error);
+            this.logger.error('Erreur lors de l\'initialisation des wrappers:', error);
             throw error;
         }
     }
 
+    /**
+     * Charge les plugins
+     */
     async loadPlugins() {
-        if (!this.options.plugins) {
+        if (!this.options.plugins || 
+            (typeof this.options.plugins === 'object' && Object.keys(this.options.plugins).length === 0)) {
             this.logger.info('Aucun plugin à charger');
             return;
         }
 
         // Normaliser la configuration des plugins
-        let pluginsToLoad = [];
+        const pluginsToLoad = this.normalizePluginConfig();
         
-        if (this.options.plugins.names && Array.isArray(this.options.plugins.names)) {
-            // Nouvelle approche avec tableau de noms
-            pluginsToLoad = this.options.plugins.names.map(name => {
-                const lowerName = name.toLowerCase();
-                const pluginConfig = this.options.plugins[lowerName] || {};
-                return {
-                    name,
-                    config: {
-                        ...pluginConfig,
-                        debug: this.options.debug
-                    }
-                };
-            });
-            this.logger.debug(`${pluginsToLoad.length} plugins à charger via la configuration 'names'`, pluginsToLoad);
-        } else if (typeof this.options.plugins === 'object') {
-            // Ancienne approche avec objets de configuration
-            pluginsToLoad = Object.entries(this.options.plugins)
-                .filter(([name, value]) => name !== 'names' && value !== false)
-                .map(([name, config]) => ({
-                    name,
-                    config: {
-                        ...(typeof config === 'object' ? config : {}),
-                        debug: this.options.debug
-                    }
-                }));
-            this.logger.debug(`${pluginsToLoad.length} plugins à charger via la configuration objet`, pluginsToLoad);
-        }
-
         if (pluginsToLoad.length === 0) {
-            this.logger.warn('Aucun plugin à charger après normalisation. Vérifiez votre configuration de plugins.');
+            this.logger.warn('Aucun plugin valide trouvé');
             return;
         }
 
-        // Charger chaque plugin
-        const pluginErrors = [];
-        let loadedPluginsCount = 0;
+        this.logger.info(`Chargement de ${pluginsToLoad.length} plugin(s)...`);
+        
+        const results = await Promise.allSettled(
+            pluginsToLoad.map(plugin => this.loadPlugin(plugin.name, plugin.config))
+        );
 
-        for (const plugin of pluginsToLoad) {
-            try {
-                const pluginPath = `${this.options.pluginsPath}/${plugin.name.toLowerCase()}.js`;
-                
-                this.logger.debug(`Chargement du plugin: ${plugin.name} depuis ${pluginPath}`);
-
-                // Charger le plugin
-                try {
-                    const pluginModule = await import(pluginPath);
-                    
-                    if (!pluginModule.default) {
-                        throw new Error(`Le plugin ${plugin.name} n'exporte pas de classe par défaut`);
-                    }
-
-                    // Instancier le plugin avec sa configuration
-                    const pluginInstance = new pluginModule.default({
-                        ...plugin.config,
-                        tableHandler: this
-                    });
-
-                    // Vérifier l'interface du plugin
-                    if (typeof pluginInstance.init !== 'function') {
-                        throw new Error(`Le plugin ${plugin.name} ne possède pas de méthode init()`);
-                    }
-
-                    // Initialiser le plugin
-                    this.logger.debug(`Initialisation du plugin ${plugin.name}...`);
-                    await Promise.resolve(pluginInstance.init(this));
-
-                    // Stocker l'instance du plugin
-                    this.plugins.set(plugin.name.toLowerCase(), {
-                        instance: pluginInstance,
-                        config: plugin.config
-                    });
-
-                    loadedPluginsCount++;
-                    this.logger.success(`Plugin ${plugin.name} chargé et initialisé avec succès`);
-
-                } catch (importError) {
-                    // Capture les erreurs spécifiques d'importation de module
-                    if (importError.message.includes("Failed to fetch") || 
-                        importError.message.includes("Cannot find module") ||
-                        importError.message.includes("Unexpected token")) {
-                        throw new Error(`Impossible de charger le plugin ${plugin.name} depuis ${pluginPath}. Vérifiez que le fichier existe et est accessible. Erreur: ${importError.message}`);
-                    } else {
-                        throw importError; // Re-throw pour capture par le bloc catch externe
-                    }
-                }
-
-            } catch (error) {
-                // Capture les erreurs d'initialisation de plugin
-                const errorMessage = `Échec du chargement du plugin ${plugin.name}: ${error.message}`;
-                this.logger.error(errorMessage, error);
-                pluginErrors.push({ plugin: plugin.name, error: errorMessage });
-                
-                // Stocker l'erreur pour référence
-                this.plugins.set(plugin.name.toLowerCase(), { error });
-            }
-        }
-
-        // Résumé du chargement des plugins
-        if (loadedPluginsCount === 0 && pluginsToLoad.length > 0) {
-            const errorDetail = pluginErrors.map(e => `- ${e.plugin}: ${e.error}`).join('\n');
-            const errorMessage = `Échec du chargement de tous les plugins (${pluginsToLoad.length} tentatives). Vérifiez les chemins et la configuration.\n${errorDetail}`;
-            this.logger.error(errorMessage);
-            throw new Error(errorMessage);
-        } else if (pluginErrors.length > 0) {
-            const errorDetail = pluginErrors.map(e => `- ${e.plugin}: ${e.error}`).join('\n');
-            this.logger.warn(`${loadedPluginsCount}/${pluginsToLoad.length} plugins chargés avec succès. ${pluginErrors.length} erreurs:\n${errorDetail}`);
+        // Analyser les résultats
+        const succeeded = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        
+        if (failed > 0) {
+            this.logger.warn(`${succeeded}/${pluginsToLoad.length} plugins chargés avec succès`);
+            results
+                .filter(r => r.status === 'rejected')
+                .forEach((r, i) => {
+                    this.logger.error(`Échec du chargement du plugin ${pluginsToLoad[i].name}:`, r.reason);
+                });
         } else {
-            this.logger.success(`Tous les plugins (${loadedPluginsCount}) ont été chargés avec succès`);
+            this.logger.success(`Tous les plugins chargés avec succès`);
         }
     }
 
-    loadScript(src) {
-        return new Promise((resolve, reject) => {
-            if (document.querySelector(`script[src="${src}"]`)) {
-                this.logger.debug(`Script ${src} déjà chargé, saut du chargement`);
-                resolve();
-                return;
-            }
-
-            this.logger.debug(`Chargement du script externe: ${src}`);
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                this.logger.debug(`Script ${src} chargé avec succès`);
-                resolve();
-            };
-            script.onerror = () => {
-                const error = new Error(`Échec du chargement du script ${src}`);
-                this.logger.error(`Échec du chargement du script: ${src}`, error);
-                reject(error);
-            };
-            document.head.appendChild(script);
-        });
+    /**
+     * Normalise la configuration des plugins
+     */
+    normalizePluginConfig() {
+        let plugins = [];
+        
+        if (Array.isArray(this.options.plugins)) {
+            // Format: ['plugin1', 'plugin2']
+            plugins = this.options.plugins.map(name => ({
+                name,
+                config: {}
+            }));
+        } else if (this.options.plugins.names && Array.isArray(this.options.plugins.names)) {
+            // Format: { names: ['plugin1', 'plugin2'], plugin1: {...} }
+            plugins = this.options.plugins.names.map(name => ({
+                name,
+                config: this.options.plugins[name.toLowerCase()] || {}
+            }));
+        } else if (typeof this.options.plugins === 'object') {
+            // Format: { plugin1: {...}, plugin2: {...} }
+            plugins = Object.entries(this.options.plugins)
+                .filter(([name, value]) => name !== 'names' && value !== false)
+                .map(([name, config]) => ({
+                    name,
+                    config: typeof config === 'object' ? config : {}
+                }));
+        }
+        
+        return plugins;
     }
 
-    initializeWrappers() {
+    /**
+     * Charge un plugin individuel
+     */
+    async loadPlugin(name, config = {}) {
         try {
-            // Initialize header wrappers
-            const headerCells = this.table.querySelectorAll('thead th');
-            headerCells.forEach(cell => {
-                if (!cell.querySelector('.' + this.options.headWrapperClass)) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = this.options.headWrapperClass;
-                    while (cell.firstChild) {
-                        wrapper.appendChild(cell.firstChild);
-                    }
-                    cell.appendChild(wrapper);
-                }
-            });
-
-            // Initialize cell wrappers
-            const bodyCells = this.table.querySelectorAll('tbody td');
-            bodyCells.forEach(cell => {
-                if (!cell.querySelector('.' + this.options.cellWrapperClass)) {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = this.options.cellWrapperClass;
-                    while (cell.firstChild) {
-                        wrapper.appendChild(cell.firstChild);
-                    }
-                    cell.appendChild(wrapper);
-                }
+            const pluginPath = `${this.options.pluginsPath}/${name.toLowerCase()}.js`;
+            this.logger.debug(`Chargement du plugin ${name} depuis ${pluginPath}`);
+            
+            const module = await import(pluginPath);
+            
+            if (!module.default) {
+                throw new Error(`Le plugin ${name} n'exporte pas de classe par défaut`);
+            }
+            
+            const Plugin = module.default;
+            const instance = new Plugin({
+                ...config,
+                debug: this.options.debug
             });
             
-            this.logger.debug('Wrappers initialisés pour les cellules de la table');
+            if (typeof instance.init !== 'function') {
+                throw new Error(`Le plugin ${name} n'a pas de méthode init()`);
+            }
+            
+            await instance.init(this);
+            
+            this.plugins.set(name.toLowerCase(), {
+                instance,
+                config,
+                name
+            });
+            
+            this.logger.debug(`Plugin ${name} chargé avec succès`);
+            return instance;
         } catch (error) {
-            this.logger.error(`Échec de l'initialisation des wrappers: ${error.message}`, error);
+            this.logger.error(`Erreur lors du chargement du plugin ${name}:`, error);
             throw error;
         }
     }
 
+    /**
+     * Vérifie si un plugin est chargé
+     */
     hasPlugin(name) {
-        if (!name) {
-            this.logger.warn('hasPlugin appelé sans nom de plugin');
-            return false;
-        }
-        const hasPlugin = this.plugins.has(name.toLowerCase());
-        this.logger.debug(`Vérification de la présence du plugin ${name}: ${hasPlugin}`);
-        return hasPlugin;
+        return this.plugins.has(name.toLowerCase());
     }
 
+    /**
+     * Récupère une instance de plugin
+     */
     getPlugin(name) {
-        if (!name) {
-            this.logger.warn('getPlugin appelé sans nom de plugin');
-            return null;
-        }
-        
         const plugin = this.plugins.get(name.toLowerCase());
-        if (!plugin) {
-            this.logger.warn(`Plugin ${name} non trouvé`);
-            return null;
+        return plugin ? plugin.instance : null;
+    }
+
+    /**
+     * Ajoute un écouteur d'événement managé
+     */
+    on(eventName, handler, element = this.table) {
+        if (!this.eventListeners.has(eventName)) {
+            this.eventListeners.set(eventName, []);
         }
         
-        if (plugin.error) {
-            this.logger.warn(`Le plugin ${name} a échoué lors de son chargement: ${plugin.error.message}`);
-            return null;
-        }
-        
-        return plugin.instance;
+        this.eventListeners.get(eventName).push({ element, handler });
+        element.addEventListener(eventName, handler);
     }
 
-    refreshPlugins() {
-        try {
-            // Rafraîchit les plugins dans l'ordre de leurs dépendances
-            const refreshed = new Set();
-            const failedPlugins = [];
-            
-            const refreshPlugin = (pluginName) => {
-                if (refreshed.has(pluginName)) return true;
-                
-                const pluginInfo = this.plugins.get(pluginName.toLowerCase());
-                if (!pluginInfo?.instance) {
-                    this.logger.debug(`Skip refresh for non-existent plugin: ${pluginName}`);
-                    return false;
-                }
-
-                // Vérifie les dépendances d'abord
-                let allDependenciesOk = true;
-                if (pluginInfo.instance.dependencies) {
-                    for (const dep of pluginInfo.instance.dependencies) {
-                        const depRefreshed = refreshPlugin(dep);
-                        if (!depRefreshed) {
-                            this.logger.warn(`Dépendance ${dep} du plugin ${pluginName} non rafraîchie, saut du plugin`);
-                            allDependenciesOk = false;
-                        }
-                    }
-                }
-                
-                if (!allDependenciesOk) {
-                    failedPlugins.push(pluginName);
-                    return false;
-                }
-
-                // Rafraîchit le plugin
-                if (typeof pluginInfo.instance.refresh === 'function') {
-                    try {
-                        pluginInfo.instance.refresh();
-                        this.logger.debug(`Plugin ${pluginName} rafraîchi avec succès`);
-                        refreshed.add(pluginName);
-                        return true;
-                    } catch (error) {
-                        this.logger.error(`Erreur lors du rafraîchissement du plugin ${pluginName}: ${error.message}`, error);
-                        failedPlugins.push(pluginName);
-                        return false;
-                    }
-                } else {
-                    this.logger.debug(`Plugin ${pluginName} n'a pas de méthode refresh(), considéré comme rafraîchi`);
-                    refreshed.add(pluginName);
-                    return true;
-                }
-            };
-
-            // Rafraîchit tous les plugins
-            this.plugins.forEach((_, name) => refreshPlugin(name));
-
-            if (failedPlugins.length > 0) {
-                this.logger.warn(`${refreshed.size} plugins rafraîchis, ${failedPlugins.length} échecs: ${failedPlugins.join(', ')}`);
-            } else {
-                this.logger.debug(`Tous les plugins (${refreshed.size}) ont été rafraîchis avec succès`);
-            }
-        } catch (error) {
-            this.logger.error(`Erreur lors du rafraîchissement des plugins: ${error.message}`, error);
-        }
-    }
-
-    getVisibleRows() {
-        return Array.from(this.table.querySelectorAll('tbody tr')).filter(
-            row => !row.classList.contains('filtered') && row.style.display !== 'none'
-        );
-    }
-
-    getAllRows() {
-        return Array.from(this.table.querySelectorAll('tbody tr'));
-    }
-
-    getHeaderCell(columnIndex) {
-        this.logger.debug('Récupération de la cellule d\'en-tête pour la colonne', columnIndex);
-        const headerRow = this.table.querySelector('thead tr');
-        if (!headerRow) {
-            this.logger.warn('Aucune ligne d\'en-tête trouvée');
-            return null;
-        }
-        const headerCell = headerRow.children[columnIndex];
-        this.logger.debug('Cellule d\'en-tête trouvée:', headerCell);
-        return headerCell;
-    }
-
-    isEditable() {
-        this.logger.debug('Vérification si la table est éditable');
-        // Par défaut, la table est éditable sauf si explicitement marquée comme readonly
-        const isReadonly = this.table.hasAttribute('th-readonly');
-        this.logger.debug('Table en lecture seule?', isReadonly);
-        return !isReadonly;
-    }
-
-    isRowModified(row) {
-        if (!row) return false;
-
-        const initialValues = this.initialValues.get(row.id);
-        if (!initialValues) return false;
-
-        // Vérifier d'abord si un plugin a marqué la ligne comme modifiée
-        if (row.hasAttribute('data-modified')) {
-            return true;
-        }
-
-        // Vérifier si une cellule est marquée comme modifiée
-        if (Array.from(row.cells).some(cell => cell.hasAttribute('data-modified'))) {
-            return true;
-        }
-
-        // Sinon, vérifier les modifications de texte
-        return Array.from(row.cells).some(cell => {
-            const columnId = this.table.querySelector(`thead th:nth-child(${cell.cellIndex + 1})`).id;
-            const initialValue = initialValues.get(columnId);
-            if (!initialValue) return false;
-
-            return initialValue !== cell.textContent.trim();
+    /**
+     * Déclenche un événement personnalisé
+     */
+    emit(eventName, detail = {}) {
+        const event = new CustomEvent(eventName, {
+            detail,
+            bubbles: true,
+            cancelable: true
         });
+        
+        this.table.dispatchEvent(event);
     }
 
-    markRowAsModified(row) {
-        if (!row) return;
+    /**
+     * Rafraîchit tous les plugins
+     */
+    refreshPlugins() {
+        const refreshed = [];
+        const failed = [];
         
-        if (this.isRowModified(row)) {
-            row.classList.add('modified');
+        for (const [name, plugin] of this.plugins) {
+            try {
+                if (plugin.instance && typeof plugin.instance.refresh === 'function') {
+                    plugin.instance.refresh();
+                    refreshed.push(name);
+                }
+            } catch (error) {
+                this.logger.error(`Erreur lors du rafraîchissement du plugin ${name}:`, error);
+                failed.push(name);
+            }
+        }
+        
+        if (failed.length > 0) {
+            this.logger.warn(`${refreshed.length} plugins rafraîchis, ${failed.length} échecs`);
         } else {
-            row.classList.remove('modified');
+            this.logger.debug(`${refreshed.length} plugins rafraîchis avec succès`);
         }
     }
 
-    updateCellValue(row, columnId, value) {
+    /**
+     * Ajoute une nouvelle ligne
+     */
+    addRow(data = {}, position = 'end') {
+        if (!this.initialized) {
+            throw new Error('TableFlow doit être initialisé avant d\'ajouter des lignes');
+        }
+        
+        const tbody = this.table.querySelector('tbody');
+        if (!tbody) {
+            throw new Error('Aucun tbody trouvé');
+        }
+        
+        const row = document.createElement('tr');
+        const rowId = `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        row.id = rowId;
+        
+        // Créer les cellules
+        const headers = this.table.querySelectorAll('thead th');
+        headers.forEach((header, index) => {
+            const cell = document.createElement('td');
+            const columnId = header.id || `col${index}`;
+            cell.id = `${columnId}_${rowId}`;
+            
+            // Créer le wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = this.options.cellWrapperClass;
+            
+            // Déterminer la valeur
+            let value = '';
+            if (Array.isArray(data)) {
+                value = data[index] || '';
+            } else if (data[columnId] !== undefined) {
+                value = data[columnId];
+            } else {
+                value = header.getAttribute('th-text-default') || '';
+            }
+            
+            wrapper.textContent = value;
+            cell.appendChild(wrapper);
+            cell.setAttribute('data-value', value);
+            cell.setAttribute('data-initial-value', value);
+            
+            row.appendChild(cell);
+        });
+        
+        // Insérer la ligne
+        if (position === 'start') {
+            tbody.insertBefore(row, tbody.firstChild);
+        } else {
+            tbody.appendChild(row);
+        }
+        
+        // Mettre à jour les valeurs initiales
+        this.storeInitialValues();
+        
+        // Émettre l'événement
+        this.emit('row:added', { row, data, position });
+        
+        // Rafraîchir les plugins
+        this.refreshPlugins();
+        
+        return row;
+    }
+
+    /**
+     * Supprime une ligne
+     */
+    removeRow(row) {
+        if (!row || !row.parentNode) {
+            throw new Error('Ligne invalide ou déjà supprimée');
+        }
+        
+        const rowId = row.id;
+        const data = this.getRowData(row);
+        
+        // Émettre l'événement avant suppression
+        this.emit('row:removing', { row, rowId, data });
+        
+        // Supprimer la ligne
+        row.parentNode.removeChild(row);
+        
+        // Nettoyer les données initiales
+        if (rowId) {
+            this.initialValues.delete(rowId);
+        }
+        
+        // Émettre l'événement après suppression
+        this.emit('row:removed', { rowId, data });
+        
+        // Rafraîchir les plugins
+        this.refreshPlugins();
+        
+        return true;
+    }
+
+    /**
+     * Récupère les données d'une ligne
+     */
+    getRowData(row) {
+        if (!row) return null;
+        
+        const data = {};
+        if (row.id) data.id = row.id;
+        
+        const headers = this.table.querySelectorAll('thead th');
+        Array.from(row.cells).forEach((cell, index) => {
+            const header = headers[index];
+            if (!header) return;
+            
+            const columnId = header.id || `col${index}`;
+            let value = cell.getAttribute('data-value');
+            
+            if (value === null) {
+                const wrapper = cell.querySelector(`.${this.options.cellWrapperClass}`);
+                value = wrapper ? wrapper.textContent : cell.textContent;
+            }
+            
+            data[columnId] = value;
+        });
+        
+        return data;
+    }
+
+    /**
+     * Met à jour une cellule
+     */
+    updateCell(row, columnId, value) {
         const cell = row.querySelector(`td[id^="${columnId}_"]`);
         if (!cell) {
-            this.logger.warn(`Cellule pour la colonne ${columnId} non trouvée dans la ligne ${row.id}`);
-            return;
+            throw new Error(`Cellule non trouvée pour la colonne ${columnId}`);
         }
-
+        
+        const oldValue = cell.getAttribute('data-value');
+        cell.setAttribute('data-value', value);
+        
         const wrapper = cell.querySelector(`.${this.options.cellWrapperClass}`);
         if (wrapper) {
             wrapper.textContent = value;
         } else {
             cell.textContent = value;
         }
-
-        // Mettre à jour l'attribut data-value
-        cell.setAttribute('data-value', value);
-
-        this.markRowAsModified(row);
-        this.logger.debug(`Valeur de la cellule mise à jour: ${columnId} = ${value}`);
-    }
-
-    markRowAsSaved(row, options = {}) {
-        if (!row) {
-            this.logger.warn('markRowAsSaved appelé sans ligne');
-            return;
-        }
         
-        try {
-            // Mettre à jour la carte des valeurs initiales
-            const rowValues = new Map();
-            Array.from(row.cells).forEach(cell => {
-                const columnId = this.table.querySelector(`thead th:nth-child(${cell.cellIndex + 1})`).id;
-                rowValues.set(columnId, cell.textContent.trim());
-            });
-            this.initialValues.set(row.id, rowValues);
-
-            // Notifier tous les plugins avec l'objet d'options
-            this.plugins.forEach((pluginInfo, pluginName) => {
-                if (pluginInfo.instance && typeof pluginInfo.instance.markRowAsSaved === 'function') {
-                    try {
-                        // Chaque plugin peut vérifier si options contient des informations qui le concernent
-                        pluginInfo.instance.markRowAsSaved(row, options);
-                    } catch (error) {
-                        this.logger.warn(`Erreur lors de l'appel à markRowAsSaved sur le plugin ${pluginName}: ${error.message}`);
-                    }
-                }
-            });
-            
-            // Nettoyer la ligne
-            row.removeAttribute('data-modified');
-            row.classList.remove('modified');
-            
-            // Émettre l'événement row:saved avec toutes les options
-            this.table.dispatchEvent(new CustomEvent('row:saved', {
-                detail: { 
-                    row,
-                    options,
-                    rowId: row.id,
-                    cells: Array.from(row.cells)
-                        .map(cell => ({
-                            id: cell.id,
-                            value: cell.getAttribute('data-value'),
-                            initialValue: cell.getAttribute('data-initial-value')
-                        }))
-                },
-                bubbles: true
-            }));
-            
-            this.logger.debug(`Ligne ${row.id} marquée comme sauvegardée`);
-        } catch (error) {
-            this.logger.error(`Erreur lors du marquage de la ligne comme sauvegardée: ${error.message}`, error);
-        }
-    }
-
-    addRow(data = {}, position = 'end') {
-        try {
-            const tbody = this.table.querySelector('tbody');
-            if (!tbody) {
-                this.logger.error('Élément tbody non trouvé, impossible d\'ajouter une ligne');
-                return null;
-            }
-
-            const row = document.createElement('tr');
-            const headers = this.table.querySelectorAll('thead th');
-            const newId = `row-${Date.now()}`; // ID unique pour la nouvelle ligne
-            row.id = newId;
-
-            // Créer les cellules en fonction des en-têtes
-            headers.forEach((header, index) => {
-                const cell = document.createElement('td');
-                const columnId = header.id;
-                
-                // Configuration de l'ID de la cellule basé sur columnId et rowId
-                cell.id = `${columnId}_${newId}`;
-                
-                // Créer le wrapper pour le contenu
-                const wrapper = document.createElement('div');
-                wrapper.className = this.options.cellWrapperClass;
-
-                // Déterminer la valeur à afficher
-                let displayValue = '';
-                
-                // Cas 1: La donnée est un tableau indexé par position
-                if (Array.isArray(data) && data[index] !== undefined) {
-                    displayValue = data[index];
-                }
-                // Cas 2: La donnée est un objet avec des clés columnId
-                else if (!Array.isArray(data) && columnId && data[columnId] !== undefined) {
-                    displayValue = data[columnId];
-                }
-                // Cas 3: Valeur par défaut définie dans l'en-tête
-                else {
-                    displayValue = header.getAttribute('th-text-default') || '';
-                }
-
-                wrapper.textContent = displayValue;
-                cell.appendChild(wrapper);
-                
-                // Définir les attributs data-value et data-initial-value
-                cell.setAttribute('data-value', displayValue);
-                cell.setAttribute('data-initial-value', displayValue);
-                
-                row.appendChild(cell);
-            });
-
-            // Ajouter la ligne à la position spécifiée
-            if (position === 'start') {
-                tbody.insertBefore(row, tbody.firstChild);
-            } else {
-                tbody.appendChild(row);
-            }
-
-            // Stocker les valeurs initiales
-            this.storeInitialValues();
-
-            // Déclencher l'événement pour les plugins
-            this.table.dispatchEvent(new CustomEvent('row:added', {
-                detail: { 
-                    row,
-                    position,
-                    data: this.getRowData(row)
-                },
-                bubbles: true
-            }));
-
-            // Rafraîchir tous les plugins
-            this.refreshPlugins();
-            
-            this.logger.debug(`Nouvelle ligne ajoutée avec l'ID ${newId} à la position ${position}`);
-            return row;
-        } catch (error) {
-            this.logger.error(`Erreur lors de l'ajout d'une ligne: ${error.message}`, error);
-            return null;
-        }
-    }
-
-    removeRow(row) {
-        if (!row || !row.parentNode) {
-            this.logger.warn('removeRow appelé avec une ligne invalide ou déjà supprimée');
-            return false;
-        }
-
-        try {
-            const rowId = row.id;
-
-            // Déclencher l'événement avant la suppression
-            this.table.dispatchEvent(new CustomEvent('row:removing', {
-                detail: { 
-                    row,
-                    rowId: rowId,
-                    data: this.getRowData(row)
-                },
-                bubbles: true
-            }));
-
-            // Supprimer la ligne
-            row.parentNode.removeChild(row);
-
-            // Supprimer des initialValues si elle existe
-            if (rowId && this.initialValues.has(rowId)) {
-                this.initialValues.delete(rowId);
-            }
-
-            // Déclencher l'événement après la suppression
-            this.table.dispatchEvent(new CustomEvent('row:removed', {
-                detail: { 
-                    rowId: rowId
-                },
-                bubbles: true
-            }));
-
-            // Rafraîchir tous les plugins
-            this.refreshPlugins();
-
-            this.logger.debug(`Ligne avec l'ID ${rowId} supprimée avec succès`);
-            return true;
-        } catch (error) {
-            this.logger.error(`Erreur lors de la suppression de la ligne: ${error.message}`, error);
-            return false;
-        }
-    }
-
-    getRowData(row) {
-        if (!row) return {};
+        // Émettre l'événement
+        this.emit('cell:changed', {
+            cell,
+            columnId,
+            oldValue,
+            newValue: value,
+            row
+        });
         
-        try {
-            const data = {};
-            const headers = Array.from(this.table.querySelectorAll('thead th'));
-            
-            // Ajouter l'ID de ligne s'il existe
-            if (row.id) {
-                data.id = row.id;
-            }
-            
-            // Récupérer les données de chaque cellule
-            Array.from(row.cells).forEach((cell, index) => {
-                const header = headers[index];
-                if (!header?.id) return;
-                
-                let value;
-                
-                // Préférer data-value s'il existe
-                if (cell.hasAttribute('data-value')) {
-                    value = cell.getAttribute('data-value');
-                } else {
-                    // Sinon utiliser le contenu de la cellule
-                    const wrapper = cell.querySelector(`.${this.options.cellWrapperClass}`);
-                    value = wrapper ? wrapper.textContent.trim() : cell.textContent.trim();
-                }
-                
-                // Conversion de type
-                if (!isNaN(value) && value !== '') {
-                    data[header.id] = Number(value);
-                } else if (value === 'true' || value === 'false') {
-                    data[header.id] = value === 'true';
-                } else {
-                    data[header.id] = value;
-                }
-            });
-            
-            return data;
-        } catch (error) {
-            this.logger.error(`Erreur lors de la récupération des données de ligne: ${error.message}`, error);
-            return { error: error.message };
-        }
+        return true;
     }
 
+    /**
+     * Détruit l'instance TableFlow
+     */
     destroy() {
         try {
-            this.logger.info('Destruction de l\'instance TableFlow...');
-            
-            // Détruire tous les plugins
-            const pluginNames = Array.from(this.plugins.keys());
-            for (const name of pluginNames) {
-                const plugin = this.plugins.get(name);
+            // Détruire les plugins
+            for (const [name, plugin] of this.plugins) {
                 if (plugin.instance && typeof plugin.instance.destroy === 'function') {
                     try {
                         plugin.instance.destroy();
-                        this.logger.debug(`Plugin ${name} détruit avec succès`);
                     } catch (error) {
-                        this.logger.error(`Erreur lors de la destruction du plugin ${name}: ${error.message}`, error);
+                        this.logger.error(`Erreur lors de la destruction du plugin ${name}:`, error);
                     }
                 }
             }
+            
+            // Nettoyer les écouteurs d'événements
+            for (const [eventName, listeners] of this.eventListeners) {
+                listeners.forEach(({ element, handler }) => {
+                    element.removeEventListener(eventName, handler);
+                });
+            }
+            
+            // Nettoyer les données
             this.plugins.clear();
-
-            // Supprimer les événements et références
+            this.eventListeners.clear();
             this.initialValues.clear();
             
-            this.logger.success('Instance TableFlow détruite avec succès');
+            this.initialized = false;
+            this.logger.info('TableFlow détruit avec succès');
         } catch (error) {
-            this.logger.error(`Erreur lors de la destruction de TableFlow: ${error.message}`, error);
+            this.logger.error('Erreur lors de la destruction:', error);
         }
     }
 
+    /**
+     * Notifie l'utilisateur
+     */
     notify(type, message) {
-        try {
-            if (this.notifications && typeof this.notifications[type] === 'function') {
-                this.notifications[type](message);
-            }
-        } catch (error) {
-            console.error(`[TableFlow] Erreur lors de la notification (${type}): ${error.message}`);
+        if (this.notifications && typeof this.notifications[type] === 'function') {
+            this.notifications[type](message);
         }
     }
 }

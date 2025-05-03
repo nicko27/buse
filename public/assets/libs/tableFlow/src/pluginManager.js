@@ -3,8 +3,9 @@ export class PluginManager {
     constructor(tableInstance) {
         this.table = tableInstance;
         this.plugins = new Map();
-        this.registry = null; // Référence optionnelle au pluginRegistry
-        this.dependencies = new Map(); // Pour gérer les dépendances entre plugins
+        this.loadingPlugins = new Map();
+        this.dependencies = new Map();
+        this.registry = null;
         
         // Logger
         this.logger = this.table.logger || {
@@ -16,171 +17,7 @@ export class PluginManager {
     }
 
     /**
-     * Charge un plugin de manière compatible avec l'ancienne API
-     */
-    async loadPlugin(name, config = {}) {
-        try {
-            this.logger.debug(`Chargement du plugin: ${name}`);
-            
-            // Vérifier si le plugin existe déjà
-            if (this.plugins.has(name.toLowerCase())) {
-                this.logger.warn(`Plugin ${name} déjà chargé`);
-                return this.plugins.get(name.toLowerCase()).instance;
-            }
-
-            // Essayer d'abord le pluginRegistry s'il existe
-            if (this.registry && this.registry.has(name)) {
-                this.logger.debug(`Chargement du plugin ${name} depuis le registre`);
-                const plugin = this.registry.get(name);
-                return this.initializePlugin(name, plugin, config);
-            }
-
-            // Sinon, utiliser l'approche actuelle de TableFlow
-            const pluginPath = `${this.table.options.pluginsPath}/${name.toLowerCase()}.js`;
-            this.logger.debug(`Chargement du plugin ${name} depuis ${pluginPath}`);
-            
-            const pluginModule = await import(pluginPath);
-            
-            if (!pluginModule.default) {
-                throw new Error(`Le plugin ${name} n'exporte pas de classe par défaut`);
-            }
-
-            // Instancier le plugin
-            const pluginInstance = new pluginModule.default({
-                ...config,
-                tableHandler: this.table,
-                debug: config.debug || this.table.options.debug
-            });
-
-            return this.initializePlugin(name, pluginInstance, config);
-
-        } catch (error) {
-            this.logger.error(`Erreur lors du chargement du plugin ${name}:`, error);
-            // Stocker l'erreur pour référence
-            this.plugins.set(name.toLowerCase(), { error });
-            throw error;
-        }
-    }
-
-    /**
-     * Initialise un plugin et gère ses dépendances
-     */
-    async initializePlugin(name, pluginInstance, config) {
-        const normalizedName = name.toLowerCase();
-        
-        // Vérifier les dépendances
-        if (pluginInstance.dependencies && Array.isArray(pluginInstance.dependencies)) {
-            this.logger.debug(`Vérification des dépendances pour ${name}: ${pluginInstance.dependencies.join(', ')}`);
-            
-            for (const dep of pluginInstance.dependencies) {
-                if (!this.plugins.has(dep.toLowerCase())) {
-                    throw new Error(`Dépendance manquante: ${dep} requis par ${name}`);
-                }
-                
-                // Enregistrer la dépendance
-                if (!this.dependencies.has(dep.toLowerCase())) {
-                    this.dependencies.set(dep.toLowerCase(), new Set());
-                }
-                this.dependencies.get(dep.toLowerCase()).add(normalizedName);
-            }
-        }
-
-        // Initialiser le plugin
-        this.logger.debug(`Initialisation du plugin ${name}`);
-        await Promise.resolve(pluginInstance.init(this.table));
-        
-        // Stocker l'instance
-        this.plugins.set(normalizedName, {
-            instance: pluginInstance,
-            config: config,
-            name: name
-        });
-
-        this.logger.info(`Plugin ${name} initialisé avec succès`);
-        return pluginInstance;
-    }
-
-    /**
-     * Active un plugin (alias pour loadPlugin pour la compatibilité future)
-     */
-    async activate(name, config = {}) {
-        return this.loadPlugin(name, config);
-    }
-
-    /**
-     * Désactive un plugin et ses dépendants
-     */
-    async deactivate(name) {
-        const normalizedName = name.toLowerCase();
-        const pluginInfo = this.plugins.get(normalizedName);
-        
-        if (!pluginInfo) {
-            this.logger.warn(`Plugin ${name} non trouvé pour désactivation`);
-            return;
-        }
-
-        // Vérifier s'il y a des plugins dépendants
-        if (this.dependencies.has(normalizedName)) {
-            const dependents = Array.from(this.dependencies.get(normalizedName));
-            if (dependents.length > 0) {
-                this.logger.warn(`Le plugin ${name} a des dépendants: ${dependents.join(', ')}`);
-                
-                // Désactiver d'abord les dépendants
-                for (const dependent of dependents) {
-                    await this.deactivate(dependent);
-                }
-            }
-        }
-
-        // Appeler destroy si disponible
-        if (pluginInfo.instance && typeof pluginInfo.instance.destroy === 'function') {
-            this.logger.debug(`Appel de destroy pour le plugin ${name}`);
-            await Promise.resolve(pluginInfo.instance.destroy());
-        }
-
-        // Supprimer des maps
-        this.plugins.delete(normalizedName);
-        
-        // Nettoyer les références de dépendances
-        for (const [dep, dependents] of this.dependencies.entries()) {
-            dependents.delete(normalizedName);
-            if (dependents.size === 0) {
-                this.dependencies.delete(dep);
-            }
-        }
-
-        this.logger.info(`Plugin ${name} désactivé avec succès`);
-    }
-
-    /**
-     * Récupère un plugin actif
-     */
-    getPlugin(name) {
-        const pluginInfo = this.plugins.get(name.toLowerCase());
-        if (!pluginInfo) {
-            this.logger.debug(`Plugin ${name} non trouvé`);
-            return null;
-        }
-        
-        if (pluginInfo.error) {
-            this.logger.warn(`Le plugin ${name} a échoué lors de son chargement: ${pluginInfo.error.message}`);
-            return null;
-        }
-        
-        return pluginInfo.instance;
-    }
-
-    /**
-     * Vérifie si un plugin est actif
-     */
-    hasPlugin(name) {
-        if (!name) return false;
-        const has = this.plugins.has(name.toLowerCase());
-        return has && !this.plugins.get(name.toLowerCase()).error;
-    }
-
-    /**
-     * Configure le registre de plugins (pour la migration vers le système avancé)
+     * Configure le registre de plugins
      */
     setRegistry(registry) {
         this.registry = registry;
@@ -188,41 +25,345 @@ export class PluginManager {
     }
 
     /**
-     * Migre les plugins existants vers le registre
+     * Charge un plugin
+     * @param {string} name - Nom du plugin
+     * @param {Object} config - Configuration du plugin
+     * @returns {Promise<Object>} Instance du plugin
      */
-    async migrateToRegistry() {
-        if (!this.registry) {
-            this.logger.warn('Pas de registre configuré pour la migration');
-            return;
+    async loadPlugin(name, config = {}) {
+        if (!name) {
+            throw new Error('Le nom du plugin est requis');
         }
 
-        let migrated = 0;
-        for (const [name, pluginInfo] of this.plugins.entries()) {
-            if (!pluginInfo.error && pluginInfo.instance && !this.registry.has(name)) {
-                try {
-                    this.registry.register(name, pluginInfo.instance);
-                    migrated++;
-                    this.logger.debug(`Plugin ${name} migré vers le registre`);
-                } catch (error) {
-                    this.logger.error(`Erreur lors de la migration du plugin ${name}:`, error);
-                }
-            }
+        const normalizedName = name.toLowerCase();
+
+        // Vérifier si le plugin est déjà chargé
+        if (this.plugins.has(normalizedName)) {
+            this.logger.warn(`Plugin ${name} déjà chargé`);
+            return this.plugins.get(normalizedName).instance;
         }
-        
-        this.logger.info(`${migrated} plugins migrés vers le registre`);
+
+        // Vérifier si le plugin est en cours de chargement
+        if (this.loadingPlugins.has(normalizedName)) {
+            this.logger.debug(`Plugin ${name} déjà en cours de chargement`);
+            return this.loadingPlugins.get(normalizedName);
+        }
+
+        // Créer une promesse de chargement
+        const loadPromise = this._loadPluginAsync(name, config);
+        this.loadingPlugins.set(normalizedName, loadPromise);
+
+        try {
+            const plugin = await loadPromise;
+            return plugin;
+        } finally {
+            this.loadingPlugins.delete(normalizedName);
+        }
     }
 
     /**
-     * Récupère tous les plugins d'un type donné
+     * Charge un plugin de manière asynchrone
+     * @private
+     */
+    async _loadPluginAsync(name, config) {
+        const normalizedName = name.toLowerCase();
+
+        try {
+            this.logger.debug(`Chargement du plugin: ${name}`);
+
+            let pluginInstance;
+
+            // Essayer d'abord le registre si disponible
+            if (this.registry && this.registry.has(name)) {
+                this.logger.debug(`Chargement du plugin ${name} depuis le registre`);
+                pluginInstance = this.registry.get(name);
+            } else {
+                // Charger depuis le système de fichiers
+                const pluginPath = `${this.table.options.pluginsPath}/${normalizedName}.js`;
+                this.logger.debug(`Chargement du plugin ${name} depuis ${pluginPath}`);
+                
+                const pluginModule = await import(pluginPath);
+                
+                if (!pluginModule.default) {
+                    throw new Error(`Le plugin ${name} n'exporte pas de classe par défaut`);
+                }
+
+                // Instancier le plugin
+                const PluginClass = pluginModule.default;
+                pluginInstance = new PluginClass({
+                    ...config,
+                    tableHandler: this.table,
+                    debug: config.debug || this.table.options.debug
+                });
+            }
+
+            // Valider le plugin
+            this._validatePlugin(name, pluginInstance);
+
+            // Vérifier et charger les dépendances
+            if (pluginInstance.dependencies && Array.isArray(pluginInstance.dependencies)) {
+                await this._loadDependencies(name, pluginInstance.dependencies);
+            }
+
+            // Initialiser le plugin
+            this.logger.debug(`Initialisation du plugin ${name}`);
+            await Promise.resolve(pluginInstance.init(this.table));
+
+            // Enregistrer le plugin
+            this.plugins.set(normalizedName, {
+                instance: pluginInstance,
+                config: config,
+                name: name,
+                status: 'active'
+            });
+
+            this.logger.info(`Plugin ${name} chargé avec succès`);
+            return pluginInstance;
+
+        } catch (error) {
+            this.logger.error(`Erreur lors du chargement du plugin ${name}:`, error);
+            this.plugins.set(normalizedName, { 
+                error,
+                status: 'error'
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Valide qu'un plugin respecte l'interface requise
+     * @private
+     */
+    _validatePlugin(name, plugin) {
+        if (!plugin || typeof plugin !== 'object') {
+            throw new Error(`Le plugin ${name} n'est pas un objet valide`);
+        }
+
+        if (typeof plugin.init !== 'function') {
+            throw new Error(`Le plugin ${name} doit avoir une méthode init()`);
+        }
+
+        // Les autres propriétés sont optionnelles mais recommandées
+        const recommendations = [];
+        
+        if (!plugin.name) recommendations.push('name');
+        if (!plugin.version) recommendations.push('version');
+        if (typeof plugin.destroy !== 'function') recommendations.push('destroy()');
+        
+        if (recommendations.length > 0) {
+            this.logger.warn(`Le plugin ${name} devrait implémenter: ${recommendations.join(', ')}`);
+        }
+    }
+
+    /**
+     * Charge les dépendances d'un plugin
+     * @private
+     */
+    async _loadDependencies(pluginName, dependencies) {
+        this.logger.debug(`Vérification des dépendances pour ${pluginName}: ${dependencies.join(', ')}`);
+
+        // Détection des dépendances circulaires
+        const visited = new Set();
+        const recursionStack = new Set();
+
+        const checkCircularDeps = async (name, deps) => {
+            if (recursionStack.has(name)) {
+                throw new Error(`Dépendance circulaire détectée: ${Array.from(recursionStack).join(' -> ')} -> ${name}`);
+            }
+
+            if (visited.has(name)) {
+                return;
+            }
+
+            visited.add(name);
+            recursionStack.add(name);
+
+            for (const dep of deps) {
+                const normalizedDep = dep.toLowerCase();
+                
+                // Si la dépendance n'est pas chargée, la charger
+                if (!this.plugins.has(normalizedDep)) {
+                    await this.loadPlugin(dep);
+                }
+
+                // Vérifier les sous-dépendances
+                const depPlugin = this.plugins.get(normalizedDep);
+                if (depPlugin?.instance?.dependencies) {
+                    await checkCircularDeps(dep, depPlugin.instance.dependencies);
+                }
+            }
+
+            recursionStack.delete(name);
+        };
+
+        await checkCircularDeps(pluginName, dependencies);
+
+        // Enregistrer les dépendances
+        for (const dep of dependencies) {
+            const normalizedDep = dep.toLowerCase();
+            
+            if (!this.dependencies.has(normalizedDep)) {
+                this.dependencies.set(normalizedDep, new Set());
+            }
+            
+            this.dependencies.get(normalizedDep).add(pluginName.toLowerCase());
+        }
+    }
+
+    /**
+     * Active un plugin
+     */
+    async activate(name) {
+        const normalizedName = name.toLowerCase();
+        const pluginInfo = this.plugins.get(normalizedName);
+
+        if (!pluginInfo) {
+            throw new Error(`Plugin ${name} non trouvé`);
+        }
+
+        if (pluginInfo.status === 'active') {
+            this.logger.warn(`Plugin ${name} déjà actif`);
+            return pluginInfo.instance;
+        }
+
+        if (pluginInfo.status === 'error') {
+            throw new Error(`Le plugin ${name} est en erreur: ${pluginInfo.error.message}`);
+        }
+
+        // Réactiver le plugin
+        if (pluginInfo.instance && typeof pluginInfo.instance.activate === 'function') {
+            await Promise.resolve(pluginInfo.instance.activate());
+        }
+
+        pluginInfo.status = 'active';
+        this.logger.info(`Plugin ${name} activé`);
+        
+        return pluginInfo.instance;
+    }
+
+    /**
+     * Désactive un plugin
+     */
+    async deactivate(name) {
+        const normalizedName = name.toLowerCase();
+        const pluginInfo = this.plugins.get(normalizedName);
+
+        if (!pluginInfo || pluginInfo.status !== 'active') {
+            this.logger.warn(`Plugin ${name} non trouvé ou inactif`);
+            return false;
+        }
+
+        // Vérifier les dépendances
+        const dependents = this.getDependents(name);
+        if (dependents.length > 0) {
+            this.logger.warn(`Le plugin ${name} a des dépendants actifs: ${dependents.join(', ')}`);
+            
+            // Demander confirmation ou désactiver les dépendants d'abord
+            for (const dependent of dependents) {
+                await this.deactivate(dependent);
+            }
+        }
+
+        // Désactiver le plugin
+        if (pluginInfo.instance) {
+            if (typeof pluginInfo.instance.deactivate === 'function') {
+                await Promise.resolve(pluginInfo.instance.deactivate());
+            } else if (typeof pluginInfo.instance.destroy === 'function') {
+                await Promise.resolve(pluginInfo.instance.destroy());
+            }
+        }
+
+        pluginInfo.status = 'inactive';
+        this.logger.info(`Plugin ${name} désactivé`);
+        
+        return true;
+    }
+
+    /**
+     * Supprime complètement un plugin
+     */
+    async unload(name) {
+        const normalizedName = name.toLowerCase();
+        
+        // Désactiver d'abord si nécessaire
+        if (this.isActive(name)) {
+            await this.deactivate(name);
+        }
+
+        // Nettoyer les dépendances
+        this.dependencies.forEach((dependents, dependency) => {
+            dependents.delete(normalizedName);
+            if (dependents.size === 0) {
+                this.dependencies.delete(dependency);
+            }
+        });
+
+        // Supprimer le plugin
+        this.plugins.delete(normalizedName);
+        this.logger.info(`Plugin ${name} déchargé`);
+        
+        return true;
+    }
+
+    /**
+     * Récupère un plugin par son nom
+     */
+    getPlugin(name) {
+        if (!name) return null;
+        
+        const pluginInfo = this.plugins.get(name.toLowerCase());
+        if (!pluginInfo || pluginInfo.status !== 'active') {
+            return null;
+        }
+        
+        return pluginInfo.instance;
+    }
+
+    /**
+     * Vérifie si un plugin est chargé
+     */
+    hasPlugin(name) {
+        if (!name) return false;
+        
+        const pluginInfo = this.plugins.get(name.toLowerCase());
+        return pluginInfo && pluginInfo.status === 'active';
+    }
+
+    /**
+     * Vérifie si un plugin est actif
+     */
+    isActive(name) {
+        if (!name) return false;
+        
+        const pluginInfo = this.plugins.get(name.toLowerCase());
+        return pluginInfo && pluginInfo.status === 'active';
+    }
+
+    /**
+     * Récupère tous les plugins d'un certain type
      */
     getPluginsByType(type) {
         const result = [];
+        
         for (const [name, pluginInfo] of this.plugins.entries()) {
-            if (!pluginInfo.error && pluginInfo.instance && pluginInfo.instance.type === type) {
+            if (pluginInfo.status === 'active' && 
+                pluginInfo.instance && 
+                pluginInfo.instance.type === type) {
                 result.push(pluginInfo.instance);
             }
         }
+        
         return result;
+    }
+
+    /**
+     * Récupère la liste des plugins qui dépendent d'un plugin donné
+     */
+    getDependents(pluginName) {
+        const normalizedName = pluginName.toLowerCase();
+        const dependents = this.dependencies.get(normalizedName);
+        
+        return dependents ? Array.from(dependents) : [];
     }
 
     /**
@@ -232,13 +373,8 @@ export class PluginManager {
         const plugin = this.getPlugin(pluginName);
         if (!plugin || !plugin.dependencies) return true;
 
-        const missing = [];
-        for (const dep of plugin.dependencies) {
-            if (!this.hasPlugin(dep)) {
-                missing.push(dep);
-            }
-        }
-
+        const missing = plugin.dependencies.filter(dep => !this.hasPlugin(dep));
+        
         if (missing.length > 0) {
             this.logger.warn(`Dépendances manquantes pour ${pluginName}: ${missing.join(', ')}`);
             return false;
@@ -251,21 +387,33 @@ export class PluginManager {
      * Désactive tous les plugins
      */
     async deactivateAll() {
-        // Créer une copie des noms pour éviter les problèmes de modification pendant l'itération
-        const pluginNames = Array.from(this.plugins.keys());
+        const plugins = Array.from(this.plugins.keys());
+        const deactivated = [];
+        const failed = [];
+
+        // Trier les plugins par dépendances (les dépendants en premier)
+        const sorted = this._sortByDependencies(plugins);
         
-        // Désactiver les plugins dans l'ordre inverse de leurs dépendances
-        const sortedNames = this.sortPluginsByDependencies(pluginNames);
-        
-        for (const name of sortedNames.reverse()) {
-            await this.deactivate(name);
+        for (const name of sorted.reverse()) {
+            try {
+                await this.deactivate(name);
+                deactivated.push(name);
+            } catch (error) {
+                this.logger.error(`Erreur lors de la désactivation de ${name}:`, error);
+                failed.push(name);
+            }
         }
+
+        this.logger.info(`Plugins désactivés: ${deactivated.length}, échecs: ${failed.length}`);
+        
+        return { deactivated, failed };
     }
 
     /**
      * Trie les plugins selon leurs dépendances
+     * @private
      */
-    sortPluginsByDependencies(pluginNames) {
+    _sortByDependencies(pluginNames) {
         const sorted = [];
         const visited = new Set();
         const visiting = new Set();
@@ -273,14 +421,14 @@ export class PluginManager {
         const visit = (name) => {
             if (visited.has(name)) return;
             if (visiting.has(name)) {
-                this.logger.warn(`Cycle de dépendance détecté pour ${name}`);
+                this.logger.warn(`Cycle de dépendance détecté impliquant ${name}`);
                 return;
             }
 
             visiting.add(name);
 
             const plugin = this.getPlugin(name);
-            if (plugin && plugin.dependencies) {
+            if (plugin?.dependencies) {
                 for (const dep of plugin.dependencies) {
                     if (pluginNames.includes(dep.toLowerCase())) {
                         visit(dep.toLowerCase());
@@ -294,10 +442,33 @@ export class PluginManager {
         };
 
         for (const name of pluginNames) {
-            visit(name);
+            if (!visited.has(name)) {
+                visit(name);
+            }
         }
 
         return sorted;
+    }
+
+    /**
+     * Recharge un plugin
+     */
+    async reload(name) {
+        const pluginInfo = this.plugins.get(name.toLowerCase());
+        if (!pluginInfo) {
+            throw new Error(`Plugin ${name} non trouvé`);
+        }
+
+        const config = pluginInfo.config;
+        
+        // Désactiver le plugin
+        await this.deactivate(name);
+        
+        // Supprimer le plugin
+        await this.unload(name);
+        
+        // Recharger le plugin
+        return this.loadPlugin(name, config);
     }
 
     /**
@@ -305,33 +476,77 @@ export class PluginManager {
      */
     getDiagnostics() {
         const diagnostics = {
-            totalPlugins: this.plugins.size,
-            loadedPlugins: [],
-            failedPlugins: [],
+            total: this.plugins.size,
+            active: 0,
+            inactive: 0,
+            error: 0,
+            plugins: [],
             dependencies: {}
         };
 
         for (const [name, info] of this.plugins.entries()) {
-            if (info.error) {
-                diagnostics.failedPlugins.push({
-                    name,
-                    error: info.error.message
-                });
+            const pluginInfo = {
+                name,
+                status: info.status,
+                type: info.instance?.type,
+                version: info.instance?.version,
+                dependencies: info.instance?.dependencies || []
+            };
+
+            if (info.status === 'error') {
+                pluginInfo.error = info.error.message;
+                diagnostics.error++;
+            } else if (info.status === 'active') {
+                diagnostics.active++;
             } else {
-                diagnostics.loadedPlugins.push({
-                    name,
-                    type: info.instance.type,
-                    version: info.instance.version,
-                    dependencies: info.instance.dependencies || []
-                });
+                diagnostics.inactive++;
             }
+
+            diagnostics.plugins.push(pluginInfo);
         }
 
-        // Mapper les dépendances
+        // Map des dépendances
         for (const [dep, dependents] of this.dependencies.entries()) {
             diagnostics.dependencies[dep] = Array.from(dependents);
         }
 
         return diagnostics;
+    }
+
+    /**
+     * Exporte la configuration actuelle des plugins
+     */
+    exportConfiguration() {
+        const config = {};
+        
+        for (const [name, info] of this.plugins.entries()) {
+            if (info.status === 'active') {
+                config[name] = info.config;
+            }
+        }
+        
+        return config;
+    }
+
+    /**
+     * Importe une configuration de plugins
+     */
+    async importConfiguration(config) {
+        const results = {
+            loaded: [],
+            failed: []
+        };
+
+        for (const [name, pluginConfig] of Object.entries(config)) {
+            try {
+                await this.loadPlugin(name, pluginConfig);
+                results.loaded.push(name);
+            } catch (error) {
+                this.logger.error(`Échec du chargement de ${name}:`, error);
+                results.failed.push({ name, error: error.message });
+            }
+        }
+
+        return results;
     }
 }

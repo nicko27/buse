@@ -6,19 +6,76 @@
  */
 export class DOMSanitizer {
     
+    // Configuration par défaut
+    static defaults = {
+        // Balises autorisées par défaut
+        allowedTags: ['b', 'i', 'em', 'strong', 'span', 'br', 'div', 'p', 'a', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+        
+        // Attributs autorisés par balise
+        allowedAttributes: {
+            '*': ['class', 'id', 'data-*'],
+            'a': ['href', 'title', 'target', 'rel'],
+            'img': ['src', 'alt', 'title', 'width', 'height'],
+            'span': ['style', 'data-group'],
+            'div': ['style'],
+            'td': ['colspan', 'rowspan'],
+            'th': ['colspan', 'rowspan']
+        },
+        
+        // Styles CSS autorisés
+        allowedStyles: [
+            'color', 'background-color', 'background', 'font-size', 'font-weight', 
+            'font-style', 'text-align', 'text-decoration', 'margin', 'padding',
+            'border', 'border-radius', 'width', 'height', 'display', 'visibility',
+            'opacity', 'transform', 'transition'
+        ],
+        
+        // Schémas d'URL autorisés
+        allowedSchemes: ['http', 'https', 'mailto', 'tel', 'data'],
+        
+        // Balises à supprimer complètement (y compris leur contenu)
+        forbiddenTags: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'button'],
+        
+        // Attributs toujours interdits
+        forbiddenAttributes: ['onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout', 'onkeydown', 'onkeyup']
+    };
+
     /**
      * Échappe les caractères spéciaux HTML
      * @param {string} text - Texte à échapper
      * @returns {string} - Texte échappé
      */
     static escapeHTML(text) {
-        if (typeof text !== 'string') {
-            return String(text);
+        if (text == null) {
+            return '';
         }
         
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        const str = String(text);
+        const escapeMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;',
+            '`': '&#x60;',
+            '=': '&#x3D;'
+        };
+        
+        return str.replace(/[&<>"'`=\/]/g, char => escapeMap[char]);
+    }
+    
+    /**
+     * Décode les entités HTML
+     * @param {string} text - Texte à décoder
+     * @returns {string} - Texte décodé
+     */
+    static unescapeHTML(text) {
+        if (!text) return '';
+        
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        return textarea.value;
     }
     
     /**
@@ -30,7 +87,7 @@ export class DOMSanitizer {
         if (!element) {
             throw new Error('Element is required');
         }
-        element.textContent = text;
+        element.textContent = text == null ? '' : String(text);
     }
     
     /**
@@ -46,21 +103,19 @@ export class DOMSanitizer {
         
         // Si c'est du texte brut, utiliser textContent
         if (options.isPlainText) {
-            element.textContent = html;
+            element.textContent = html == null ? '' : String(html);
             return;
         }
         
-        // Si c'est un SVG ou une icône connue
-        if (options.isTrustedIcon) {
-            // Vérifier que l'icône est dans notre liste approuvée
-            if (this.isTrustedIconContent(html)) {
-                element.innerHTML = html;
-                return;
-            }
+        // Si c'est un SVG ou une icône de confiance
+        if (options.isTrustedIcon && this.isTrustedIconContent(html)) {
+            element.innerHTML = html;
+            return;
         }
         
-        // Sinon, sanitizer le HTML
-        element.innerHTML = this.sanitizeHTML(html, options);
+        // Sanitizer le HTML
+        const sanitized = this.sanitizeHTML(html, options);
+        element.innerHTML = sanitized;
     }
     
     /**
@@ -70,91 +125,242 @@ export class DOMSanitizer {
      * @returns {string} - HTML sanitisé
      */
     static sanitizeHTML(html, options = {}) {
-        if (typeof html !== 'string') {
-            return '';
-        }
+        if (!html) return '';
         
-        // Configuration par défaut
-        const defaultOptions = {
-            allowedTags: ['b', 'i', 'em', 'strong', 'span', 'br'],
-            allowedAttributes: {
-                'span': ['class', 'style', 'data-group']
-            },
-            allowedStyles: ['color', 'background-color'],
+        // Fusionner avec les options par défaut
+        const config = {
+            ...this.defaults,
             ...options
         };
         
-        // Utiliser DOMParser pour analyser le HTML
+        // Créer un document temporaire
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         
-        // Fonction récursive pour nettoyer les nœuds
-        const cleanNode = (node) => {
-            // Supprimer les scripts et autres éléments dangereux
-            const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form'];
-            if (dangerousTags.includes(node.nodeName.toLowerCase())) {
-                node.remove();
-                return;
-            }
-            
-            // Vérifier si le tag est autorisé
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                const tagName = node.nodeName.toLowerCase();
-                
-                if (!defaultOptions.allowedTags.includes(tagName)) {
-                    // Remplacer par le contenu texte
-                    const textNode = document.createTextNode(node.textContent);
-                    node.replaceWith(textNode);
-                    return;
-                }
-                
-                // Nettoyer les attributs
-                Array.from(node.attributes).forEach(attr => {
-                    const allowedAttrs = defaultOptions.allowedAttributes[tagName] || [];
-                    
-                    if (!allowedAttrs.includes(attr.name)) {
-                        node.removeAttribute(attr.name);
-                    } else if (attr.name === 'style') {
-                        // Nettoyer les styles
-                        node.setAttribute('style', this.sanitizeStyles(attr.value, defaultOptions.allowedStyles));
-                    }
-                });
-                
-                // Nettoyer les événements inline
-                Array.from(node.attributes).forEach(attr => {
-                    if (attr.name.startsWith('on')) {
-                        node.removeAttribute(attr.name);
-                    }
-                });
-            }
-            
-            // Récursivement nettoyer les enfants
-            Array.from(node.childNodes).forEach(child => cleanNode(child));
-        };
-        
-        // Nettoyer le document
-        cleanNode(doc.body);
+        // Sanitizer le document
+        this._sanitizeNode(doc.body, config);
         
         return doc.body.innerHTML;
     }
     
     /**
-     * Sanitize les styles CSS
-     * @param {string} styleString - Chaîne de style
-     * @param {string[]} allowedStyles - Styles autorisés
-     * @returns {string} - Styles sanitisés
+     * Sanitize un nœud DOM récursivement
+     * @private
      */
-    static sanitizeStyles(styleString, allowedStyles = []) {
+    static _sanitizeNode(node, config) {
+        if (!node) return;
+        
+        // Traiter les nœuds enfants d'abord (pour éviter les problèmes avec removeChild)
+        const children = Array.from(node.childNodes);
+        for (const child of children) {
+            this._sanitizeNode(child, config);
+        }
+        
+        // Ne traiter que les éléments
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        
+        const tagName = node.tagName.toLowerCase();
+        
+        // Supprimer les balises interdites
+        if (config.forbiddenTags.includes(tagName)) {
+            node.remove();
+            return;
+        }
+        
+        // Vérifier si la balise est autorisée
+        if (!config.allowedTags.includes(tagName)) {
+            // Conserver le contenu texte mais supprimer la balise
+            const fragment = document.createDocumentFragment();
+            while (node.firstChild) {
+                fragment.appendChild(node.firstChild);
+            }
+            node.replaceWith(fragment);
+            return;
+        }
+        
+        // Sanitizer les attributs
+        this._sanitizeAttributes(node, tagName, config);
+    }
+    
+    /**
+     * Sanitize les attributs d'un élément
+     * @private
+     */
+    static _sanitizeAttributes(element, tagName, config) {
+        const attributes = Array.from(element.attributes);
+        
+        for (const attr of attributes) {
+            const attrName = attr.name.toLowerCase();
+            const attrValue = attr.value;
+            
+            // Supprimer les attributs interdits
+            if (config.forbiddenAttributes.includes(attrName) || attrName.startsWith('on')) {
+                element.removeAttribute(attrName);
+                continue;
+            }
+            
+            // Vérifier si l'attribut est autorisé
+            const allowedForTag = config.allowedAttributes[tagName] || [];
+            const allowedGlobally = config.allowedAttributes['*'] || [];
+            
+            let isAllowed = allowedForTag.includes(attrName) || allowedGlobally.includes(attrName);
+            
+            // Vérifier les attributs data-*
+            if (!isAllowed && attrName.startsWith('data-')) {
+                isAllowed = allowedGlobally.includes('data-*');
+            }
+            
+            if (!isAllowed) {
+                element.removeAttribute(attrName);
+                continue;
+            }
+            
+            // Traitement spécial pour certains attributs
+            switch (attrName) {
+                case 'href':
+                case 'src':
+                    const sanitizedUrl = this._sanitizeURL(attrValue, config.allowedSchemes);
+                    if (sanitizedUrl) {
+                        element.setAttribute(attrName, sanitizedUrl);
+                    } else {
+                        element.removeAttribute(attrName);
+                    }
+                    break;
+                    
+                case 'style':
+                    const sanitizedStyle = this._sanitizeStyles(attrValue, config.allowedStyles);
+                    if (sanitizedStyle) {
+                        element.setAttribute('style', sanitizedStyle);
+                    } else {
+                        element.removeAttribute('style');
+                    }
+                    break;
+                    
+                case 'class':
+                    const sanitizedClass = this._sanitizeClassNames(attrValue);
+                    if (sanitizedClass) {
+                        element.setAttribute('class', sanitizedClass);
+                    } else {
+                        element.removeAttribute('class');
+                    }
+                    break;
+            }
+        }
+    }
+    
+    /**
+     * Sanitize une URL
+     * @private
+     */
+    static _sanitizeURL(url, allowedSchemes) {
+        if (!url) return '';
+        
+        try {
+            // Parser l'URL
+            const urlObj = new URL(url, window.location.href);
+            const protocol = urlObj.protocol.slice(0, -1); // Enlever le ':'
+            
+            // Vérifier si le schéma est autorisé
+            if (allowedSchemes.includes(protocol)) {
+                return urlObj.href;
+            }
+            
+            // Autoriser les URLs relatives
+            if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+                return url;
+            }
+            
+            return '';
+        } catch (e) {
+            // URL invalide
+            return '';
+        }
+    }
+    
+    /**
+     * Sanitize les styles CSS
+     * @private
+     */
+    static _sanitizeStyles(styleString, allowedStyles = []) {
+        if (!styleString) return '';
+        
+        // Parser les styles
         const styles = styleString.split(';')
             .map(style => style.trim())
             .filter(style => style);
         
-        const sanitizedStyles = styles.filter(style => {
-            const [property] = style.split(':').map(s => s.trim());
-            return allowedStyles.includes(property);
-        });
+        const sanitizedStyles = [];
+        
+        for (const style of styles) {
+            const [property, value] = style.split(':').map(s => s.trim());
+            
+            if (!property || !value) continue;
+            
+            // Vérifier si la propriété est autorisée
+            if (!allowedStyles.includes(property)) continue;
+            
+            // Valider la valeur
+            const sanitizedValue = this._sanitizeStyleValue(property, value);
+            if (sanitizedValue) {
+                sanitizedStyles.push(`${property}: ${sanitizedValue}`);
+            }
+        }
         
         return sanitizedStyles.join('; ');
+    }
+    
+    /**
+     * Sanitize une valeur de style CSS
+     * @private
+     */
+    static _sanitizeStyleValue(property, value) {
+        // Supprimer les expressions dangereuses
+        if (value.includes('expression') || value.includes('javascript:') || value.includes('vbscript:')) {
+            return '';
+        }
+        
+        // Validation basique pour certaines propriétés
+        switch (property) {
+            case 'color':
+            case 'background-color':
+                // Accepter les formats de couleur courants
+                if (/^(#[0-9a-f]{3,8}|rgb\(|rgba\(|hsl\(|hsla\(|[a-z]+)$/i.test(value)) {
+                    return value;
+                }
+                break;
+                
+            case 'width':
+            case 'height':
+            case 'margin':
+            case 'padding':
+                // Accepter les unités CSS valides
+                if (/^([0-9]+(\.[0-9]+)?(px|em|rem|%|vh|vw|pt|cm|mm|in|pc|ex|ch)?|auto|inherit|initial|unset)$/i.test(value)) {
+                    return value;
+                }
+                break;
+                
+            default:
+                // Pour les autres propriétés, faire une validation basique
+                if (!/[<>]/.test(value)) {
+                    return value;
+                }
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Sanitize les noms de classe CSS
+     * @private
+     */
+    static _sanitizeClassNames(classString) {
+        if (!classString) return '';
+        
+        // Séparer les classes et filtrer les invalides
+        const classes = classString.split(/\s+/)
+            .filter(className => /^[a-zA-Z0-9_-]+$/.test(className));
+        
+        return classes.join(' ');
     }
     
     /**
@@ -163,14 +369,29 @@ export class DOMSanitizer {
      * @returns {boolean}
      */
     static isTrustedIconContent(content) {
-        // Liste des patterns d'icônes de confiance
+        if (!content || typeof content !== 'string') return false;
+        
+        const trimmed = content.trim();
+        
+        // Patterns pour les icônes de confiance
         const trustedPatterns = [
-            /^<i class="fa[srlb]? fa-[\w-]+"><\/i>$/,  // Font Awesome
-            /^<svg[\s\S]*?<\/svg>$/,                    // SVG inline
-            /^<span class="material-icons">[\w-]+<\/span>$/ // Material Icons
+            // Font Awesome (toutes versions)
+            /^<i\s+class="fa[srlb]?\s+fa-[\w-]+(\s+fa-[\w-]+)*"(\s+[^>]*)?>[\s]*<\/i>$/i,
+            
+            // Material Icons
+            /^<span\s+class="material-icons(-[\w]+)*"(\s+[^>]*)?>[\w\s-]+<\/span>$/i,
+            
+            // SVG inline basique
+            /^<svg\s+[^>]*>([\s\S]*?)<\/svg>$/i,
+            
+            // Bootstrap Icons
+            /^<i\s+class="bi\s+bi-[\w-]+"(\s+[^>]*)?>[\s]*<\/i>$/i,
+            
+            // Ionicons
+            /^<ion-icon\s+name="[\w-]+"(\s+[^>]*)?>[\s]*<\/ion-icon>$/i
         ];
         
-        return trustedPatterns.some(pattern => pattern.test(content.trim()));
+        return trustedPatterns.some(pattern => pattern.test(trimmed));
     }
     
     /**
@@ -182,20 +403,26 @@ export class DOMSanitizer {
      * @returns {HTMLElement}
      */
     static createElement(tagName, attributes = {}, content = '', options = {}) {
+        // Valider le nom de la balise
+        if (!/^[a-z][a-z0-9-]*$/i.test(tagName)) {
+            throw new Error('Invalid tag name');
+        }
+        
         const element = document.createElement(tagName);
         
-        // Définir les attributs de manière sécurisée
-        Object.entries(attributes).forEach(([key, value]) => {
-            if (key === 'class') {
-                element.className = value;
-            } else if (key === 'style' && typeof value === 'object') {
-                Object.entries(value).forEach(([prop, val]) => {
-                    element.style[prop] = val;
-                });
-            } else if (!key.startsWith('on')) { // Éviter les événements inline
+        // Appliquer les attributs
+        for (const [key, value] of Object.entries(attributes)) {
+            if (key === 'style' && typeof value === 'object') {
+                // Appliquer les styles un par un
+                for (const [prop, val] of Object.entries(value)) {
+                    if (this.defaults.allowedStyles.includes(prop)) {
+                        element.style[prop] = val;
+                    }
+                }
+            } else if (!key.startsWith('on') && !this.defaults.forbiddenAttributes.includes(key)) {
                 element.setAttribute(key, value);
             }
-        });
+        }
         
         // Définir le contenu
         if (content) {
@@ -217,31 +444,59 @@ export class DOMSanitizer {
             throw new Error('Parent element is required');
         }
         
-        // Créer un élément temporaire pour sanitizer le HTML
-        const temp = document.createElement('div');
-        this.setHTML(temp, html, options);
-        
-        // Insérer les nœuds sanitisés
-        const fragment = document.createDocumentFragment();
-        while (temp.firstChild) {
-            fragment.appendChild(temp.firstChild);
+        const validPositions = ['beforebegin', 'afterbegin', 'beforeend', 'afterend'];
+        if (!validPositions.includes(position)) {
+            throw new Error('Invalid position');
         }
         
+        // Sanitizer le HTML
+        const sanitized = this.sanitizeHTML(html, options);
+        
+        // Créer un élément temporaire
+        const temp = document.createElement('template');
+        temp.innerHTML = sanitized;
+        
+        // Insérer le contenu
         switch (position) {
             case 'beforebegin':
-                parent.parentNode.insertBefore(fragment, parent);
+                parent.before(temp.content);
                 break;
             case 'afterbegin':
-                parent.insertBefore(fragment, parent.firstChild);
+                parent.prepend(temp.content);
                 break;
             case 'beforeend':
-                parent.appendChild(fragment);
+                parent.append(temp.content);
                 break;
             case 'afterend':
-                parent.parentNode.insertBefore(fragment, parent.nextSibling);
+                parent.after(temp.content);
                 break;
-            default:
-                throw new Error('Invalid position');
         }
+    }
+    
+    /**
+     * Nettoie un élément DOM existant
+     * @param {HTMLElement} element - Élément à nettoyer
+     * @param {Object} options - Options de sanitization
+     */
+    static sanitizeElement(element, options = {}) {
+        if (!element) return;
+        
+        const config = {
+            ...this.defaults,
+            ...options
+        };
+        
+        this._sanitizeNode(element, config);
+    }
+    
+    /**
+     * Configure les options par défaut
+     * @param {Object} options - Nouvelles options par défaut
+     */
+    static configure(options) {
+        this.defaults = {
+            ...this.defaults,
+            ...options
+        };
     }
 }

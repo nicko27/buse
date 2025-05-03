@@ -1,7 +1,7 @@
 export default class HighlightPlugin {
     constructor(config = {}) {
         this.name = 'highlight';
-        this.version = '1.0.0';
+        this.version = '2.0.0';
         this.type = 'display';
         this.table = null;
         this.editPlugin = null;
@@ -10,7 +10,7 @@ export default class HighlightPlugin {
         // Configuration par défaut
         const defaultConfig = {
             // Options générales
-            highlightEnabled: true,  
+            highlightEnabled: true,
             highlightDuringEdit: true,
             highlightClass: 'tf-highlight',
             spanClass: 'tf-highlight-span',
@@ -33,6 +33,20 @@ export default class HighlightPlugin {
                     color: '#000000',
                     backgroundColor: '#FFFF00',
                     priority: 1
+                },
+                {
+                    id: 'green',
+                    name: 'Vert',
+                    color: '#FFFFFF',
+                    backgroundColor: '#008000',
+                    priority: 2
+                },
+                {
+                    id: 'blue',
+                    name: 'Bleu',
+                    color: '#FFFFFF',
+                    backgroundColor: '#0000FF',
+                    priority: 3
                 },
                 {
                     id: 'ignored',
@@ -68,7 +82,9 @@ export default class HighlightPlugin {
                 modalClass: 'tf-highlight-modal',
                 buttonClass: 'tf-highlight-button',
                 formClass: 'tf-highlight-form',
-                inputClass: 'tf-highlight-input'
+                inputClass: 'tf-highlight-input',
+                showPreview: true,
+                allowCustomColors: true
             },
             
             debug: false
@@ -86,6 +102,18 @@ export default class HighlightPlugin {
         if (this.config.storageKey) {
             this.loadRules();
         }
+        
+        // Cache pour les performances
+        this.cache = {
+            highlightedTexts: new Map(),
+            compiledRegexes: new Map()
+        };
+        
+        // État du plugin
+        this.state = {
+            isHighlighting: false,
+            modalOpen: false
+        };
     }
     
     // Fusion profonde des configurations
@@ -113,7 +141,7 @@ export default class HighlightPlugin {
     init(tableHandler) {
         this.table = tableHandler;
         
-        // Trouver les plugins nécessaires
+        // Vérifier que le plugin Edit existe
         this.editPlugin = this.table.getPlugin('edit');
         if (!this.editPlugin) {
             console.error('HighlightPlugin: Edit plugin is required but not found');
@@ -136,15 +164,18 @@ export default class HighlightPlugin {
         
         // Appliquer le surlignage initial
         this.highlightAllCells();
+        
+        // Ajouter les styles CSS
+        this.injectStyles();
     }
     
     registerWithEditPlugin() {
         // S'abonner au hook de rendu pour personnaliser l'affichage
-        this.editPlugin.addHook('onRender', this.handleRender.bind(this));
+        this.editPlugin.addHook('onRender', this.handleRender.bind(this), 'highlight');
         
         // S'abonner au hook de création de champ d'édition pour gérer l'édition avec surlignage
         if (this.config.highlightDuringEdit) {
-            this.editPlugin.addHook('afterEdit', this.setupHighlightedEditing.bind(this));
+            this.editPlugin.addHook('afterEdit', this.setupHighlightedEditing.bind(this), 'highlight');
         }
     }
     
@@ -155,8 +186,17 @@ export default class HighlightPlugin {
             return true;
         }
         
-        // Appliquer le surlignage
-        const highlightedText = this.highlightText(value);
+        // Vérifier le cache d'abord
+        const cacheKey = `${cell.id}:${value}`;
+        let highlightedText;
+        
+        if (this.cache.highlightedTexts.has(cacheKey)) {
+            highlightedText = this.cache.highlightedTexts.get(cacheKey);
+        } else {
+            // Appliquer le surlignage
+            highlightedText = this.highlightText(value);
+            this.cache.highlightedTexts.set(cacheKey, highlightedText);
+        }
         
         // Mettre à jour le contenu du wrapper
         const wrapper = cell.querySelector('.cell-wrapper') || cell;
@@ -197,6 +237,7 @@ export default class HighlightPlugin {
         input.style.color = 'transparent';
         input.style.caretColor = 'black'; // Pour voir le curseur
         input.style.width = '100%';
+        input.style.zIndex = '2';
         
         // Créer la couche de surlignage (overlay)
         const overlay = document.createElement('div');
@@ -209,6 +250,7 @@ export default class HighlightPlugin {
         overlay.style.pointerEvents = 'none';
         overlay.style.whiteSpace = 'pre-wrap';
         overlay.style.overflow = 'hidden';
+        overlay.style.zIndex = '1';
         
         // Appliquer le surlignage initial
         overlay.innerHTML = this.highlightText(currentValue);
@@ -235,35 +277,64 @@ export default class HighlightPlugin {
         return this.config.groups.find(group => group.id === groupId);
     }
     
+    // Compiler une regex avec cache
+    getCompiledRegex(pattern, flags = 'g') {
+        const key = `${pattern}:${flags}`;
+        
+        if (this.cache.compiledRegexes.has(key)) {
+            return this.cache.compiledRegexes.get(key);
+        }
+        
+        try {
+            const regex = new RegExp(pattern, flags);
+            this.cache.compiledRegexes.set(key, regex);
+            return regex;
+        } catch (error) {
+            console.error(`Invalid regex pattern: ${pattern}`, error);
+            return null;
+        }
+    }
+    
     // Surlignage du texte avec les groupes
     highlightText(text) {
         if (!text || typeof text !== 'string' || !this.config.highlightEnabled) {
             return text;
         }
         
-        // Préparation des règles d'exclusion
-        const exclusionPatterns = this.config.rules
-            .filter(rule => {
-                const group = this.getGroupById(rule.group);
-                return group && group.isExclusion;
-            })
-            .map(rule => rule.regex);
+        if (this.state.isHighlighting) {
+            // Éviter la récursion infinie
+            return text;
+        }
         
-        // Collecter toutes les correspondances
-        let matches = [];
+        this.state.isHighlighting = true;
         
-        for (const rule of this.config.rules) {
-            // Récupérer le groupe associé à cette règle
-            const group = this.getGroupById(rule.group);
-            if (!group) continue; // Ignorer les règles sans groupe valide
+        try {
+            // Préparation des règles d'exclusion
+            const exclusionPatterns = this.config.rules
+                .filter(rule => {
+                    const group = this.getGroupById(rule.group);
+                    return group && group.isExclusion && rule.enabled !== false;
+                })
+                .map(rule => rule.regex);
             
-            // Ignorer les règles d'exclusion dans cette étape
-            if (group.isExclusion) continue;
+            // Collecter toutes les correspondances
+            let matches = [];
             
-            try {
-                const regex = new RegExp(rule.regex, 'g');
-                let match;
+            for (const rule of this.config.rules) {
+                // Passer les règles désactivées
+                if (rule.enabled === false) continue;
                 
+                // Récupérer le groupe associé à cette règle
+                const group = this.getGroupById(rule.group);
+                if (!group) continue; // Ignorer les règles sans groupe valide
+                
+                // Ignorer les règles d'exclusion dans cette étape
+                if (group.isExclusion) continue;
+                
+                const regex = this.getCompiledRegex(rule.regex);
+                if (!regex) continue;
+                
+                let match;
                 while ((match = regex.exec(text)) !== null) {
                     const matchText = match[0];
                     
@@ -272,28 +343,20 @@ export default class HighlightPlugin {
                     
                     // Vérifier les exclusions globales
                     for (const exclusion of exclusionPatterns) {
-                        try {
-                            const exclusionRegex = new RegExp(exclusion);
-                            if (exclusionRegex.test(matchText)) {
-                                excluded = true;
-                                break;
-                            }
-                        } catch (e) {
-                            // Ignorer les regex invalides
+                        const exclusionRegex = this.getCompiledRegex(exclusion);
+                        if (exclusionRegex && exclusionRegex.test(matchText)) {
+                            excluded = true;
+                            break;
                         }
                     }
                     
                     // Si le match a ses propres exclusions, les vérifier aussi
                     if (!excluded && rule.exclusions && Array.isArray(rule.exclusions)) {
                         for (const exclusion of rule.exclusions) {
-                            try {
-                                const exclusionRegex = new RegExp(exclusion);
-                                if (exclusionRegex.test(matchText)) {
-                                    excluded = true;
-                                    break;
-                                }
-                            } catch (e) {
-                                // Ignorer les regex invalides
+                            const exclusionRegex = this.getCompiledRegex(exclusion);
+                            if (exclusionRegex && exclusionRegex.test(matchText)) {
+                                excluded = true;
+                                break;
                             }
                         }
                     }
@@ -309,39 +372,46 @@ export default class HighlightPlugin {
                         });
                     }
                 }
-            } catch (error) {
-                console.error(`Invalid regex in highlight rule:`, rule, error);
             }
-        }
-        
-        // Si aucune correspondance, retourner le texte original
-        if (matches.length === 0) {
-            return text;
-        }
-        
-        // Trier les correspondances et résoudre les chevauchements
-        matches.sort((a, b) => a.start - b.start);
-        const nonOverlappingMatches = this.resolveOverlaps(matches);
-        
-        // Construire le HTML surligné
-        nonOverlappingMatches.sort((a, b) => b.end - a.end);
-        
-        let highlightedText = text;
-        for (const match of nonOverlappingMatches) {
-            const beforeMatch = highlightedText.substring(0, match.start);
-            const matchText = highlightedText.substring(match.start, match.end);
-            const afterMatch = highlightedText.substring(match.end);
             
-            const spanStyle = `background-color: ${match.group.backgroundColor || 'transparent'}; color: ${match.group.color || 'inherit'};`;
+            // Si aucune correspondance, retourner le texte original
+            if (matches.length === 0) {
+                return text;
+            }
             
-            highlightedText = beforeMatch + 
-                            `<span class="${this.config.spanClass}" style="${spanStyle}" data-group="${match.group.id}">` + 
-                            matchText + 
-                            '</span>' + 
-                            afterMatch;
+            // Trier les correspondances et résoudre les chevauchements
+            matches.sort((a, b) => a.start - b.start);
+            const nonOverlappingMatches = this.resolveOverlaps(matches);
+            
+            // Construire le HTML surligné
+            nonOverlappingMatches.sort((a, b) => b.end - a.end);
+            
+            let highlightedText = text;
+            for (const match of nonOverlappingMatches) {
+                const beforeMatch = highlightedText.substring(0, match.start);
+                const matchText = highlightedText.substring(match.start, match.end);
+                const afterMatch = highlightedText.substring(match.end);
+                
+                const spanStyle = `background-color: ${match.group.backgroundColor || 'transparent'}; color: ${match.group.color || 'inherit'};`;
+                
+                highlightedText = beforeMatch + 
+                                `<span class="${this.config.spanClass}" style="${spanStyle}" data-group="${match.group.id}">` + 
+                                this.escapeHtml(matchText) + 
+                                '</span>' + 
+                                afterMatch;
+            }
+            
+            return highlightedText;
+        } finally {
+            this.state.isHighlighting = false;
         }
-        
-        return highlightedText;
+    }
+    
+    // Échapper le HTML
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
     
     // Résoudre les chevauchements entre correspondances
@@ -475,6 +545,11 @@ export default class HighlightPlugin {
             rule.id = 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         }
         
+        // Activer par défaut
+        if (rule.enabled === undefined) {
+            rule.enabled = true;
+        }
+        
         // Si AJAX est activé, envoyer la règle au serveur
         if (this.config.ruleCreation.useAjax) {
             return this.sendRuleToServer(rule);
@@ -483,49 +558,10 @@ export default class HighlightPlugin {
         // Sinon, procéder à l'ajout local
         this.config.rules.push(rule);
         this.saveRules();
+        this.clearCache();
         this.highlightAllCells();
         
         return rule;
-    }
-    
-    // Envoi d'une règle au serveur via AJAX
-    sendRuleToServer(rule) {
-        const { ajaxUrl, ajaxMethod, ajaxHeaders, ajaxCallback } = this.config.ruleCreation;
-        
-        return fetch(ajaxUrl, {
-            method: ajaxMethod,
-            headers: {
-                'Content-Type': 'application/json',
-                ...ajaxHeaders
-            },
-            body: JSON.stringify(rule)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Si le serveur a répondu avec une règle mise à jour, l'utiliser
-            const serverRule = data.rule || rule;
-            
-            // Ajouter la règle localement
-            this.config.rules.push(serverRule);
-            this.saveRules();
-            this.highlightAllCells();
-            
-            // Appeler le callback si fourni
-            if (typeof ajaxCallback === 'function') {
-                ajaxCallback(serverRule, data);
-            }
-            
-            return serverRule;
-        })
-        .catch(error => {
-            console.error('Error sending rule to server:', error);
-            return null;
-        });
     }
     
     // Mettre à jour une règle existante
@@ -542,6 +578,7 @@ export default class HighlightPlugin {
         };
         
         this.saveRules();
+        this.clearCache();
         this.highlightAllCells();
         
         return true;
@@ -556,9 +593,16 @@ export default class HighlightPlugin {
         
         this.config.rules.splice(index, 1);
         this.saveRules();
+        this.clearCache();
         this.highlightAllCells();
         
         return true;
+    }
+    
+    // Effacer le cache
+    clearCache() {
+        this.cache.highlightedTexts.clear();
+        this.cache.compiledRegexes.clear();
     }
     
     // Activer/désactiver le surlignage global
@@ -580,6 +624,194 @@ export default class HighlightPlugin {
         }
         
         return this.config.highlightEnabled;
+    }
+    
+    // Injecter les styles CSS
+    injectStyles() {
+        if (document.getElementById('highlight-plugin-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'highlight-plugin-styles';
+        style.textContent = `
+            .${this.config.spanClass} {
+                padding: 0 2px;
+                border-radius: 2px;
+            }
+            
+            .tf-highlight-edit-container {
+                position: relative;
+                width: 100%;
+            }
+            
+            .tf-highlight-edit-input {
+                position: relative;
+                background: transparent !important;
+                color: transparent !important;
+                caret-color: black !important;
+                z-index: 2;
+                width: 100%;
+                border: none;
+                padding: 0;
+                margin: 0;
+                font: inherit;
+            }
+            
+            .tf-highlight-edit-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                pointer-events: none;
+                white-space: pre-wrap;
+                word-break: break-word;
+                z-index: 1;
+                padding: 0;
+                margin: 0;
+                border: none;
+                font: inherit;
+            }
+            
+            /* Modal styles */
+            .${this.config.ui.modalClass} {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                width: 600px;
+                max-width: 90%;
+                max-height: 80vh;
+                display: flex;
+                flex-direction: column;
+                z-index: 1000;
+            }
+            
+            .${this.config.ui.modalClass}-header {
+                padding: 16px 20px;
+                border-bottom: 1px solid #eee;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .${this.config.ui.modalClass}-body {
+                padding: 20px;
+                overflow-y: auto;
+                flex: 1;
+            }
+            
+            .${this.config.ui.modalClass}-footer {
+                padding: 16px 20px;
+                border-top: 1px solid #eee;
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+            
+            .${this.config.ui.modalClass}-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 999;
+            }
+            
+            /* Button styles */
+            .${this.config.ui.buttonClass} {
+                padding: 8px 16px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background: #fff;
+                cursor: pointer;
+                font-size: 14px;
+            }
+            
+            .${this.config.ui.buttonClass}-primary {
+                background: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+            
+            .${this.config.ui.buttonClass}-danger {
+                background: #dc3545;
+                color: white;
+                border-color: #dc3545;
+            }
+            
+            /* Form styles */
+            .${this.config.ui.formClass} {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .${this.config.ui.formClass}-group {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .${this.config.ui.formClass}-label {
+                font-weight: 500;
+            }
+            
+            .${this.config.ui.inputClass} {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+            
+            .${this.config.ui.inputClass}:focus {
+                outline: none;
+                border-color: #007bff;
+                box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+            }
+            
+            /* Rules list styles */
+            .highlight-rules-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .highlight-rule-item {
+                display: flex;
+                align-items: center;
+                padding: 8px;
+                border: 1px solid #eee;
+                border-radius: 4px;
+                gap: 8px;
+            }
+            
+            .highlight-rule-item:hover {
+                background: #f8f9fa;
+            }
+            
+            .highlight-rule-color {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                border: 1px solid #ccc;
+            }
+            
+            .highlight-rule-pattern {
+                font-family: monospace;
+                flex: 1;
+            }
+            
+            .highlight-rule-actions {
+                display: flex;
+                gap: 8px;
+            }
+        `;
+        
+        document.head.appendChild(style);
     }
     
     /**************************************************************
@@ -607,7 +839,7 @@ export default class HighlightPlugin {
         items.push({
             id: 'toggleHighlighting',
             label: this.config.highlightEnabled ? 'Désactiver le surlignage' : 'Activer le surlignage',
-            icon: this.config.highlightEnabled ? '👁️' : '👁️‍🗨️'
+            icon: this.config.highlightEnabled ? '🎨' : '⚪'
         });
         
         // Options pour ajouter une règle selon le groupe
@@ -616,6 +848,10 @@ export default class HighlightPlugin {
             const hasSelection = selection && !selection.isCollapsed && selection.toString().trim() !== '';
             
             if (hasSelection) {
+                items.push({
+                    type: 'separator'
+                });
+                
                 items.push({
                     type: 'header',
                     label: 'Ajouter une règle'
@@ -627,24 +863,28 @@ export default class HighlightPlugin {
                     .forEach(group => {
                         items.push({
                             id: `addRuleToGroup:${group.id}`,
-                            label: `Sélection en ${group.name}`,
-                            icon: '✓'
+                            label: `Surligner en ${group.name}`,
+                            icon: '🖍️'
                         });
                     });
                 
-                // Option pour ajouter à 'Ignoré'
+                // Option pour ajouter aux exclusions
                 const ignoredGroup = this.config.groups.find(g => g.isExclusion);
                 if (ignoredGroup) {
                     items.push({
                         id: `addRuleToGroup:${ignoredGroup.id}`,
-                        label: `Ignorer cette sélection`,
-                        icon: '✗'
+                        label: `Ne pas surligner "${selection.toString().trim()}"`,
+                        icon: '🚫'
                     });
                 }
             }
         }
         
-        // Option pour gérer les règles (ouvre une modale)
+        // Option pour gérer les règles
+        items.push({
+            type: 'separator'
+        });
+        
         items.push({
             id: 'manageRules',
             label: 'Gérer les règles de surlignage',
@@ -675,155 +915,158 @@ export default class HighlightPlugin {
     }
     
     // Créer une règle basée sur la sélection de texte
-    createRuleFromSelection(cell, groupId) {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) {
-            alert('Veuillez d\'abord sélectionner du texte dans la cellule.');
-            return;
-        }
-        
-        // Obtenir le texte sélectionné
-        const selectedText = selection.toString().trim();
-        if (!selectedText) {
-            alert('Aucun texte sélectionné.');
-            return;
-        }
-        
-        // Vérifier que le groupe existe
-        const group = this.getGroupById(groupId);
-        if (!group) {
-            alert(`Groupe '${groupId}' introuvable.`);
-            return;
-        }
-        
-        // Échapper les caractères spéciaux de regex
-        const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        // Créer la nouvelle règle
-        const newRule = {
-            id: 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-            group: groupId,
-            regex: escapedText,
-            exclusions: []
-        };
-        
-        // Ajouter la règle
-        const addedRule = this.addRule(newRule);
-        
-        if (addedRule) {
-            // Notification succès
-            alert(`Règle ajoutée avec succès au groupe '${group.name}'`);
-        }
+   createRuleFromSelection(cell, groupId) {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+        alert('Veuillez d\'abord sélectionner du texte dans la cellule.');
+        return;
     }
     
-    // Interface graphique pour la gestion des règles
-    showRulesManager() {
-        const { modalClass, buttonClass, formClass } = this.config.ui;
-        
-        // Créer une boîte de dialogue modale pour gérer les règles
-        const modal = document.createElement('div');
-        modal.className = modalClass;
-        modal.style.position = 'fixed';
-        modal.style.top = '50%';
-        modal.style.left = '50%';
-        modal.style.transform = 'translate(-50%, -50%)';
-        modal.style.width = '600px';
-        modal.style.maxWidth = '90%';
-        modal.style.maxHeight = '80vh';
-        modal.style.backgroundColor = 'white';
-        modal.style.border = '1px solid #ccc';
-        modal.style.borderRadius = '5px';
-        modal.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-        modal.style.padding = '20px';
-        modal.style.zIndex = '2000';
-        modal.style.overflow = 'auto';
-        
-        // Contenu du modal
-        modal.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0;">Règles de surlignage</h3>
-                <button class="tf-modal-close" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
-            </div>
-            <div class="tf-rules-container" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;"></div>
-            <div style="display: flex; justify-content: space-between;">
-                <button class="tf-add-rule-btn ${buttonClass}" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Ajouter une règle
-                </button>
-                <div>
-                    ${this.config.ui.allowExport ? `
-                        <button class="tf-export-btn ${buttonClass}" style="padding: 8px 16px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;">
-                            Exporter
-                        </button>
-                    ` : ''}
-                    ${this.config.ui.allowImport ? `
-                        <button class="tf-import-btn ${buttonClass}" style="padding: 8px 16px; background: #FF9800; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            Importer
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-        
-        // Fermer le modal
-        const closeModal = () => {
-            document.body.removeChild(modal);
-            document.body.removeChild(overlay);
-        };
-        
-        // Fond semi-transparent
-        const overlay = document.createElement('div');
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        overlay.style.zIndex = '1999';
-        
-        document.body.appendChild(overlay);
-        document.body.appendChild(modal);
-        
-        // Fermer avec le bouton X
-        modal.querySelector('.tf-modal-close').addEventListener('click', closeModal);
-        
-        // Fermer avec Échap
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') {
-                closeModal();
-                document.removeEventListener('keydown', handleKeyDown);
-            }
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        
-        // Afficher les règles existantes
-        this.renderRulesList(modal.querySelector('.tf-rules-container'));
-        
-        // Bouton Ajouter
-        modal.querySelector('.tf-add-rule-btn').addEventListener('click', () => {
-            this.showAddRuleForm(modal, () => {
-                this.renderRulesList(modal.querySelector('.tf-rules-container'));
+    // Obtenir le texte sélectionné
+    const selectedText = selection.toString().trim();
+    if (!selectedText) {
+        alert('Aucun texte sélectionné.');
+        return;
+    }
+    
+    // Vérifier que le groupe existe
+    const group = this.getGroupById(groupId);
+    if (!group) {
+        alert(`Groupe '${groupId}' introuvable.`);
+        return;
+    }
+    
+    // Échapper les caractères spéciaux de regex
+    const escapedText = selectedText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Demander si la règle doit être sensible à la casse
+    const caseSensitive = confirm('Rendre la règle sensible à la casse ?');
+    
+    // Créer la nouvelle règle
+    const newRule = {
+        id: 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        group: groupId,
+        regex: caseSensitive ? escapedText : '(?i)' + escapedText,
+        exclusions: [],
+        enabled: true,
+        description: `Surligner "${selectedText}" en ${group.name}`
+    };
+    
+    // Ajouter la règle
+    const addedRule = this.addRule(newRule);
+    
+    if (addedRule) {
+        // Notification succès
+        this.notify('success', `Règle ajoutée avec succès au groupe '${group.name}'`);
+    }
+}
+
+// Interface graphique pour la gestion des règles
+showRulesManager() {
+    // Empêcher l'ouverture multiple
+    if (this.state.modalOpen) return;
+    
+    this.state.modalOpen = true;
+    
+    // Créer l'overlay
+    const overlay = document.createElement('div');
+    overlay.className = `${this.config.ui.modalClass}-overlay`;
+    
+    // Créer le modal
+    const modal = document.createElement('div');
+    modal.className = this.config.ui.modalClass;
+    
+    // En-tête
+    const header = document.createElement('div');
+    header.className = `${this.config.ui.modalClass}-header`;
+    header.innerHTML = `
+        <h3 style="margin: 0;">Gestion des règles de surlignage</h3>
+        <button class="tf-modal-close ${this.config.ui.buttonClass}" style="padding: 4px 8px;">&times;</button>
+    `;
+    
+    // Corps
+    const body = document.createElement('div');
+    body.className = `${this.config.ui.modalClass}-body`;
+    
+    // Pied de page
+    const footer = document.createElement('div');
+    footer.className = `${this.config.ui.modalClass}-footer`;
+    footer.innerHTML = `
+        <button class="tf-add-rule-btn ${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-primary">
+            Ajouter une règle
+        </button>
+        ${this.config.ui.allowExport ? `
+            <button class="tf-export-btn ${this.config.ui.buttonClass}">
+                Exporter
+            </button>
+        ` : ''}
+        ${this.config.ui.allowImport ? `
+            <button class="tf-import-btn ${this.config.ui.buttonClass}">
+                Importer
+            </button>
+        ` : ''}
+    `;
+    
+    // Assembler le modal
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    
+    // Ajouter au DOM
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+    
+    // Afficher les règles
+    this.renderRulesList(body);
+    
+    // Gestionnaires d'événements
+    const closeModal = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(modal);
+        this.state.modalOpen = false;
+    };
+    
+    // Fermer sur clic overlay
+    overlay.addEventListener('click', closeModal);
+    
+    // Fermer sur clic bouton X
+    header.querySelector('.tf-modal-close').addEventListener('click', closeModal);
+    
+    // Fermer avec Échap
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape' && this.state.modalOpen) {
+            closeModal();
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Bouton Ajouter
+    footer.querySelector('.tf-add-rule-btn').addEventListener('click', () => {
+        this.showAddRuleForm((newRule) => {
+            this.renderRulesList(body);
+        });
+    });
+    
+    // Bouton Exporter
+    const exportBtn = footer.querySelector('.tf-export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            this.exportRules();
+        });
+    }
+    
+    // Bouton Importer
+    const importBtn = footer.querySelector('.tf-import-btn');
+    if (importBtn) {
+        importBtn.addEventListener('click', () => {
+            this.importRules(() => {
+                this.renderRulesList(body);
             });
         });
-        
-        // Bouton Exporter si présent
-        const exportBtn = modal.querySelector('.tf-export-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
-                this.exportRules();
-            });
-        }
-        
-        // Bouton Importer si présent
-        const importBtn = modal.querySelector('.tf-import-btn');
-        if (importBtn) {
-            importBtn.addEventListener('click', () => {
-                this.importRules(() => {
-                    this.renderRulesList(modal.querySelector('.tf-rules-container'));
-                });
-            });
-        }
     }
-    
+}
+
 // Afficher la liste des règles
 renderRulesList(container) {
     container.innerHTML = '';
@@ -833,355 +1076,304 @@ renderRulesList(container) {
         return;
     }
     
-    // Option pour grouper par couleur
-    let rules = [...this.config.rules];
+    const list = document.createElement('div');
+    list.className = 'highlight-rules-list';
     
+    // Grouper les règles si nécessaire
     if (this.config.ui.groupByColor) {
-        // Grouper les règles par groupe
-        const groupedRules = {};
-        
-        // Créer les sections de groupe
+        // Créer les sections pour chaque groupe
         this.config.groups.forEach(group => {
-            groupedRules[group.id] = {
-                group: group,
-                rules: []
-            };
-        });
-        
-        // Ajouter chaque règle à son groupe correspondant
-        rules.forEach(rule => {
-            if (groupedRules[rule.group]) {
-                groupedRules[rule.group].rules.push(rule);
-            }
-        });
-        
-        // Générer le HTML pour chaque groupe qui a des règles
-        Object.values(groupedRules).forEach(groupData => {
-            if (groupData.rules.length === 0) return;
+            const groupRules = this.config.rules.filter(rule => rule.group === group.id);
+            if (groupRules.length === 0) return;
             
-            // En-tête du groupe si activé
+            // En-tête du groupe
             if (this.config.ui.showGroupHeaders) {
                 const groupHeader = document.createElement('div');
-                groupHeader.style.padding = '5px 10px';
-                groupHeader.style.background = '#f8f8f8';
-                groupHeader.style.borderBottom = '1px solid #ddd';
-                groupHeader.style.fontWeight = 'bold';
+                groupHeader.style.padding = '8px';
+                groupHeader.style.background = '#f8f9fa';
+                groupHeader.style.borderRadius = '4px';
                 groupHeader.style.marginBottom = '8px';
+                groupHeader.style.display = 'flex';
+                groupHeader.style.alignItems = 'center';
+                groupHeader.style.gap = '8px';
                 
                 // Prévisualisation de la couleur
                 const colorPreview = document.createElement('span');
-                colorPreview.style.display = 'inline-block';
-                colorPreview.style.width = '15px';
-                colorPreview.style.height = '15px';
-                colorPreview.style.borderRadius = '50%';
-                colorPreview.style.marginRight = '5px';
-                colorPreview.style.verticalAlign = 'middle';
-                colorPreview.style.backgroundColor = groupData.group.backgroundColor || 'transparent';
-                colorPreview.style.border = '1px solid #ccc';
-                
-                if (groupData.group.color && groupData.group.color !== 'inherit') {
-                    colorPreview.style.color = groupData.group.color;
-                    colorPreview.innerHTML = 'A';
-                }
+                colorPreview.className = 'highlight-rule-color';
+                colorPreview.style.backgroundColor = group.backgroundColor || '#fff';
+                colorPreview.style.color = group.color || '#000';
+                colorPreview.innerHTML = 'A';
                 
                 groupHeader.appendChild(colorPreview);
-                groupHeader.appendChild(document.createTextNode(groupData.group.name));
-                container.appendChild(groupHeader);
+                groupHeader.appendChild(document.createTextNode(group.name));
+                list.appendChild(groupHeader);
             }
             
-            // Afficher les règles de ce groupe
-            groupData.rules.forEach(rule => {
-                this.renderRuleItem(container, rule, groupData.group);
+            // Afficher les règles du groupe
+            groupRules.forEach(rule => {
+                list.appendChild(this.createRuleElement(rule, group));
             });
         });
     } else {
-        // Affichage plat de toutes les règles
-        rules.forEach(rule => {
+        // Affichage plat
+        this.config.rules.forEach(rule => {
             const group = this.getGroupById(rule.group);
             if (group) {
-                this.renderRuleItem(container, rule, group);
+                list.appendChild(this.createRuleElement(rule, group));
             }
         });
     }
+    
+    container.appendChild(list);
 }
 
-// Rendu d'un élément de règle
-renderRuleItem(container, rule, group) {
-    const ruleItem = document.createElement('div');
-    ruleItem.style.display = 'flex';
-    ruleItem.style.alignItems = 'center';
-    ruleItem.style.padding = '10px';
-    ruleItem.style.borderBottom = '1px solid #eee';
-    ruleItem.style.marginBottom = '8px';
-    
-    // Expression régulière
-    const regexDiv = document.createElement('div');
-    regexDiv.style.flex = '1';
-    regexDiv.style.fontFamily = 'monospace';
-    regexDiv.style.fontSize = '0.9em';
-    regexDiv.textContent = rule.regex;
-    ruleItem.appendChild(regexDiv);
+// Créer un élément de règle
+createRuleElement(rule, group) {
+    const ruleElement = document.createElement('div');
+    ruleElement.className = 'highlight-rule-item';
     
     // Case à cocher pour activer/désactiver
-    const enabledCheckbox = document.createElement('input');
-    enabledCheckbox.type = 'checkbox';
-    enabledCheckbox.checked = rule.enabled !== false;
-    enabledCheckbox.addEventListener('change', () => {
-        this.updateRule(rule.id, { enabled: enabledCheckbox.checked });
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = rule.enabled !== false;
+    checkbox.addEventListener('change', () => {
+        this.updateRule(rule.id, { enabled: checkbox.checked });
     });
-    ruleItem.appendChild(enabledCheckbox);
     
-    // Boutons d'action
+    // Prévisualisation de la couleur
+    const colorPreview = document.createElement('span');
+    colorPreview.className = 'highlight-rule-color';
+    colorPreview.style.backgroundColor = group.backgroundColor || '#fff';
+    
+    // Pattern regex
+    const pattern = document.createElement('div');
+    pattern.className = 'highlight-rule-pattern';
+    pattern.textContent = rule.regex;
+    pattern.title = rule.description || rule.regex;
+    
+    // Actions
     const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '5px';
-    actions.style.marginLeft = '10px';
+    actions.className = 'highlight-rule-actions';
     
-    // Bouton Modifier
-    const editButton = document.createElement('button');
-    editButton.innerHTML = '✏️';
-    editButton.title = 'Modifier';
-    editButton.style.background = 'none';
-    editButton.style.border = '1px solid #ddd';
-    editButton.style.borderRadius = '3px';
-    editButton.style.padding = '3px 8px';
-    editButton.style.cursor = 'pointer';
-    editButton.addEventListener('click', () => {
+    // Bouton Éditer
+    const editBtn = document.createElement('button');
+    editBtn.className = this.config.ui.buttonClass;
+    editBtn.innerHTML = '✏️';
+    editBtn.title = 'Modifier';
+    editBtn.addEventListener('click', () => {
         this.showEditRuleForm(rule, () => {
-            this.renderRulesList(container);
+            this.renderRulesList(ruleElement.parentElement.parentElement);
         });
     });
-    actions.appendChild(editButton);
     
     // Bouton Supprimer
-    const deleteButton = document.createElement('button');
-    deleteButton.innerHTML = '🗑️';
-    deleteButton.title = 'Supprimer';
-    deleteButton.style.background = 'none';
-    deleteButton.style.border = '1px solid #ddd';
-    deleteButton.style.borderRadius = '3px';
-    deleteButton.style.padding = '3px 8px';
-    deleteButton.style.cursor = 'pointer';
-    deleteButton.addEventListener('click', () => {
-        if (confirm(`Êtes-vous sûr de vouloir supprimer cette règle ?`)) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = `${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-danger`;
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.title = 'Supprimer';
+    deleteBtn.addEventListener('click', () => {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cette règle ?')) {
             this.deleteRule(rule.id);
-            this.renderRulesList(container);
+            this.renderRulesList(ruleElement.parentElement.parentElement);
         }
     });
-    actions.appendChild(deleteButton);
     
-    ruleItem.appendChild(actions);
-    container.appendChild(ruleItem);
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    
+    // Assembler l'élément
+    ruleElement.appendChild(checkbox);
+    ruleElement.appendChild(colorPreview);
+    ruleElement.appendChild(pattern);
+    ruleElement.appendChild(actions);
+    
+    return ruleElement;
 }
 
 // Formulaire d'ajout de règle
-showAddRuleForm(modal, callback) {
-    const formContainer = document.createElement('div');
-    formContainer.style.position = 'fixed';
-    formContainer.style.top = '50%';
-    formContainer.style.left = '50%';
-    formContainer.style.transform = 'translate(-50%, -50%)';
-    formContainer.style.zIndex = '2001';
-    formContainer.style.backgroundColor = 'white';
-    formContainer.style.padding = '20px';
-    formContainer.style.borderRadius = '5px';
-    formContainer.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
-    formContainer.style.width = '500px';
-    formContainer.style.maxWidth = '90%';
-    
-    // Générer les options de groupe
-    const groupOptions = this.config.groups.map(group => 
-        `<option value="${group.id}">${group.name}</option>`
-    ).join('');
-    
-    formContainer.innerHTML = `
-        <h3 style="margin-top: 0;">Ajouter une règle</h3>
-        <form id="add-rule-form">
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Groupe</label>
-                <select id="rule-group" style="width: 100%; padding: 8px; box-sizing: border-box;" required>
-                    ${groupOptions}
-                </select>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Expression régulière</label>
-                <input type="text" id="rule-regex" style="width: 100%; padding: 8px; box-sizing: border-box;" required>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Exclusions (séparées par des sauts de ligne)</label>
-                <textarea id="rule-exclusions" style="width: 100%; padding: 8px; box-sizing: border-box; height: 80px;"></textarea>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: flex; align-items: center;">
-                    <input type="checkbox" id="rule-enabled" checked>
-                    <span style="margin-left: 5px;">Activer cette règle</span>
-                </label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" id="cancel-rule" style="padding: 8px 16px; background: #ccc; border: none; border-radius: 4px; cursor: pointer;">
-                    Annuler
-                </button>
-                <button type="submit" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Ajouter
-                </button>
-            </div>
-        </form>
-    `;
-    
-    document.body.appendChild(formContainer);
-    
-    // Fermer le formulaire
-    const closeForm = () => {
-        document.body.removeChild(formContainer);
-    };
-    
-    // Gérer l'annulation
-    formContainer.querySelector('#cancel-rule').addEventListener('click', closeForm);
-    
-    // Gérer la soumission
-    formContainer.querySelector('#add-rule-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const group = formContainer.querySelector('#rule-group').value;
-        const regex = formContainer.querySelector('#rule-regex').value;
-        const exclusionsText = formContainer.querySelector('#rule-exclusions').value;
-        const enabled = formContainer.querySelector('#rule-enabled').checked;
-        
-        // Traitement des exclusions
-        const exclusions = exclusionsText
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line !== '');
-        
-        try {
-            // Vérifier que la regex est valide
-            new RegExp(regex);
-            
-            // Créer la règle
-            const newRule = {
-                id: 'rule_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                group,
-                regex,
-                exclusions,
-                enabled
-            };
-            
-            // Ajouter la règle
-            this.addRule(newRule);
-            
-            // Fermer le formulaire
-            closeForm();
-            
-            // Rappeler le callback
-            if (typeof callback === 'function') {
-                callback();
-            }
-        } catch (error) {
-            alert('Expression régulière invalide: ' + error.message);
-        }
-    });
+showAddRuleForm(callback) {
+    this.showRuleForm(null, callback);
 }
 
-// Formulaire de modification de règle
+// Formulaire d'édition de règle
 showEditRuleForm(rule, callback) {
-    const formContainer = document.createElement('div');
-    formContainer.style.position = 'fixed';
-    formContainer.style.top = '50%';
-    formContainer.style.left = '50%';
-    formContainer.style.transform = 'translate(-50%, -50%)';
-    formContainer.style.zIndex = '2001';
-    formContainer.style.backgroundColor = 'white';
-    formContainer.style.padding = '20px';
-    formContainer.style.borderRadius = '5px';
-    formContainer.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
-    formContainer.style.width = '500px';
-    formContainer.style.maxWidth = '90%';
+    this.showRuleForm(rule, callback);
+}
+
+// Formulaire générique pour les règles
+showRuleForm(rule, callback) {
+    const isEdit = !!rule;
     
-    // Générer les options de groupe
-    const groupOptions = this.config.groups.map(group => 
-        `<option value="${group.id}" ${rule.group === group.id ? 'selected' : ''}>${group.name}</option>`
-    ).join('');
+    // Créer l'overlay
+    const overlay = document.createElement('div');
+    overlay.className = `${this.config.ui.modalClass}-overlay`;
+    overlay.style.zIndex = '1001';
     
-    // Exclusions comme texte
-    const exclusionsText = rule.exclusions && Array.isArray(rule.exclusions) ? 
-        rule.exclusions.join('\n') : '';
+    // Créer le formulaire
+    const formModal = document.createElement('div');
+    formModal.className = this.config.ui.modalClass;
+    formModal.style.zIndex = '1002';
+    formModal.style.width = '500px';
     
-    formContainer.innerHTML = `
-        <h3 style="margin-top: 0;">Modifier la règle</h3>
-        <form id="edit-rule-form">
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Groupe</label>
-                <select id="rule-group" style="width: 100%; padding: 8px; box-sizing: border-box;" required>
-                    ${groupOptions}
-                </select>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Expression régulière</label>
-                <input type="text" id="rule-regex" style="width: 100%; padding: 8px; box-sizing: border-box;" required value="${rule.regex || ''}">
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: block; margin-bottom: 5px;">Exclusions (séparées par des sauts de ligne)</label>
-                <textarea id="rule-exclusions" style="width: 100%; padding: 8px; box-sizing: border-box; height: 80px;">${exclusionsText}</textarea>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="display: flex; align-items: center;">
-                    <input type="checkbox" id="rule-enabled" ${rule.enabled !== false ? 'checked' : ''}>
-                    <span style="margin-left: 5px;">Activer cette règle</span>
-                </label>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" id="cancel-rule" style="padding: 8px 16px; background: #ccc; border: none; border-radius: 4px; cursor: pointer;">
-                    Annuler
-                </button>
-                <button type="submit" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Mettre à jour
-                </button>
-            </div>
-        </form>
+    formModal.innerHTML = `
+        <div class="${this.config.ui.modalClass}-header">
+            <h3 style="margin: 0;">${isEdit ? 'Modifier la règle' : 'Ajouter une règle'}</h3>
+            <button class="tf-form-close ${this.config.ui.buttonClass}" style="padding: 4px 8px;">&times;</button>
+        </div>
+        <div class="${this.config.ui.modalClass}-body">
+            <form class="${this.config.ui.formClass}">
+                <div class="${this.config.ui.formClass}-group">
+                    <label class="${this.config.ui.formClass}-label">Groupe</label>
+                    <select name="group" class="${this.config.ui.inputClass}" required>
+                        ${this.config.groups.map(group => `
+                            <option value="${group.id}" ${rule && rule.group === group.id ? 'selected' : ''}>
+                                ${group.name}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                
+                <div class="${this.config.ui.formClass}-group">
+                    <label class="${this.config.ui.formClass}-label">Expression régulière</label>
+                    <input type="text" name="regex" class="${this.config.ui.inputClass}" 
+                           value="${rule ? rule.regex : ''}" required>
+                    <small style="color: #666;">Utilisez (?i) au début pour ignorer la casse</small>
+                </div>
+                
+                <div class="${this.config.ui.formClass}-group">
+                    <label class="${this.config.ui.formClass}-label">Description (optionnelle)</label>
+                    <input type="text" name="description" class="${this.config.ui.inputClass}" 
+                           value="${rule ? rule.description || '' : ''}">
+                </div>
+                
+                <div class="${this.config.ui.formClass}-group">
+                    <label class="${this.config.ui.formClass}-label">Exclusions (une par ligne)</label>
+                    <textarea name="exclusions" class="${this.config.ui.inputClass}" rows="3">${
+                        rule && rule.exclusions ? rule.exclusions.join('\n') : ''
+                    }</textarea>
+                </div>
+                
+                <div class="${this.config.ui.formClass}-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="enabled" ${!rule || rule.enabled !== false ? 'checked' : ''}>
+                        Activer cette règle
+                    </label>
+                </div>
+                
+                ${this.config.ui.showPreview ? `
+                    <div class="${this.config.ui.formClass}-group">
+                        <label class="${this.config.ui.formClass}-label">Prévisualisation</label>
+                        <div class="highlight-preview" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 40px;">
+                            Entrez du texte pour tester...
+                        </div>
+                    </div>
+                ` : ''}
+            </form>
+        </div>
+        <div class="${this.config.ui.modalClass}-footer">
+            <button type="button" class="tf-form-cancel ${this.config.ui.buttonClass}">Annuler</button>
+            <button type="submit" class="tf-form-submit ${this.config.ui.buttonClass} ${this.config.ui.buttonClass}-primary">
+                ${isEdit ? 'Mettre à jour' : 'Ajouter'}
+            </button>
+        </div>
     `;
     
-    document.body.appendChild(formContainer);
+    // Ajouter au DOM
+    document.body.appendChild(overlay);
+    document.body.appendChild(formModal);
     
-    // Fermer le formulaire
+    // Récupérer les éléments
+    const form = formModal.querySelector('form');
+    const closeBtn = formModal.querySelector('.tf-form-close');
+    const cancelBtn = formModal.querySelector('.tf-form-cancel');
+    const submitBtn = formModal.querySelector('.tf-form-submit');
+    const preview = formModal.querySelector('.highlight-preview');
+    
+    // Gestionnaire de fermeture
     const closeForm = () => {
-        document.body.removeChild(formContainer);
+        document.body.removeChild(overlay);
+        document.body.removeChild(formModal);
     };
     
-    // Gérer l'annulation
-    formContainer.querySelector('#cancel-rule').addEventListener('click', closeForm);
+    overlay.addEventListener('click', closeForm);
+    closeBtn.addEventListener('click', closeForm);
+    cancelBtn.addEventListener('click', closeForm);
     
-    // Gérer la soumission
-    formContainer.querySelector('#edit-rule-form').addEventListener('submit', (e) => {
+    // Prévisualisation en temps réel
+    if (preview) {
+        const updatePreview = () => {
+            const regex = form.elements.regex.value;
+            const group = this.getGroupById(form.elements.group.value);
+            
+            if (!regex || !group) {
+                preview.textContent = 'Entrez une expression régulière valide...';
+                return;
+            }
+            
+            try {
+                const testText = 'Voici un exemple de texte pour tester votre expression régulière.';
+                const tempRule = {
+                    regex: regex,
+                    group: group.id,
+                    enabled: true
+                };
+                
+                // Créer une copie temporaire des règles
+                const originalRules = this.config.rules;
+                this.config.rules = [tempRule];
+                
+                // Appliquer le surlignage
+                const highlighted = this.highlightText(testText);
+                preview.innerHTML = highlighted;
+                
+                // Restaurer les règles originales
+                this.config.rules = originalRules;
+            } catch (error) {
+                preview.textContent = 'Expression régulière invalide';
+                preview.style.color = 'red';
+            }
+        };
+        
+        form.elements.regex.addEventListener('input', updatePreview);
+        form.elements.group.addEventListener('change', updatePreview);
+        
+        // Mise à jour initiale
+        if (rule) {
+            updatePreview();
+        }
+    }
+    
+    // Soumission du formulaire
+    form.addEventListener('submit', (e) => {
         e.preventDefault();
         
-        const group = formContainer.querySelector('#rule-group').value;
-        const regex = formContainer.querySelector('#rule-regex').value;
-        const exclusionsText = formContainer.querySelector('#rule-exclusions').value;
-        const enabled = formContainer.querySelector('#rule-enabled').checked;
-        
-        // Traitement des exclusions
-        const exclusions = exclusionsText
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line !== '');
+        // Récupérer les valeurs
+        const formData = {
+            group: form.elements.group.value,
+            regex: form.elements.regex.value,
+            description: form.elements.description.value,
+            exclusions: form.elements.exclusions.value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line !== ''),
+            enabled: form.elements.enabled.checked
+        };
         
         try {
-            // Vérifier que la regex est valide
-            new RegExp(regex);
+            // Valider la regex
+            new RegExp(formData.regex);
             
-            // Mettre à jour la règle
-            this.updateRule(rule.id, {
-                group,
-                regex,
-                exclusions,
-                enabled
-            });
+            if (isEdit) {
+                // Mise à jour
+                this.updateRule(rule.id, formData);
+            } else {
+                // Création
+                this.addRule(formData);
+            }
             
-            // Fermer le formulaire
             closeForm();
             
-            // Rappeler le callback
-            if (typeof callback === 'function') {
+            if (callback) {
                 callback();
             }
         } catch (error) {
@@ -1195,23 +1387,27 @@ exportRules() {
     try {
         const dataToExport = {
             groups: this.config.groups,
-            rules: this.config.rules
+            rules: this.config.rules,
+            version: this.version,
+            exportDate: new Date().toISOString()
         };
         
-        const dataStr = "data:text/json;charset=utf-8," + 
-                      encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+        const dataStr = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
         
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "highlight-rules.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `highlight-rules-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        alert('Configuration exportée avec succès !');
+        this.notify('success', 'Configuration exportée avec succès');
     } catch (error) {
         console.error('Error exporting configuration:', error);
-        alert('Erreur lors de l\'export de la configuration: ' + error.message);
+        this.notify('error', 'Erreur lors de l\'export: ' + error.message);
     }
 }
 
@@ -1221,31 +1417,25 @@ importRules(callback) {
     input.type = 'file';
     input.accept = '.json';
     
-    input.onchange = e => {
+    input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         
         const reader = new FileReader();
-        reader.onload = event => {
+        reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
                 
-                // Vérifier la validité minimale
+                // Validation de base
                 if (!data.groups || !Array.isArray(data.groups) || 
                     !data.rules || !Array.isArray(data.rules)) {
-                    throw new Error('Format invalide: la configuration doit contenir "groups" et "rules"');
+                    throw new Error('Format invalide');
                 }
                 
-                // Vérifier les règles et les groupes
-                data.groups.forEach(group => {
-                    if (!group.id) {
-                        throw new Error('Groupe invalide: ID manquant');
-                    }
-                });
-                
+                // Validation des règles
                 data.rules.forEach(rule => {
                     if (!rule.regex || !rule.group) {
-                        throw new Error('Règle invalide: regex ou groupe manquant');
+                        throw new Error('Règle invalide détectée');
                     }
                     
                     // Vérifier que la regex est valide
@@ -1257,24 +1447,26 @@ importRules(callback) {
                     }
                 });
                 
-                // Remplacer la configuration actuelle
+                // Appliquer l'import
                 this.config.groups = data.groups;
                 this.config.rules = data.rules;
                 this.saveRules();
-                
-                // Réappliquer le surlignage
+                this.clearCache();
                 this.highlightAllCells();
                 
-                // Rappeler le callback
-                if (typeof callback === 'function') {
+                this.notify('success', 'Configuration importée avec succès');
+                
+                if (callback) {
                     callback();
                 }
-                
-                alert('Configuration importée avec succès !');
             } catch (error) {
                 console.error('Error importing configuration:', error);
-                alert('Erreur lors de l\'import de la configuration: ' + error.message);
+                this.notify('error', 'Erreur lors de l\'import: ' + error.message);
             }
+        };
+        
+        reader.onerror = () => {
+            this.notify('error', 'Erreur lors de la lecture du fichier');
         };
         
         reader.readAsText(file);
@@ -1283,8 +1475,20 @@ importRules(callback) {
     input.click();
 }
 
+// Notification utilitaire
+notify(type, message) {
+    // Utiliser le système de notification du tableau si disponible
+    if (this.table && this.table.notify) {
+        this.table.notify(type, message);
+    } else {
+        // Fallback sur console
+        console[type === 'error' ? 'error' : 'log'](`[HighlightPlugin] ${message}`);
+    }
+}
+
 refresh() {
     if (this.config.highlightEnabled) {
+        this.clearCache();
         this.highlightAllCells();
     }
 }
@@ -1292,12 +1496,21 @@ refresh() {
 destroy() {
     // Se désabonner des hooks du plugin Edit
     if (this.editPlugin) {
-        // Idéalement, il faudrait une méthode removeHook dans EditPlugin
+        this.editPlugin.removeHooksByNamespace('highlight');
     }
     
     // Se désabonner du plugin de menu contextuel
     if (this.contextMenuPlugin) {
-        // Idéalement, il faudrait une méthode unregisterProvider dans ContextMenuPlugin
+        // TODO: Implémenter unregisterProvider dans ContextMenuPlugin
+    }
+    
+    // Nettoyer les caches
+    this.clearCache();
+    
+    // Nettoyer les styles
+    const style = document.getElementById('highlight-plugin-styles');
+    if (style) {
+        style.remove();
     }
 }
 }
