@@ -1,3 +1,21 @@
 [submodule "public/assets/libs/colorFlow"]
 	path = public/assets/libs/colorFlow
 	url = git@github.com:nicko27/colorFlow.git
+[submodule "public/assets/libs/dateFlow"]
+	path = public/assets/libs/dateFlow
+	url = git@github.com:nicko27/dateFlow.git
+[submodule "public/assets/libs/modalFlow"]
+	path = public/assets/libs/modalFlow
+	url = git@github.com:nicko27/modalFlow.git
+[submodule "public/assets/libs/notifyFlow"]
+	path = public/assets/libs/notifyFlow
+	url = git@github.com:nicko27/notifyFlow.git
+[submodule "public/assets/libs/tableFlow"]
+	path = public/assets/libs/tableFlow
+	url = git@github.com:nicko27/tableFlow.git
+[submodule "public/assets/libs/tooltipFlow"]
+	path = public/assets/libs/tooltipFlow
+	url = git@github.com:nicko27/tooltipFlow.git
+[submodule "public/assets/libs/updateFlow"]
+	path = public/assets/libs/updateFlow
+	url = git@github.com:nicko27/updateFlow.git
