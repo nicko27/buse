@@ -1,4 +1,5 @@
-import { PLUGIN_TYPES } from './types.js';
+import { PLUGIN_TYPES } from '../types.js';
+import { Logger } from './utils/logger.js';
 
 export default class InstancePluginManager {
     constructor(config = {}) {
@@ -7,9 +8,10 @@ export default class InstancePluginManager {
             debug: false,
             ...config
         };
+        this.logger = new Logger('InstancePluginManager');
 
         this.debug = this.config.debug ? 
-            (...args) => console.log('[InstancePluginManager]', ...args) : 
+            (...args) => this.logger.debug(...args) : 
             () => {};
 
         // Handlers liés
