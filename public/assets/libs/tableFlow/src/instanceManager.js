@@ -1,5 +1,4 @@
 import { PLUGIN_TYPES } from './types.js';
-import { InstancePluginManager } from './instancePluginManager.js';
 
 export default class InstanceManager {
     constructor(config = {}) {
@@ -42,17 +41,19 @@ export default class InstanceManager {
         });
     }
 
-    addInstance(id, instance) {
-        if (!id || !instance) {
-            throw new Error('ID et instance requis');
+    createInstance(id, config) {
+        if (!id) {
+            throw new Error('ID requis pour créer une instance');
         }
 
         if (this.instances.has(id)) {
             throw new Error(`Une instance avec l'ID ${id} existe déjà`);
         }
 
+        const instance = new TableInstance(id, config);
         this.instances.set(id, instance);
-        this.debug(`Instance ajoutée: ${id}`);
+        this.debug(`Instance créée: ${id}`);
+        return instance;
     }
 
     getInstance(id) {
@@ -125,13 +126,17 @@ class TableInstance {
         this.cellStates = new Map();
 
         // Initialisation du gestionnaire de plugins
-        this.pluginManager = new InstancePluginManager(this);
+        this.pluginManager = null; // Ne sera initialisé que lors de l'appel à init()
     }
 
     /**
      * Initialise l'instance
      */
-    async init() {
+    async init(pluginManager) {
+        if (!pluginManager) {
+            throw new Error('PluginManager requis pour initialiser l\'instance');
+        }
+        this.pluginManager = pluginManager;
         this.setupTable();
         await this.initPlugins();
     }

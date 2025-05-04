@@ -483,6 +483,7 @@ export class FilterPlugin {
                 }
             }
         };
+
     }
 
     destroy() {
@@ -493,4 +494,4 @@ export class FilterPlugin {
         document.removeEventListener('keydown', this.handleKeydown);
         this.metrics.increment('plugin_filter_destroy');
     }
-} 
+} } 

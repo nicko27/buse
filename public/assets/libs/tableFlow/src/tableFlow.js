@@ -8,6 +8,7 @@ import { TableDom } from './dom/tableDom.js';
 import { TableState } from './state/tableState.js';
 import { NotificationManager } from './utils/notificationManager.js';
 import { DataManager } from './utils/dataManager.js';
+import { instanceManager } from './instanceManager.js';
 
 class ErrorHandler {
     constructor(tableFlow) {
@@ -191,13 +192,20 @@ export default class TableFlow {
             this.config.setConfig(options);
 
             // Récupérer la table
-            const table = document.getElementById(this.config.get('tableId'));
+            const tableId = this.config.get('tableId');
+            const table = document.getElementById(tableId);
             if (!table) {
-                throw new Error(`Table avec l'id "${this.config.get('tableId')}" non trouvée`);
+                throw new Error(`Table avec l'id "${tableId}" non trouvée`);
             }
             if (table.tagName.toLowerCase() !== 'table') {
-                throw new Error(`L'élément avec l'id "${this.config.get('tableId')}" n'est pas une table`);
+                throw new Error(`L'élément avec l'id "${tableId}" n'est pas une table`);
             }
+
+            // Créer une instance via InstanceManager
+            const instance = instanceManager.createInstance(tableId, {
+                ...options,
+                tableElement: table
+            });
 
             // Initialiser le gestionnaire DOM
             this.dom = new TableDom(table, {
@@ -653,22 +661,26 @@ export default class TableFlow {
         try {
             this.logger.info('Destruction de l\'instance TableFlow...');
 
+            // Supprimer les écouteurs d'événements
+            this.eventBus.destroy();
+
             // Détruire les gestionnaires
-            this.eventBus.removeAllListeners();
             this.cache.destroy();
             this.validation.destroy();
             this.metrics.destroy();
-            this.dom.destroy();
+            this.notifications.destroy();
+            this.dataManager.destroy();
 
-            // Détruire les plugins
-            this.plugins?.forEach(plugin => {
-                try {
-                    plugin.destroy();
-                } catch (error) {
-                    this.logger.error(`Erreur lors de la destruction du plugin: ${error.message}`, error);
-                }
-            });
-            this.plugins?.clear();
+            // Détruire l'instance via InstanceManager
+            const tableId = this.config.get('tableId');
+            instanceManager.removeInstance(tableId);
+
+            // Nettoyer les références
+            this.dom = null;
+            this.state = null;
+            this.hooks.clear();
+            this.cooperativePlugins = null;
+            this.sharedState = null;
 
             this.logger.success('Instance TableFlow détruite avec succès');
         } catch (error) {

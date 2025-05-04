@@ -1,4 +1,3 @@
-import { pluginRegistry } from './pluginRegistry.js';
 import { PLUGIN_TYPES } from './types.js';
 
 export default class InstancePluginManager {
@@ -15,9 +14,17 @@ export default class InstancePluginManager {
 
         // Handlers liés
         this._boundPluginChangeHandler = this.handlePluginChange.bind(this);
+        
+        // Référence au registre de plugins
+        this.pluginRegistry = null;
     }
 
-    init() {
+    init(pluginRegistry) {
+        if (!pluginRegistry) {
+            throw new Error('PluginRegistry requis pour initialiser le gestionnaire de plugins');
+        }
+        this.pluginRegistry = pluginRegistry;
+        
         // Ajouter les écouteurs d'événements
         document.addEventListener('plugin:change', this._boundPluginChangeHandler);
     }
@@ -117,5 +124,25 @@ export default class InstancePluginManager {
 
         // Vider la Map des plugins
         this.plugins.clear();
+    }
+
+    async activate(name, config = {}) {
+        if (!this.pluginRegistry) {
+            throw new Error('PluginRegistry non initialisé');
+        }
+
+        try {
+            const PluginClass = await this.pluginRegistry.load(name);
+            const plugin = new PluginClass(config);
+            this.registerPlugin({
+                id: name,
+                instance: plugin,
+                config
+            });
+            return plugin;
+        } catch (error) {
+            this.debug(`Erreur lors de l'activation du plugin ${name}:`, error);
+            throw error;
+        }
     }
 }

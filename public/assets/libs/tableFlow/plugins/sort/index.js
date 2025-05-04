@@ -1,41 +1,62 @@
+import { BasePlugin } from '../basePlugin.js';
 import { config } from './config.js';
 
-export class SortPlugin {
-    constructor(tableFlow, options = {}) {
-        this.tableFlow = tableFlow;
-        this.config = { ...config, ...options };
-        this.logger = tableFlow.logger;
-        this.metrics = tableFlow.metrics;
-        this.errorHandler = tableFlow.errorHandler;
+export class SortPlugin extends BasePlugin {
+    constructor(config = {}) {
+        const pluginConfig = {
+            enabled: true,
+            debug: false,
+            execOrder: 20,
+            dependencies: ['contextmenu'],
+            
+            // Configuration spécifique au tri
+            defaultSort: {
+                column: null,
+                direction: 'asc'
+            },
+            sortableClass: 'sortable',
+            sortAscClass: 'sort-asc',
+            sortDescClass: 'sort-desc',
+            keyboard: {
+                enabled: true,
+                sortOnEnter: true
+            },
+            ...config
+        };
+
+        super(pluginConfig);
+
         this.sortState = {
-            column: this.config.defaultSort.column,
-            direction: this.config.defaultSort.direction,
+            column: this.config.get('defaultSort.column'),
+            direction: this.config.get('defaultSort.direction'),
             multiSort: []
         };
     }
 
-    init() {
-        this.logger.info('Initializing Sort plugin');
-        this.setupEventListeners();
-        this.registerHooks();
-        this.setupContextMenu();
+    async onInit(context) {
+        this.logger.info('Initialisation du plugin Sort');
+        
+        this.setupEventListeners(context);
+        this.registerHooks(context);
+        this.setupContextMenu(context);
+        
         this.metrics.increment('plugin_sort_init');
     }
 
-    setupEventListeners() {
-        this.tableFlow.on('headerClick', this.handleHeaderClick.bind(this));
-        this.tableFlow.on('headerKeydown', this.handleHeaderKeydown.bind(this));
+    setupEventListeners(context) {
+        context.eventBus.on('headerClick', this.handleHeaderClick.bind(this));
+        context.eventBus.on('headerKeydown', this.handleHeaderKeydown.bind(this));
     }
 
-    registerHooks() {
-        this.tableFlow.hooks.register('beforeSort', this.beforeSort.bind(this));
-        this.tableFlow.hooks.register('afterSort', this.afterSort.bind(this));
-        this.tableFlow.hooks.register('beforeMultiSort', this.beforeMultiSort.bind(this));
-        this.tableFlow.hooks.register('afterMultiSort', this.afterMultiSort.bind(this));
+    registerHooks(context) {
+        context.hooks.register('beforeSort', this.beforeSort.bind(this));
+        context.hooks.register('afterSort', this.afterSort.bind(this));
+        context.hooks.register('beforeMultiSort', this.beforeMultiSort.bind(this));
+        context.hooks.register('afterMultiSort', this.afterMultiSort.bind(this));
     }
 
-    setupContextMenu() {
-        this.tableFlow.plugins.contextMenu.registerProvider({
+    setupContextMenu(context) {
+        context.plugins.contextMenu.registerProvider({
             getMenuItems: (cell) => {
                 if (cell.tagName === 'TH') {
                     return [
@@ -59,8 +80,10 @@ export class SortPlugin {
     }
 
     handleHeaderClick(event) {
+        if (!this.config.get('enabled')) return;
+        
         const header = event.target.closest('th');
-        if (!header || !header.classList.contains(this.config.sortableClass)) return;
+        if (!header || !header.classList.contains(this.config.get('sortableClass'))) return;
 
         const column = header.dataset.column;
         const direction = this.getNextDirection(column);
@@ -68,12 +91,12 @@ export class SortPlugin {
     }
 
     handleHeaderKeydown(event) {
-        if (!this.config.keyboard.enabled) return;
+        if (!this.config.get('enabled') || !this.config.get('keyboard.enabled')) return;
 
         const header = event.target.closest('th');
-        if (!header || !header.classList.contains(this.config.sortableClass)) return;
+        if (!header || !header.classList.contains(this.config.get('sortableClass'))) return;
 
-        if (event.key === 'Enter' && this.config.keyboard.sortOnEnter) {
+        if (event.key === 'Enter' && this.config.get('keyboard.sortOnEnter')) {
             const column = header.dataset.column;
             const direction = this.getNextDirection(column);
             this.sortColumn(column, direction, event.shiftKey);
@@ -90,7 +113,7 @@ export class SortPlugin {
     async sortColumn(column, direction, isMultiSort = false) {
         try {
             if (isMultiSort) {
-                const beforeMultiSortResult = await this.tableFlow.hooks.trigger('beforeMultiSort', {
+                const beforeMultiSortResult = await context.hooks.trigger('beforeMultiSort', {
                     column,
                     direction,
                     currentState: this.sortState
@@ -101,13 +124,13 @@ export class SortPlugin {
                 this.updateMultiSort(column, direction);
                 await this.applyMultiSort();
 
-                await this.tableFlow.hooks.trigger('afterMultiSort', {
+                await context.hooks.trigger('afterMultiSort', {
                     column,
                     direction,
                     newState: this.sortState
                 });
             } else {
-                const beforeSortResult = await this.tableFlow.hooks.trigger('beforeSort', {
+                const beforeSortResult = await context.hooks.trigger('beforeSort', {
                     column,
                     direction,
                     currentState: this.sortState
@@ -118,18 +141,18 @@ export class SortPlugin {
                 this.updateSortState(column, direction);
                 await this.applySort();
 
-                await this.tableFlow.hooks.trigger('afterSort', {
+                await context.hooks.trigger('afterSort', {
                     column,
                     direction,
                     newState: this.sortState
                 });
             }
 
-            this.tableFlow.emit('sort:change', { column, direction, isMultiSort });
+            context.eventBus.emit('sort:change', { column, direction, isMultiSort });
             this.metrics.increment('sort_change');
         } catch (error) {
             this.errorHandler.handle(error, 'sort_column');
-            this.tableFlow.emit('sort:error', { column, direction, error });
+            context.eventBus.emit('sort:error', { column, direction, error });
         }
     }
 
@@ -151,7 +174,7 @@ export class SortPlugin {
 
     async applySort() {
         const { column, direction } = this.sortState;
-        const rows = Array.from(this.tableFlow.table.querySelectorAll('tbody tr'));
+        const rows = Array.from(context.table.querySelectorAll('tbody tr'));
         
         rows.sort((a, b) => {
             const aValue = a.querySelector(`td[data-column="${column}"]`).textContent;
@@ -159,14 +182,14 @@ export class SortPlugin {
             return direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
         });
 
-        const tbody = this.tableFlow.table.querySelector('tbody');
+        const tbody = context.table.querySelector('tbody');
         rows.forEach(row => tbody.appendChild(row));
 
         this.updateHeaderStyles();
     }
 
     async applyMultiSort() {
-        const rows = Array.from(this.tableFlow.table.querySelectorAll('tbody tr'));
+        const rows = Array.from(context.table.querySelectorAll('tbody tr'));
         
         rows.sort((a, b) => {
             for (const sort of this.sortState.multiSort) {
@@ -181,18 +204,18 @@ export class SortPlugin {
             return 0;
         });
 
-        const tbody = this.tableFlow.table.querySelector('tbody');
+        const tbody = context.table.querySelector('tbody');
         rows.forEach(row => tbody.appendChild(row));
 
         this.updateHeaderStyles();
     }
 
     updateHeaderStyles() {
-        const headers = this.tableFlow.table.querySelectorAll('th');
+        const headers = context.table.querySelectorAll('th');
         headers.forEach(header => {
             header.classList.remove(
-                this.config.sortAscClass,
-                this.config.sortDescClass,
+                this.config.get('sortAscClass'),
+                this.config.get('sortDescClass'),
                 'multi-sort'
             );
 
@@ -200,14 +223,14 @@ export class SortPlugin {
                 const multiSort = this.sortState.multiSort.find(sort => sort.column === header.dataset.column);
                 if (multiSort) {
                     header.classList.add(multiSort.direction === 'asc' ? 
-                        this.config.sortAscClass : 
-                        this.config.sortDescClass);
+                        this.config.get('sortAscClass') : 
+                        this.config.get('sortDescClass'));
                     header.classList.add('multi-sort');
                 }
             } else if (header.dataset.column === this.sortState.column) {
                 header.classList.add(this.sortState.direction === 'asc' ? 
-                    this.config.sortAscClass : 
-                    this.config.sortDescClass);
+                    this.config.get('sortAscClass') : 
+                    this.config.get('sortDescClass'));
             }
         });
     }
@@ -218,12 +241,12 @@ export class SortPlugin {
 
     resetSort() {
         this.sortState = {
-            column: this.config.defaultSort.column,
-            direction: this.config.defaultSort.direction,
+            column: this.config.get('defaultSort.column'),
+            direction: this.config.get('defaultSort.direction'),
             multiSort: []
         };
         this.updateHeaderStyles();
-        this.tableFlow.emit('sort:reset');
+        context.eventBus.emit('sort:reset');
         this.metrics.increment('sort_reset');
     }
 
@@ -241,9 +264,17 @@ export class SortPlugin {
     afterMultiSort({ column, direction, newState }) {
     }
 
-    destroy() {
-        this.tableFlow.off('headerClick', this.handleHeaderClick);
-        this.tableFlow.off('headerKeydown', this.handleHeaderKeydown);
+    async onRefresh() {
+        this.logger.info('Rafraîchissement du plugin Sort...');
+        this.updateHeaderStyles();
+    }
+
+    async onDestroy() {
+        this.logger.info('Destruction du plugin Sort...');
+        
+        context.eventBus.off('headerClick', this.handleHeaderClick);
+        context.eventBus.off('headerKeydown', this.handleHeaderKeydown);
+        
         this.resetSort();
         this.metrics.increment('plugin_sort_destroy');
     }

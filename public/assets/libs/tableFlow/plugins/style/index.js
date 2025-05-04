@@ -1,3 +1,4 @@
+import { BasePlugin } from '../basePlugin.js';
 import { config } from './config.js';
 import { StyleManager } from './StyleManager.js';
 import { RuleEngine } from './RuleEngine.js';
@@ -7,14 +8,33 @@ import { ConditionalModule } from './modules/ConditionalModule.js';
 import { ThemeModule } from './modules/ThemeModule.js';
 import { AnimationModule } from './modules/AnimationModule.js';
 
-export class StylePlugin {
-    constructor(tableFlow) {
-        this.tableFlow = tableFlow;
-        this.name = config.name;
-        this.version = config.version;
-        this.type = config.type;
-        this.dependencies = config.dependencies;
-        this.config = config;
+export class StylePlugin extends BasePlugin {
+    constructor(config = {}) {
+        const pluginConfig = {
+            enabled: true,
+            debug: false,
+            execOrder: 10,
+            dependencies: [],
+            
+            // Configuration spécifique au style
+            modules: {
+                highlight: {
+                    enabled: true
+                },
+                conditional: {
+                    enabled: true
+                },
+                theme: {
+                    enabled: true
+                },
+                animation: {
+                    enabled: true
+                }
+            },
+            ...config
+        };
+
+        super(pluginConfig);
 
         // Gestionnaires principaux
         this.styleManager = new StyleManager(this);
@@ -30,27 +50,22 @@ export class StylePlugin {
         this.menu = null;
     }
 
-    async init() {
-        try {
-            this.logger.info('Initialisation du StylePlugin');
+    async onInit(context) {
+        this.logger.info('Initialisation du StylePlugin');
 
-            // Créer les éléments d'interface
-            await this.createInterface();
+        // Créer les éléments d'interface
+        await this.createInterface();
 
-            // Initialiser les modules
-            await this.initModules();
+        // Initialiser les modules
+        await this.initModules();
 
-            // Charger l'état sauvegardé
-            await this.stateManager.load();
+        // Charger l'état sauvegardé
+        await this.stateManager.load();
 
-            // Configurer les écouteurs d'événements
-            this.setupEventListeners();
+        // Configurer les écouteurs d'événements
+        this.setupEventListeners();
 
-            this.logger.success('StylePlugin initialisé avec succès');
-        } catch (error) {
-            this.logger.error('Erreur lors de l\'initialisation du StylePlugin:', error);
-            throw error;
-        }
+        this.logger.success('StylePlugin initialisé avec succès');
     }
 
     async createInterface() {
@@ -70,33 +85,33 @@ export class StylePlugin {
         this.container.appendChild(this.menu);
 
         // Ajouter au DOM
-        this.tableFlow.container.appendChild(this.container);
+        context.container.appendChild(this.container);
     }
 
     async initModules() {
-        // Highlight Module (ancien HighlightPlugin)
-        if (this.config.modules.highlight.enabled) {
+        // Highlight Module
+        if (this.config.get('modules.highlight.enabled')) {
             const highlightModule = new HighlightModule(this);
             await highlightModule.init();
             this.modules.set('highlight', highlightModule);
         }
 
         // Conditional Module
-        if (this.config.modules.conditional.enabled) {
+        if (this.config.get('modules.conditional.enabled')) {
             const conditionalModule = new ConditionalModule(this);
             await conditionalModule.init();
             this.modules.set('conditional', conditionalModule);
         }
 
         // Theme Module
-        if (this.config.modules.theme.enabled) {
+        if (this.config.get('modules.theme.enabled')) {
             const themeModule = new ThemeModule(this);
             await themeModule.init();
             this.modules.set('theme', themeModule);
         }
 
         // Animation Module
-        if (this.config.modules.animation.enabled) {
+        if (this.config.get('modules.animation.enabled')) {
             const animationModule = new AnimationModule(this);
             await animationModule.init();
             this.modules.set('animation', animationModule);
@@ -105,14 +120,14 @@ export class StylePlugin {
 
     setupEventListeners() {
         // Écouter les changements de données
-        this.tableFlow.on('data:change', this.handleDataChange.bind(this));
+        context.eventBus.on('data:change', this.handleDataChange.bind(this));
         
         // Écouter les changements d'état
-        this.tableFlow.on('state:change', this.handleStateChange.bind(this));
+        context.eventBus.on('state:change', this.handleStateChange.bind(this));
         
         // Écouter les événements de sélection
-        this.tableFlow.table.addEventListener('mousedown', this.handleSelectionStart.bind(this));
-        this.tableFlow.table.addEventListener('mousemove', this.handleSelectionMove.bind(this));
+        context.table.addEventListener('mousedown', this.handleSelectionStart.bind(this));
+        context.table.addEventListener('mousemove', this.handleSelectionMove.bind(this));
         document.addEventListener('mouseup', this.handleSelectionEnd.bind(this));
         
         // Écouter les événements clavier
@@ -120,6 +135,8 @@ export class StylePlugin {
     }
 
     handleDataChange(event) {
+        if (!this.config.get('enabled')) return;
+        
         // Mettre à jour les styles conditionnels
         if (this.modules.has('conditional')) {
             this.modules.get('conditional').update(event.data);
@@ -127,6 +144,8 @@ export class StylePlugin {
     }
 
     handleStateChange(event) {
+        if (!this.config.get('enabled')) return;
+        
         // Mettre à jour l'état des modules
         this.modules.forEach(module => {
             if (typeof module.handleStateChange === 'function') {
@@ -136,7 +155,7 @@ export class StylePlugin {
     }
 
     handleSelectionStart(event) {
-        if (!this.config.enabled) return;
+        if (!this.config.get('enabled')) return;
         
         // Déléguer aux modules actifs
         this.modules.forEach(module => {
@@ -147,7 +166,7 @@ export class StylePlugin {
     }
 
     handleSelectionMove(event) {
-        if (!this.config.enabled) return;
+        if (!this.config.get('enabled')) return;
         
         // Déléguer aux modules actifs
         this.modules.forEach(module => {
@@ -158,7 +177,7 @@ export class StylePlugin {
     }
 
     handleSelectionEnd(event) {
-        if (!this.config.enabled) return;
+        if (!this.config.get('enabled')) return;
         
         // Déléguer aux modules actifs
         this.modules.forEach(module => {
@@ -169,7 +188,7 @@ export class StylePlugin {
     }
 
     handleKeyDown(event) {
-        if (!this.config.enabled) return;
+        if (!this.config.get('enabled')) return;
         
         // Déléguer aux modules actifs
         this.modules.forEach(module => {
@@ -198,13 +217,19 @@ export class StylePlugin {
         }
     }
 
-    // Nettoyage
-    destroy() {
+    async onRefresh() {
+        this.logger.info('Rafraîchissement du StylePlugin...');
+        await this.stateManager.load();
+    }
+
+    async onDestroy() {
+        this.logger.info('Destruction du StylePlugin...');
+        
         // Supprimer les écouteurs d'événements
-        this.tableFlow.off('data:change', this.handleDataChange);
-        this.tableFlow.off('state:change', this.handleStateChange);
-        this.tableFlow.table.removeEventListener('mousedown', this.handleSelectionStart);
-        this.tableFlow.table.removeEventListener('mousemove', this.handleSelectionMove);
+        context.eventBus.off('data:change', this.handleDataChange);
+        context.eventBus.off('state:change', this.handleStateChange);
+        context.table.removeEventListener('mousedown', this.handleSelectionStart);
+        context.table.removeEventListener('mousemove', this.handleSelectionMove);
         document.removeEventListener('mouseup', this.handleSelectionEnd);
         document.removeEventListener('keydown', this.handleKeyDown);
 
