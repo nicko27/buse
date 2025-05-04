@@ -58,41 +58,80 @@ EOF
 configure_interactive() {
     echo -e "${BLUE}📝 Configuration interactive${NC}"
     
+    # Demander le fichier de configuration
+    read -p "Fichier de configuration [push_config.cfg] : " CONFIG_FILE
+    CONFIG_FILE=${CONFIG_FILE:-push_config.cfg}
+    
+    # Charger la configuration existante si elle existe
+    if [ -f "$CONFIG_FILE" ]; then
+        echo -e "${GREEN}✅ Chargement de la configuration existante...${NC}"
+        source "$CONFIG_FILE"
+    else
+        echo -e "${YELLOW}⚠️  Création d'une nouvelle configuration...${NC}"
+        # Initialiser les valeurs par défaut
+        DEFAULT_BRANCH="master"
+        DEFAULT_REMOTE="origin"
+        DEFAULT_BACKUP_DIR=".git/backups"
+        DEFAULT_MAX_BACKUPS="5"
+        DEFAULT_CONFLICT_CHECK="o"
+        DEFAULT_BRANCH_CHECK="o"
+        DEFAULT_REMOTE_CHECK="o"
+        DEFAULT_AUTO_STASH="o"
+    fi
+    
+    # Convertir les valeurs booléennes en o/n
+    local conflict_check=$( [[ "$DEFAULT_CONFLICT_CHECK" == "true" ]] && echo "o" || echo "n" )
+    local branch_check=$( [[ "$DEFAULT_BRANCH_CHECK" == "true" ]] && echo "o" || echo "n" )
+    local remote_check=$( [[ "$DEFAULT_REMOTE_CHECK" == "true" ]] && echo "o" || echo "n" )
+    local auto_stash=$( [[ "$DEFAULT_AUTO_STASH" == "true" ]] && echo "o" || echo "n" )
+    
     # Branche par défaut
-    read -p "Branche par défaut [main/master] : " DEFAULT_BRANCH
-    DEFAULT_BRANCH=${DEFAULT_BRANCH:-main}
+    read -p "Branche par défaut [${DEFAULT_BRANCH:-master}] : " input
+    DEFAULT_BRANCH=${input:-${DEFAULT_BRANCH:-master}}
     
     # Remote par défaut
-    read -p "Remote par défaut [origin] : " DEFAULT_REMOTE
-    DEFAULT_REMOTE=${DEFAULT_REMOTE:-origin}
+    read -p "Remote par défaut [${DEFAULT_REMOTE:-origin}] : " input
+    DEFAULT_REMOTE=${input:-${DEFAULT_REMOTE:-origin}}
     
     # Répertoire de backup
-    read -p "Répertoire de backup [.git/backups] : " BACKUP_DIR
-    BACKUP_DIR=${BACKUP_DIR:-.git/backups}
+    read -p "Répertoire de backup [${DEFAULT_BACKUP_DIR:-.git/backups}] : " input
+    DEFAULT_BACKUP_DIR=${input:-${DEFAULT_BACKUP_DIR:-.git/backups}}
     
     # Nombre maximum de backups
-    read -p "Nombre maximum de backups [5] : " MAX_BACKUPS
-    MAX_BACKUPS=${MAX_BACKUPS:-5}
+    read -p "Nombre maximum de backups [${DEFAULT_MAX_BACKUPS:-5}] : " input
+    DEFAULT_MAX_BACKUPS=${input:-${DEFAULT_MAX_BACKUPS:-5}}
+    if ! [[ "$DEFAULT_MAX_BACKUPS" =~ ^[0-9]+$ ]]; then
+        echo -e "${RED}❌ Le nombre de backups doit être un nombre entier${NC}"
+        DEFAULT_MAX_BACKUPS=5
+    fi
     
     # Vérification des conflits
-    read -p "Vérifier les conflits ? (o/n) [o] : " CONFLICT_CHECK
-    CONFLICT_CHECK=${CONFLICT_CHECK:-o}
-    [[ "$CONFLICT_CHECK" =~ ^[oOyY]$ ]] && CONFLICT_CHECK=true || CONFLICT_CHECK=false
+    read -p "Vérifier les conflits ? (o/n) [${conflict_check}] : " input
+    input=${input:-${conflict_check}}
+    [[ "$input" =~ ^[oOyY]$ ]] && DEFAULT_CONFLICT_CHECK="true" || DEFAULT_CONFLICT_CHECK="false"
     
     # Vérification des branches
-    read -p "Vérifier les branches ? (o/n) [o] : " BRANCH_CHECK
-    BRANCH_CHECK=${BRANCH_CHECK:-o}
-    [[ "$BRANCH_CHECK" =~ ^[oOyY]$ ]] && BRANCH_CHECK=true || BRANCH_CHECK=false
+    read -p "Vérifier les branches ? (o/n) [${branch_check}] : " input
+    input=${input:-${branch_check}}
+    [[ "$input" =~ ^[oOyY]$ ]] && DEFAULT_BRANCH_CHECK="true" || DEFAULT_BRANCH_CHECK="false"
     
     # Vérification des remotes
-    read -p "Vérifier les remotes ? (o/n) [o] : " REMOTE_CHECK
-    REMOTE_CHECK=${REMOTE_CHECK:-o}
-    [[ "$REMOTE_CHECK" =~ ^[oOyY]$ ]] && REMOTE_CHECK=true || REMOTE_CHECK=false
+    read -p "Vérifier les remotes ? (o/n) [${remote_check}] : " input
+    input=${input:-${remote_check}}
+    [[ "$input" =~ ^[oOyY]$ ]] && DEFAULT_REMOTE_CHECK="true" || DEFAULT_REMOTE_CHECK="false"
     
     # Stash automatique
-    read -p "Stash automatique ? (o/n) [o] : " AUTO_STASH
-    AUTO_STASH=${AUTO_STASH:-o}
-    [[ "$AUTO_STASH" =~ ^[oOyY]$ ]] && AUTO_STASH=true || AUTO_STASH=false
+    read -p "Stash automatique ? (o/n) [${auto_stash}] : " input
+    input=${input:-${auto_stash}}
+    [[ "$input" =~ ^[oOyY]$ ]] && DEFAULT_AUTO_STASH="true" || DEFAULT_AUTO_STASH="false"
+    
+    # Mettre à jour les variables actuelles
+    BACKUP_DIR=$DEFAULT_BACKUP_DIR
+    MAX_BACKUPS=$DEFAULT_MAX_BACKUPS
+    CONFLICT_CHECK=$DEFAULT_CONFLICT_CHECK
+    BRANCH_CHECK=$DEFAULT_BRANCH_CHECK
+    REMOTE_CHECK=$DEFAULT_REMOTE_CHECK
+    AUTO_STASH=$DEFAULT_AUTO_STASH
     
     # Sauvegarde de la configuration
     save_config "$CONFIG_FILE"
@@ -117,6 +156,7 @@ show_help() {
     echo -e "${BLUE}Options:${NC}"
     echo "  -h, --help              Affiche cette aide"
     echo "  -c, --config=FILE       Utilise le fichier de configuration spécifié"
+    echo "  -i, --interactive       Configure ou modifie le fichier de configuration"
     echo "  -s, --show-config      Affiche la configuration actuelle"
     echo "  -a, --all               Pousse tous les changements (sous-modules + principal)"
     echo "  -m, --main              Pousse uniquement le projet principal"
@@ -137,6 +177,7 @@ show_help() {
     echo ""
     echo -e "${BLUE}Exemples:${NC}"
     echo "  $0 -c config.cfg        # Utilise le fichier de configuration spécifié"
+    echo "  $0 -i                   # Configure ou modifie le fichier de configuration"
     echo "  $0 -s                   # Affiche la configuration"
     echo "  $0 -a                   # Pousse tout avec confirmation"
     echo "  $0 -m -n                # Pousse le principal sans confirmation"
@@ -297,6 +338,7 @@ create_backup() {
     local path=$1
     local name=$2
     
+    # Vérifier si les backups sont désactivés
     if [[ "$NO_BACKUP" == "true" || "$MAX_BACKUPS" == "0" ]]; then
         return 0
     fi
@@ -464,10 +506,14 @@ handle_stash() {
         echo
         if [[ $REPLY =~ ^[YyOo]$ ]]; then
             # Rediriger la sortie standard vers /dev/null pour éviter le message "No local changes to save"
-            git stash save "Auto-stash before push" >/dev/null 2>&1 || handle_error "Échec du stash"
+            git stash save "Auto-stash before push" >/dev/null 2>&1 || {
+                echo -e "${YELLOW}⚠️  Échec du stash, continuation sans stash${NC}"
+                return 0
+            }
             echo -e "${GREEN}✅ Changements stasher dans $name${NC}"
         else
-            handle_error "Opération annulée"
+            echo -e "${YELLOW}⚠️  Stash refusé, continuation avec les changements non commités${NC}"
+            return 0
         fi
     fi
     
@@ -573,6 +619,10 @@ while [[ $# -gt 0 ]]; do
                 CONFIG_FILE="${1#*=}"
             fi
             shift
+            ;;
+        -i|--interactive)
+            configure_interactive
+            exit 0
             ;;
         -s|--show-config)
             show_config
