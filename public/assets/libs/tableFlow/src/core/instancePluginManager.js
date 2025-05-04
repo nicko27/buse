@@ -1,5 +1,5 @@
 import { PLUGIN_TYPES } from '../types.js';
-import { Logger } from './utils/logger.js';
+import { Logger } from '../utils/logger.js';
 
 export default class InstancePluginManager {
     constructor(config = {}) {

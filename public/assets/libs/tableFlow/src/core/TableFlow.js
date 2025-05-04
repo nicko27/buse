@@ -1,4 +1,4 @@
-import { Logger } from '../utils/logger.js';
+import { Logger } from './utils/logger.js'; // Correct
 import { EventBus } from '../utils/eventBus.js';
 import { ConfigManager } from '../config/configManager.js';
 import { CacheManager } from '../cache/cacheManager.js';
@@ -8,8 +8,7 @@ import { TableDom } from '../dom/tableDom.js';
 import { TableState } from '../state/tableState.js';
 import { NotificationManager } from '../notifications/notificationManager.js';
 import { DataManager } from '../data/dataManager.js';
-import InstanceManager from './InstanceManager.js';
-
+import { instanceManager } from './InstanceManager.js';
 class ErrorHandler {
     constructor(tableFlow) {
         this.tableFlow = tableFlow;
@@ -202,7 +201,7 @@ export default class TableFlow {
             }
 
             // Créer une instance via InstanceManager
-            const instance = InstanceManager.createInstance(tableId, {
+            const instance = instanceManager.createInstance(tableId, {
                 ...options,
                 tableElement: table
             });
@@ -673,7 +672,7 @@ export default class TableFlow {
 
             // Détruire l'instance via InstanceManager
             const tableId = this.config.get('tableId');
-            InstanceManager.removeInstance(tableId);
+            instanceManager.removeInstance(tableId);
 
             // Nettoyer les références
             this.dom = null;

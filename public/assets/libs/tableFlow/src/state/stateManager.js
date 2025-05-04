@@ -1,5 +1,5 @@
-import { Logger } from './logger.js';
-import { EventBus } from './eventBus.js';
+import { Logger } from '../utils/logger.js';
+import { EventBus } from '../utils/eventBus.js';
 
 export class GlobalStateManager {
     constructor(options = {}) {
