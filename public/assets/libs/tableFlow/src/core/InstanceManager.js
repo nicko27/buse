@@ -90,4 +90,7 @@ export class InstanceManager {
         this.instances.clear();
         this.logger.info('InstanceManager détruit');
     }
-} 
+}
+
+// Export de l'instance par défaut
+export const instanceManager = new InstanceManager(); 

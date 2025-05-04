@@ -1,4 +1,4 @@
-import { Logger } from './logger.js';
+import { Logger } from '../utils/logger.js';
 
 export class NotificationManager {
     constructor(config = {}) {

@@ -1,5 +1,5 @@
-import { Logger } from './logger.js';
-import { EventBus } from './eventBus.js';
+import { Logger } from '../utils/logger.js';
+import { EventBus } from '../utils/eventBus.js';
 
 export class CacheManager {
     constructor(config = {}) {
@@ -17,6 +17,8 @@ export class CacheManager {
         this.metadata = new Map();
         this.hits = 0;
         this.misses = 0;
+        this.accessCounts = new Map();
+        this.size = 0;
 
         // Démarrer le nettoyage automatique
         if (this.config.checkInterval > 0) {

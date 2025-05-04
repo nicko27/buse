@@ -48,9 +48,7 @@ export class BasePlugin {
      */
     handleError(error) {
         if (this.tableFlow.errorHandler) {
-            this.tableFlow.errorHandler(error);
-        } else {
-            console.error(`[${this.constructor.name}]`, error);
+            this.tableFlow.errorHandler.handle(error, this.tableFlow.errorHandler.errorTypes.PLUGIN);
         }
     }
 } 

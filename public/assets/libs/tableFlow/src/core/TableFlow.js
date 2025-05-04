@@ -1,14 +1,14 @@
-import { Logger } from './utils/logger.js';
-import { EventBus } from './utils/eventBus.js';
-import { ConfigManager } from './config/configManager.js';
-import { CacheManager } from './cache/cacheManager.js';
-import { ValidationManager } from './validation/validationManager.js';
-import { MetricsManager } from './metrics/metricsManager.js';
-import { TableDom } from './dom/tableDom.js';
-import { TableState } from './state/tableState.js';
-import { NotificationManager } from './utils/notificationManager.js';
-import { DataManager } from './utils/dataManager.js';
-import { instanceManager } from './instanceManager.js';
+import { Logger } from '../utils/logger.js';
+import { EventBus } from '../utils/eventBus.js';
+import { ConfigManager } from '../config/configManager.js';
+import { CacheManager } from '../cache/cacheManager.js';
+import { ValidationManager } from '../validation/validationManager.js';
+import { MetricsManager } from '../metrics/metricsManager.js';
+import { TableDom } from '../dom/tableDom.js';
+import { TableState } from '../state/tableState.js';
+import { NotificationManager } from '../notifications/notificationManager.js';
+import { DataManager } from '../data/dataManager.js';
+import InstanceManager from './InstanceManager.js';
 
 class ErrorHandler {
     constructor(tableFlow) {
@@ -202,7 +202,7 @@ export default class TableFlow {
             }
 
             // Créer une instance via InstanceManager
-            const instance = instanceManager.createInstance(tableId, {
+            const instance = InstanceManager.createInstance(tableId, {
                 ...options,
                 tableElement: table
             });
@@ -673,7 +673,7 @@ export default class TableFlow {
 
             // Détruire l'instance via InstanceManager
             const tableId = this.config.get('tableId');
-            instanceManager.removeInstance(tableId);
+            InstanceManager.removeInstance(tableId);
 
             // Nettoyer les références
             this.dom = null;

@@ -1,6 +1,6 @@
 import { InstanceManager } from './core/InstanceManager.js';
 import { PluginRegistry } from './plugin/PluginRegistry.js';
-import InstancePluginManager from './core/InstancePluginManager.js';
+import InstancePluginManager from './core/instancePluginManager.js';
 
 export class TableFlowInitializer {
     constructor(config = {}, dependencies = {}) {
@@ -11,7 +11,7 @@ export class TableFlowInitializer {
         this.dependencies = {
             instanceManager: dependencies.instanceManager || new InstanceManager(),
             pluginRegistry: dependencies.pluginRegistry || new PluginRegistry(),
-            instancePluginManager: dependencies.instancePluginManager
+            instancePluginManager: dependencies.instancePluginManager || InstancePluginManager
         };
     }
 

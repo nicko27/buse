@@ -1,5 +1,5 @@
-import { Logger } from './logger.js';
-import { EventBus } from './eventBus.js';
+import { Logger } from '../utils/logger.js';
+import { EventBus } from '../utils/eventBus.js';
 
 export class VirtualDomManager {
     constructor(options = {}) {
@@ -16,6 +16,7 @@ export class VirtualDomManager {
         this.batchQueue = new Map();
         this.observer = null;
         this.animationFrame = null;
+        this.renderedNodes = new Map();
 
         if (this.options.mutationObservation) {
             this.init();
