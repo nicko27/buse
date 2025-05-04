@@ -34,6 +34,13 @@ load_config() {
     local config_file=$1
     if [ -f "$config_file" ]; then
         source "$config_file"
+        # Initialiser les variables actuelles à partir des valeurs par défaut
+        BACKUP_DIR=${DEFAULT_BACKUP_DIR:-.git/backups}
+        MAX_BACKUPS=${DEFAULT_MAX_BACKUPS:-5}
+        CONFLICT_CHECK=${DEFAULT_CONFLICT_CHECK:-true}
+        BRANCH_CHECK=${DEFAULT_BRANCH_CHECK:-true}
+        REMOTE_CHECK=${DEFAULT_REMOTE_CHECK:-true}
+        AUTO_STASH=${DEFAULT_AUTO_STASH:-true}
     fi
 }
 
@@ -339,7 +346,7 @@ create_backup() {
     local name=$2
     
     # Vérifier si les backups sont désactivés
-    if [[ "$NO_BACKUP" == "true" || "$MAX_BACKUPS" == "0" ]]; then
+    if [[ "$NO_BACKUP" == "true" || "$MAX_BACKUPS" -eq 0 ]]; then
         return 0
     fi
     
