@@ -1,141 +1,154 @@
 import { Logger } from '../utils/logger.js';
 
 export class DataManager {
-    constructor(config = {}) {
+    constructor(options = {}) {
         this.logger = new Logger('DataManager');
-        this.config = {
-            dateFormat: 'YYYY-MM-DD',
-            numberFormat: {
-                decimalSeparator: '.',
-                thousandsSeparator: ','
-            },
-            ...config
+        this.options = {
+            maxFileSize: options.maxFileSize || 10 * 1024 * 1024, // 10MB par défaut
+            allowedTypes: options.allowedTypes || ['string', 'number', 'boolean', 'null'],
+            sanitizeInput: options.sanitizeInput !== false
         };
     }
 
-    /**
-     * Exporte les données du tableau au format CSV
-     * @param {Array} data - Données à exporter
-     * @param {Array} headers - En-têtes des colonnes
-     * @returns {string} - Données au format CSV
-     */
-    exportToCSV(data, headers) {
-        const csvContent = [];
-        
-        // Ajouter les en-têtes
-        const headerRow = headers.map(h => this.escapeCSV(h.textContent));
-        csvContent.push(headerRow.join(','));
+    validateData(data, headers) {
+        if (!Array.isArray(data)) {
+            throw new Error('Les données doivent être un tableau');
+        }
 
-        // Ajouter les données
-        data.forEach(row => {
-            const rowData = headers.map(header => {
-                const value = row[header.id];
-                return this.escapeCSV(this.formatValue(value));
-            });
-            csvContent.push(rowData.join(','));
-        });
+        if (!Array.isArray(headers)) {
+            throw new Error('Les en-têtes doivent être un tableau');
+        }
 
-        return csvContent.join('\n');
+        for (const row of data) {
+            if (typeof row !== 'object' || row === null) {
+                throw new Error('Chaque ligne doit être un objet');
+            }
+
+            for (const [key, value] of Object.entries(row)) {
+                if (!this.options.allowedTypes.includes(typeof value)) {
+                    throw new Error(`Type de données non autorisé pour ${key}: ${typeof value}`);
+                }
+            }
+        }
     }
 
-    /**
-     * Exporte les données du tableau au format JSON
-     * @param {Array} data - Données à exporter
-     * @returns {string} - Données au format JSON
-     */
-    exportToJSON(data) {
-        return JSON.stringify(data, null, 2);
+    sanitizeValue(value) {
+        if (!this.options.sanitizeInput) return value;
+
+        if (typeof value === 'string') {
+            // Échapper les caractères HTML
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+        return value;
     }
 
-    /**
-     * Importe des données depuis un fichier CSV
-     * @param {string} csv - Contenu CSV
-     * @param {Array} headers - En-têtes des colonnes
-     * @returns {Array} - Données importées
-     */
     importFromCSV(csv, headers) {
-        const lines = csv.split('\n');
-        const data = [];
+        try {
+            if (typeof csv !== 'string') {
+                throw new Error('Le contenu CSV doit être une chaîne de caractères');
+            }
 
-        // Vérifier les en-têtes
-        const csvHeaders = lines[0].split(',').map(h => this.unescapeCSV(h));
-        if (!this.validateHeaders(csvHeaders, headers)) {
-            throw new Error('Les en-têtes CSV ne correspondent pas aux colonnes du tableau');
+            if (csv.length > this.options.maxFileSize) {
+                throw new Error(`Le fichier CSV est trop volumineux (max: ${this.options.maxFileSize} bytes)`);
+            }
+
+            const lines = csv.split('\n');
+            const data = [];
+
+            // Vérifier les en-têtes
+            const csvHeaders = lines[0].split(',').map(h => h.trim());
+            if (!headers.every(h => csvHeaders.includes(h))) {
+                throw new Error('Les en-têtes CSV ne correspondent pas aux en-têtes attendus');
+            }
+
+            // Parser les données
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const values = line.split(',');
+                const row = {};
+
+                headers.forEach((header, index) => {
+                    let value = values[index]?.trim();
+                    
+                    // Conversion de type
+                    if (value === '') {
+                        value = null;
+                    } else if (!isNaN(value)) {
+                        value = Number(value);
+                    } else if (value === 'true' || value === 'false') {
+                        value = value === 'true';
+                    }
+
+                    row[header] = this.sanitizeValue(value);
+                });
+
+                data.push(row);
+            }
+
+            this.validateData(data, headers);
+            return data;
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'import CSV: ${error.message}`);
+            throw error;
         }
-
-        // Parser les données
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => this.unescapeCSV(v));
-            const rowData = {};
-            
-            headers.forEach((header, index) => {
-                rowData[header.id] = this.parseValue(values[index]);
-            });
-
-            data.push(rowData);
-        }
-
-        return data;
     }
 
-    /**
-     * Importe des données depuis un fichier JSON
-     * @param {string} json - Contenu JSON
-     * @returns {Array} - Données importées
-     */
     importFromJSON(json) {
-        return JSON.parse(json);
-    }
+        try {
+            if (typeof json !== 'string') {
+                throw new Error('Le contenu JSON doit être une chaîne de caractères');
+            }
 
-    escapeCSV(value) {
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-            return `"${stringValue.replace(/"/g, '""')}"`;
+            if (json.length > this.options.maxFileSize) {
+                throw new Error(`Le fichier JSON est trop volumineux (max: ${this.options.maxFileSize} bytes)`);
+            }
+
+            const data = JSON.parse(json);
+            this.validateData(data, Object.keys(data[0] || {}));
+            return data;
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'import JSON: ${error.message}`);
+            throw error;
         }
-        return stringValue;
     }
 
-    unescapeCSV(value) {
-        if (value.startsWith('"') && value.endsWith('"')) {
-            return value.slice(1, -1).replace(/""/g, '"');
+    exportToCSV(data, headers) {
+        try {
+            this.validateData(data, headers);
+            
+            const csvRows = [];
+            csvRows.push(headers.join(','));
+
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    if (value === null || value === undefined) return '';
+                    return typeof value === 'string' ? `"${value}"` : value;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            return csvRows.join('\n');
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'export CSV: ${error.message}`);
+            throw error;
         }
-        return value;
     }
 
-    formatValue(value) {
-        if (value === null || value === undefined) return '';
-        if (value instanceof Date) {
-            return this.formatDate(value);
+    exportToJSON(data) {
+        try {
+            this.validateData(data, Object.keys(data[0] || {}));
+            return JSON.stringify(data, null, 2);
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'export JSON: ${error.message}`);
+            throw error;
         }
-        if (typeof value === 'number') {
-            return this.formatNumber(value);
-        }
-        return String(value);
-    }
-
-    parseValue(value) {
-        if (value === '') return null;
-        if (!isNaN(value)) return Number(value);
-        if (value === 'true') return true;
-        if (value === 'false') return false;
-        return value;
-    }
-
-    formatDate(date) {
-        // Implémentation simple, à améliorer avec une librairie de formatage de dates
-        return date.toISOString().split('T')[0];
-    }
-
-    formatNumber(number) {
-        return number.toString().replace(
-            /\B(?=(\d{3})+(?!\d))/g,
-            this.config.numberFormat.thousandsSeparator
-        );
-    }
-
-    validateHeaders(csvHeaders, tableHeaders) {
-        return csvHeaders.length === tableHeaders.length &&
-               csvHeaders.every((h, i) => h === tableHeaders[i].textContent);
     }
 } 

@@ -4,14 +4,19 @@
  * - toggle : basculement direct entre les options par clic
  * - searchable : recherche et sélection dans une liste déroulante
  */
-export default class ChoicePlugin {
-    constructor(config = {}) {
-        this.name = 'choice';
-        this.version = '2.0.1';  // Mise à jour de la version
-        this.type = 'edit';
-        this.table = null;
-        this.dependencies = [];
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
+import { config } from './config.js';
+
+export class ChoicePlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = PluginType.EDIT;
+        this.dependencies = config.dependencies;
         this.activeDropdown = null;
+        this.isInitialized = false;
 
         // Configuration par défaut
         this.defaultSearchableConfig = {
@@ -44,13 +49,28 @@ export default class ChoicePlugin {
             (...args) => console.log('[ChoicePlugin]', ...args) :
             () => { };
 
-        // Ajouter les styles CSS
-        this.addSearchableStyles();
-
         // Lier les méthodes pour préserver le contexte
         this.handleClick = this.handleClick.bind(this);
         this.handleToggleClick = this.handleToggleClick.bind(this);
         this.handleSearchableClick = this.handleSearchableClick.bind(this);
+    }
+
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin Choice déjà initialisé');
+            return;
+        }
+
+        try {
+            this.addSearchableStyles();
+            this.setupChoiceCells();
+            this.setupEventListeners();
+            this.isInitialized = true;
+            this.logger.info('Plugin Choice initialisé avec succès');
+        } catch (error) {
+            this.errorHandler.handle(error, 'choice_init');
+            throw error;
+        }
     }
 
     getColumnConfig(columnId) {
@@ -242,21 +262,10 @@ export default class ChoicePlugin {
         }
     }
 
-    init(tableHandler) {
-        if (!tableHandler) {
-            throw new Error('TableHandler instance is required');
-        }
-        this.table = tableHandler;
-        this.debug('Initializing choice plugin');
-
-        this.setupChoiceCells();
-        this.setupEventListeners();
-    }
-
     setupChoiceCells() {
-        if (!this.table?.table) return;
+        if (!this.tableFlow?.table) return;
 
-        const headerCells = this.table.table.querySelectorAll('th');
+        const headerCells = this.tableFlow.table.querySelectorAll('th');
         const choiceColumns = Array.from(headerCells)
             .filter(header => header.hasAttribute(this.config.choiceAttribute))
             .map(header => {
@@ -273,7 +282,7 @@ export default class ChoicePlugin {
 
         if (!choiceColumns.length) return;
 
-        const rows = this.table.table.querySelectorAll('tbody tr');
+        const rows = this.tableFlow.table.querySelectorAll('tbody tr');
         rows.forEach(row => {
             choiceColumns.forEach(({ id: columnId, index, type }) => {
                 const cell = row.cells[index];
@@ -330,10 +339,10 @@ export default class ChoicePlugin {
     }
 
     setupEventListeners() {
-        if (!this.table?.table) return;
+        if (!this.tableFlow?.table) return;
 
         // Gestionnaire de clic sur les cellules
-        this.table.table.addEventListener('click', this.handleClick);
+        this.tableFlow.table.addEventListener('click', this.handleClick);
 
         // Fermer le dropdown quand on clique ailleurs
         document.addEventListener('click', (event) => {
@@ -343,7 +352,7 @@ export default class ChoicePlugin {
         });
 
         // Écouter l'événement cell:saved
-        this.table.table.addEventListener('cell:saved', (event) => {
+        this.tableFlow.table.addEventListener('cell:saved', (event) => {
             const cell = event.detail.cell;
             if (!cell || !this.isManagedCell(cell)) return;
 
@@ -368,7 +377,7 @@ export default class ChoicePlugin {
         });
 
         // Écouter l'événement row:saved
-        this.table.table.addEventListener('row:saved', (event) => {
+        this.tableFlow.table.addEventListener('row:saved', (event) => {
             const row = event.detail.row;
             if (!row) return;
 
@@ -383,7 +392,7 @@ export default class ChoicePlugin {
         });
 
         // Écouter l'ajout de nouvelles lignes
-        this.table.table.addEventListener('row:added', () => {
+        this.tableFlow.table.addEventListener('row:added', () => {
             this.debug('row:added event received');
             this.setupChoiceCells();
         });
@@ -470,58 +479,42 @@ export default class ChoicePlugin {
         }
     }
 
-    // Méthode updateCellValue corrigée pour éviter la double exécution
-    updateCellValue(cell, value, label, columnId) {
-        // Mettre à jour la cellule
-        cell.setAttribute('data-value', value);
-
-        // Rechercher ou créer un wrapper
-        let wrapper = cell.querySelector('.cell-wrapper');
-        if (!wrapper) {
-            wrapper = document.createElement('div');
-            wrapper.className = 'cell-wrapper';
-            cell.textContent = '';
-            cell.appendChild(wrapper);
-        }
-
-        wrapper.innerHTML = label;
-
-        // S'assurer que data-initial-value existe
-        if (!cell.hasAttribute('data-initial-value')) {
-            cell.setAttribute('data-initial-value', value);
-        }
-
-        // Marquer comme modifié si nécessaire
-        const initialValue = cell.getAttribute('data-initial-value');
-        const isModified = value !== initialValue;
-        const row = cell.closest('tr');
-
-        // Important : Créer un identifiant unique pour cet événement
-        const eventId = `change_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        // Créer l'événement avec bubbles:true pour permettre sa propagation
-        const changeEvent = new CustomEvent('cell:change', {
-            detail: {
+    async updateCellValue(cell, value, label, columnId) {
+        try {
+            const beforeResult = await this.tableFlow.hooks.trigger('beforeChoiceUpdate', {
                 cell,
                 value,
-                columnId,
-                rowId: row?.id,
-                source: 'choice',
-                tableId: this.table.table.id,
-                isModified,
-                eventId  // Ajouter un identifiant unique pour détecter les doublons
-            },
-            bubbles: true  // Permettre la remontée de l'événement
-        });
+                label,
+                columnId
+            });
 
-        // Ne dispatcher l'événement qu'une seule fois, sur la table
-        this.table.table.dispatchEvent(changeEvent);
+            if (beforeResult === false) return;
 
-        // Mettre à jour la classe modified sur la ligne
-        if (isModified && row) {
-            row.classList.add(this.config.modifiedClass);
-        } else if (row) {
-            row.classList.remove(this.config.modifiedClass);
+            const oldValue = cell.dataset.value;
+            cell.dataset.value = value;
+            cell.textContent = label;
+
+            if (oldValue !== value) {
+                cell.classList.add(this.config.modifiedClass);
+                this.tableFlow.emit('choice:updated', {
+                    cell,
+                    oldValue,
+                    newValue: value,
+                    columnId
+                });
+            }
+
+            await this.tableFlow.hooks.trigger('afterChoiceUpdate', {
+                cell,
+                value,
+                label,
+                columnId
+            });
+
+            this.metrics.increment('choice_updated');
+        } catch (error) {
+            this.errorHandler.handle(error, 'choice_update');
+            this.logger.error('Erreur lors de la mise à jour de la cellule:', error);
         }
     }
 
@@ -537,13 +530,35 @@ export default class ChoicePlugin {
     }
 
     refresh() {
+        if (!this.isInitialized) {
+            this.logger.warn('Plugin Choice non initialisé');
+            return;
+        }
         this.setupChoiceCells();
     }
 
     destroy() {
-        if (this.table?.table) {
-            this.table.table.removeEventListener('click', this.handleClick);
+        if (!this.isInitialized) return;
+
+        try {
+            // Supprimer les écouteurs d'événements
+            document.removeEventListener('click', this.handleClick);
+            
+            // Fermer tous les menus déroulants
+            this.closeAllDropdowns();
+            
+            // Supprimer les styles
+            const styleElement = document.getElementById('choice-plugin-styles');
+            if (styleElement) {
+                styleElement.remove();
+            }
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin Choice détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'choice_destroy');
+        } finally {
+            super.destroy();
         }
-        this.closeAllDropdowns();
     }
 }

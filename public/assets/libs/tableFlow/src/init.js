@@ -1,17 +1,31 @@
-import { InstanceManager } from './core/InstanceManager.js';
+import { InstanceManager, instanceManager as defaultInstanceManager } from './core/InstanceManager.js';
 import { PluginRegistry } from './plugin/PluginRegistry.js';
-import InstancePluginManager from './core/instancePluginManager.js';
+import { InstancePluginManager } from './core/instancePluginManager.js';
+import { Logger } from './utils/logger.js';
 
 export class TableFlowInitializer {
     constructor(config = {}, dependencies = {}) {
+        this.logger = new Logger('TableFlowInitializer');
+        
+        // Validation des dépendances
+        if (!dependencies.instanceManager && !InstanceManager) {
+            throw new Error('InstanceManager est requis');
+        }
+        if (!dependencies.pluginRegistry && !PluginRegistry) {
+            throw new Error('PluginRegistry est requis');
+        }
+        if (!dependencies.instancePluginManager && !InstancePluginManager) {
+            throw new Error('InstancePluginManager est requis');
+        }
+
         this.config = {
             debug: false,
             ...config
         };
         this.dependencies = {
-            instanceManager: dependencies.instanceManager || new InstanceManager(),
+            instanceManager: dependencies.instanceManager || defaultInstanceManager,
             pluginRegistry: dependencies.pluginRegistry || new PluginRegistry(),
-            instancePluginManager: dependencies.instancePluginManager || InstancePluginManager
+            instancePluginManager: dependencies.instancePluginManager || new InstancePluginManager()
         };
     }
 

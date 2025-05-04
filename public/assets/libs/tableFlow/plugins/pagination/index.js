@@ -1,13 +1,15 @@
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
-export class PaginationPlugin {
+export class PaginationPlugin extends BasePlugin {
     constructor(tableFlow, options = {}) {
-        this.tableFlow = tableFlow;
-        this.config = { ...config, ...options };
-        this.logger = tableFlow.logger;
-        this.metrics = tableFlow.metrics;
-        this.errorHandler = tableFlow.errorHandler;
-        this.name = 'pagination';
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = PluginType.PAGINATION;
+        this.dependencies = config.dependencies;
+        this.isInitialized = false;
         
         // État local
         this.state = {
@@ -44,9 +46,14 @@ export class PaginationPlugin {
     }
 
     async init() {
-        this.logger.info('Initializing Pagination plugin');
-        
+        if (this.isInitialized) {
+            this.logger.warn('Plugin Pagination déjà initialisé');
+            return;
+        }
+
         try {
+            this.logger.info('Initialisation du plugin Pagination');
+            
             await this.initDOMCache();
             this.setupEventListeners();
             this.registerHooks();
@@ -55,35 +62,48 @@ export class PaginationPlugin {
             // S'enregistrer comme plugin coopératif
             this.tableFlow.registerCooperativePlugin(this);
             
+            this.isInitialized = true;
             this.metrics.increment('plugin_pagination_init');
         } catch (error) {
-            this.handleError(error, 'init');
+            this.errorHandler.handle(error, 'pagination_init');
+            throw error;
         }
     }
 
     async initDOMCache() {
-        this.domCache = {
-            table: this.tableFlow.table,
-            tbody: this.tableFlow.table.querySelector('tbody'),
-            rows: Array.from(this.tableFlow.table.querySelectorAll('tbody tr'))
-        };
+        try {
+            this.domCache = {
+                table: this.tableFlow.table,
+                tbody: this.tableFlow.table.querySelector('tbody'),
+                rows: Array.from(this.tableFlow.table.querySelectorAll('tbody tr'))
+            };
+            this.metrics.increment('pagination_dom_cache_init');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_init_dom_cache');
+            throw error;
+        }
     }
 
     clearCache() {
-        if (this.cache.renderTimeout) {
-            clearTimeout(this.cache.renderTimeout);
-        }
-        if (this.cache.renderFrame) {
-            cancelAnimationFrame(this.cache.renderFrame);
-        }
+        try {
+            if (this.cache.renderTimeout) {
+                clearTimeout(this.cache.renderTimeout);
+            }
+            if (this.cache.renderFrame) {
+                cancelAnimationFrame(this.cache.renderFrame);
+            }
 
-        this.cache = {
-            lastRenderTime: 0,
-            renderTimeout: null,
-            renderFrame: null,
-            visibleRows: [],
-            domNodes: new Map()
-        };
+            this.cache = {
+                lastRenderTime: 0,
+                renderTimeout: null,
+                renderFrame: null,
+                visibleRows: [],
+                domNodes: new Map()
+            };
+            this.metrics.increment('pagination_cache_cleared');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_clear_cache');
+        }
     }
 
     handleError(error, context) {
@@ -102,61 +122,83 @@ export class PaginationPlugin {
     }
 
     setupEventListeners() {
-        document.addEventListener('keydown', this.handleKeydown.bind(this));
-        this.tableFlow.on('data:change', this.handleDataChange.bind(this));
+        try {
+            document.addEventListener('keydown', this.handleKeydown.bind(this));
+            this.tableFlow.on('data:change', this.handleDataChange.bind(this));
+            this.metrics.increment('pagination_event_listeners_setup');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_setup_listeners');
+        }
     }
 
     registerHooks() {
-        this.tableFlow.hooks.register('beforePageChange', this.beforePageChange.bind(this));
-        this.tableFlow.hooks.register('afterPageChange', this.afterPageChange.bind(this));
-        this.tableFlow.hooks.register('beforeSizeChange', this.beforeSizeChange.bind(this));
-        this.tableFlow.hooks.register('afterSizeChange', this.afterSizeChange.bind(this));
-        
-        // Nouveaux hooks pour la synchronisation
-        this.tableFlow.hooks.register('afterFilter', this.handleFilterChange.bind(this));
-        this.tableFlow.hooks.register('afterClear', this.handleFilterClear.bind(this));
+        try {
+            this.tableFlow.hooks.register('beforePageChange', this.beforePageChange.bind(this));
+            this.tableFlow.hooks.register('afterPageChange', this.afterPageChange.bind(this));
+            this.tableFlow.hooks.register('beforeSizeChange', this.beforeSizeChange.bind(this));
+            this.tableFlow.hooks.register('afterSizeChange', this.afterSizeChange.bind(this));
+            this.tableFlow.hooks.register('afterFilter', this.handleFilterChange.bind(this));
+            this.tableFlow.hooks.register('afterClear', this.handleFilterClear.bind(this));
+            this.metrics.increment('pagination_hooks_registered');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_register_hooks');
+        }
     }
 
-    createContainer() {
-        this.container = document.createElement('div');
-        this.container.className = this.config.paginationClass;
-        this.applyContainerStyles(this.container);
+    async createContainer() {
+        try {
+            this.container = document.createElement('div');
+            this.container.className = this.config.paginationClass;
+            this.container.setAttribute('role', 'navigation');
+            this.container.setAttribute('aria-label', 'Pagination');
+            this.applyContainerStyles(this.container);
 
-        this.pagesContainer = document.createElement('div');
-        this.pagesContainer.className = 'tableflow-pagination-pages';
-        this.container.appendChild(this.pagesContainer);
+            this.pagesContainer = document.createElement('div');
+            this.pagesContainer.className = 'tableflow-pagination-pages';
+            this.pagesContainer.setAttribute('role', 'group');
+            this.pagesContainer.setAttribute('aria-label', 'Pages');
+            this.container.appendChild(this.pagesContainer);
 
-        if (this.config.showInfo) {
-            this.infoContainer = document.createElement('div');
-            this.infoContainer.className = this.config.infoClass;
-            this.infoContainer.setAttribute('aria-live', 'polite');
-            this.container.appendChild(this.infoContainer);
+            if (this.config.showInfo) {
+                this.infoContainer = document.createElement('div');
+                this.infoContainer.className = this.config.infoClass;
+                this.infoContainer.setAttribute('role', 'status');
+                this.infoContainer.setAttribute('aria-live', 'polite');
+                this.container.appendChild(this.infoContainer);
+            }
+
+            if (this.config.showSizeSelector) {
+                this.sizeSelector = document.createElement('div');
+                this.sizeSelector.className = this.config.sizeSelectorClass;
+                
+                const select = document.createElement('select');
+                select.setAttribute('aria-label', 'Nombre d\'éléments par page');
+                select.setAttribute('role', 'combobox');
+                
+                this.config.sizes.forEach(size => {
+                    const option = document.createElement('option');
+                    option.value = size;
+                    option.textContent = `${size} par page`;
+                    if (size === this.state.pageSize) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                
+                select.addEventListener('change', (e) => {
+                    this.setPageSize(parseInt(e.target.value));
+                });
+                
+                this.sizeSelector.appendChild(select);
+                this.container.appendChild(this.sizeSelector);
+            }
+
+            this.tableFlow.container.appendChild(this.container);
+            this.metrics.increment('pagination_container_created');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_create_container');
+            throw error;
         }
-
-        if (this.config.showSizeSelector) {
-            this.sizeSelector = document.createElement('div');
-            this.sizeSelector.className = this.config.sizeSelectorClass;
-            
-            const select = document.createElement('select');
-            this.config.sizes.forEach(size => {
-                const option = document.createElement('option');
-                option.value = size;
-                option.textContent = `${size} par page`;
-                if (size === this.state.pageSize) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-            
-            select.addEventListener('change', (e) => {
-                this.setPageSize(parseInt(e.target.value));
-            });
-            
-            this.sizeSelector.appendChild(select);
-            this.container.appendChild(this.sizeSelector);
-        }
-
-        this.tableFlow.container.appendChild(this.container);
     }
 
     applyContainerStyles(element) {
@@ -253,38 +295,38 @@ export class PaginationPlugin {
     }
 
     async goToPage(page) {
+        if (!this.isInitialized) return;
+
         try {
-            const beforePageChangeResult = await this.tableFlow.hooks.trigger('beforePageChange', {
-                currentPage: this.state.currentPage,
-                newPage: page,
-                pageSize: this.state.pageSize
+            const oldPage = this.state.currentPage;
+            
+            // Vérifier les limites
+            if (page < 1) page = 1;
+            if (page > this.state.totalPages) page = this.state.totalPages;
+            
+            // Émettre l'événement beforePageChange
+            const beforeResult = await this.tableFlow.hooks.trigger('beforePageChange', {
+                currentPage: oldPage,
+                newPage: page
             });
-
-            if (beforePageChangeResult === false) return;
-
+            
+            if (beforeResult === false) return;
+            
             this.state.currentPage = page;
             
-            // Mettre à jour l'état partagé
-            await this.tableFlow.updateSharedState({
-                currentPage: page
-            });
-
-            await this.updateVisibleRows();
-            this.render();
-
+            // Émettre l'événement afterPageChange
             await this.tableFlow.hooks.trigger('afterPageChange', {
-                page,
-                pageSize: this.state.pageSize
+                oldPage,
+                newPage: page
             });
-
-            this.tableFlow.emit('pagination:change', {
-                page,
-                pageSize: this.state.pageSize
-            });
-
-            this.metrics.increment('pagination_page_change');
+            
+            await this.updateVisibleRows();
+            this.updateInfo();
+            this.render();
+            
+            this.metrics.increment('pagination_page_changed');
         } catch (error) {
-            this.handleError(error, 'goToPage');
+            this.errorHandler.handle(error, 'pagination_go_to_page');
         }
     }
 
@@ -518,39 +560,36 @@ export class PaginationPlugin {
     }
 
     async updateVisibleRows() {
-        if (!this.tableFlow.sharedState.filteredData) {
-            return;
-        }
+        if (!this.isInitialized) return;
 
-        const startTime = performance.now();
-        const { filteredData } = this.tableFlow.sharedState;
-        const startIndex = (this.state.currentPage - 1) * this.state.pageSize;
-        const endIndex = startIndex + this.state.pageSize;
-
-        this.cache.visibleRows = filteredData.slice(startIndex, endIndex);
-        
-        // Optimisation : utiliser le cache DOM
-        if (!this.domCache.rows.length) {
-            await this.initDOMCache();
-        }
-
-        // Mettre à jour la visibilité des lignes avec requestAnimationFrame
-        if (this.cache.renderFrame) {
-            cancelAnimationFrame(this.cache.renderFrame);
-        }
-
-        this.cache.renderFrame = requestAnimationFrame(() => {
-            this.domCache.rows.forEach((row, index) => {
-                const isVisible = index >= startIndex && index < endIndex;
-                row.style.display = isVisible ? '' : 'none';
-                
-                // Mettre en cache l'état de visibilité
-                this.cache.domNodes.set(row, isVisible);
+        try {
+            const start = (this.state.currentPage - 1) * this.state.pageSize;
+            const end = start + this.state.pageSize;
+            
+            // Cacher toutes les lignes
+            this.domCache.rows.forEach(row => {
+                row.style.display = 'none';
             });
-        });
-
-        this.cache.lastRenderTime = performance.now() - startTime;
-        this.metrics.record('pagination_render_time', this.cache.lastRenderTime);
+            
+            // Afficher les lignes visibles
+            const visibleRows = this.domCache.rows.slice(start, end);
+            visibleRows.forEach(row => {
+                row.style.display = '';
+            });
+            
+            this.cache.visibleRows = visibleRows;
+            
+            // Émettre l'événement de mise à jour
+            this.tableFlow.emit('pagination:updated', {
+                currentPage: this.state.currentPage,
+                pageSize: this.state.pageSize,
+                visibleRows: visibleRows.length
+            });
+            
+            this.metrics.increment('pagination_rows_updated');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_update_rows');
+        }
     }
 
     requestRender() {
@@ -576,14 +615,26 @@ export class PaginationPlugin {
         };
     }
 
-    destroy() {
-        this.clearCache();
-        this.resetState();
-        document.removeEventListener('keydown', this.handleKeydown);
-        this.tableFlow.off('data:change', this.handleDataChange);
-        if (this.domCache.container && this.domCache.container.parentNode) {
-            this.domCache.container.parentNode.removeChild(this.domCache.container);
+    async destroy() {
+        if (!this.isInitialized) return;
+
+        try {
+            if (this.container) {
+                this.container.remove();
+            }
+            
+            this.clearCache();
+            this.resetState();
+            
+            document.removeEventListener('keydown', this.handleKeydown.bind(this));
+            this.tableFlow.off('data:change', this.handleDataChange.bind(this));
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin Pagination détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'pagination_destroy');
+        } finally {
+            super.destroy();
         }
-        this.metrics.increment('plugin_pagination_destroy');
     }
 } 

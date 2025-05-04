@@ -1,14 +1,18 @@
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
-export default class ActionsPlugin {
-    constructor(options = {}) {
+export class ActionsPlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
         this.name = config.name;
         this.version = config.version;
+        this.type = PluginType.ACTION;
         this.dependencies = config.dependencies;
-        this.config = { ...config.options, ...options };
-        this.table = null;
+        
         this.actions = new Map();
         this.context = {};
+        this.isInitialized = false;
 
         // Lier les méthodes pour préserver le contexte
         this.handleActionClick = this.handleActionClick.bind(this);
@@ -16,11 +20,22 @@ export default class ActionsPlugin {
         this.handleContextUpdate = this.handleContextUpdate.bind(this);
     }
     
-    init(table) {
-        this.table = table;
-        this.setupActions();
-        this.setupEventListeners();
-        this.render();
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin Actions déjà initialisé');
+            return;
+        }
+
+        try {
+            this.setupActions();
+            this.setupEventListeners();
+            this.render();
+            this.isInitialized = true;
+            this.logger.info('Plugin Actions initialisé avec succès');
+        } catch (error) {
+            this.errorHandler.handle(error, 'actions_init');
+            throw error;
+        }
     }
     
     setupActions() {
@@ -48,9 +63,9 @@ export default class ActionsPlugin {
 
     setupEventListeners() {
         // Événements du tableau
-        this.table.on('selection:change', this.handleContextUpdate);
-        this.table.on('cell:focus', this.handleContextUpdate);
-        this.table.on('row:focus', this.handleContextUpdate);
+        this.tableFlow.on('selection:change', this.handleContextUpdate);
+        this.tableFlow.on('cell:focus', this.handleContextUpdate);
+        this.tableFlow.on('row:focus', this.handleContextUpdate);
         
         // Événements du document
         document.addEventListener('keydown', this.handleKeyDown);
@@ -143,42 +158,45 @@ export default class ActionsPlugin {
         const action = this.actions.get(id);
         if (!action || !action.enabled) return;
         
-        // Vérifier les hooks avant l'exécution
-        const beforeResult = await this.table.hooks.trigger('beforeAction', {
-            action,
-            context: this.context
-        });
-        
-        if (beforeResult === false) return;
-        
-        // Vérifier la confirmation si nécessaire
-        if (action.confirm) {
-            const confirmResult = await this.table.hooks.trigger('confirmAction', {
+        try {
+            // Vérifier les hooks avant l'exécution
+            const beforeResult = await this.tableFlow.hooks.trigger('beforeAction', {
                 action,
                 context: this.context
             });
             
-            if (confirmResult === false) return;
-        }
-        
-        // Exécuter l'action
-        try {
+            if (beforeResult === false) return;
+            
+            // Vérifier la confirmation si nécessaire
+            if (action.confirm) {
+                const confirmResult = await this.tableFlow.hooks.trigger('confirmAction', {
+                    action,
+                    context: this.context
+                });
+                
+                if (confirmResult === false) return;
+            }
+            
+            // Exécuter l'action
             await action.action(this.context);
             
             // Déclencher l'événement après l'exécution
-            this.table.trigger('actions:execute', {
+            this.tableFlow.emit('actions:execute', {
                 action,
                 context: this.context
             });
             
             // Déclencher les hooks après l'exécution
-            await this.table.hooks.trigger('afterAction', {
+            await this.tableFlow.hooks.trigger('afterAction', {
                 action,
                 context: this.context
             });
+
+            this.metrics.increment('action_executed');
         } catch (error) {
-            console.error('Erreur lors de l\'exécution de l\'action:', error);
-            this.table.trigger('actions:error', {
+            this.errorHandler.handle(error, 'actions_execute');
+            this.logger.error('Erreur lors de l\'exécution de l\'action:', error);
+            this.tableFlow.emit('actions:error', {
                 action,
                 context: this.context,
                 error
@@ -201,7 +219,7 @@ export default class ActionsPlugin {
     }
     
     render() {
-        const container = this.table.table.querySelector(`.${this.config.actionsClass}`) ||
+        const container = this.tableFlow.table.querySelector(`.${this.config.actionsClass}`) ||
             document.createElement('div');
             
         container.className = this.config.actionsClass;
@@ -226,8 +244,8 @@ export default class ActionsPlugin {
             container.appendChild(groupElement);
         });
         
-        if (!this.table.table.contains(container)) {
-            this.table.table.appendChild(container);
+        if (!this.tableFlow.table.contains(container)) {
+            this.tableFlow.table.appendChild(container);
         }
     }
     
@@ -288,21 +306,37 @@ export default class ActionsPlugin {
     }
 
     refresh() {
+        if (!this.isInitialized) {
+            this.logger.warn('Plugin Actions non initialisé');
+            return;
+        }
         this.render();
+        this.updateActionsState();
     }
 
     destroy() {
-        // Nettoyer les événements
-        document.removeEventListener('keydown', this.handleKeyDown);
-        
-        // Supprimer le conteneur
-        const container = this.table.table.querySelector(`.${this.config.actionsClass}`);
-        if (container) {
-            container.remove();
+        if (!this.isInitialized) return;
+
+        try {
+            // Supprimer les écouteurs d'événements
+            document.removeEventListener('keydown', this.handleKeyDown);
+            
+            // Nettoyer les actions
+            this.actions.clear();
+            this.context = {};
+            
+            // Supprimer l'interface
+            const container = this.tableFlow.table.querySelector(`.${this.config.actionsClass}`);
+            if (container) {
+                container.remove();
+            }
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin Actions détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'actions_destroy');
+        } finally {
+            super.destroy();
         }
-        
-        // Réinitialiser l'état
-        this.actions.clear();
-        this.context = {};
     }
 }

@@ -5,16 +5,18 @@
  * 
  * @requires EditPlugin
  */
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
-export class LineTogglePlugin {
-    constructor(tableFlow) {
-        this.tableFlow = tableFlow;
+export class LineTogglePlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
         this.name = config.name;
         this.version = config.version;
-        this.type = config.type;
+        this.type = PluginType.LINE_TOGGLE;
         this.dependencies = config.dependencies;
-        this.config = this._mergeConfigs(config, tableFlow?.config?.plugins?.linetoggle || {});
+        this.isInitialized = false;
 
         // Référence au plugin Edit (requis)
         this.editPlugin = null;
@@ -74,42 +76,47 @@ export class LineTogglePlugin {
         this.processUpdates = this.processUpdates.bind(this);
     }
 
-    /**
-     * Initialise le plugin
-     * @throws {Error} Si EditPlugin n'est pas disponible
-     */
-    init() {
-        if (!this.tableFlow) {
-            throw new Error('Instance TableFlow requise');
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin LineToggle déjà initialisé');
+            return;
         }
 
-        // Récupérer EditPlugin (requis)
         try {
+            if (!this.tableFlow) {
+                throw new Error('Instance TableFlow requise');
+            }
+
+            // Récupérer EditPlugin (requis)
             this.editPlugin = this.tableFlow.getPlugin('Edit');
             if (!this.editPlugin) {
                 throw new Error('EditPlugin non trouvé');
             }
+
+            // Initialiser l'observateur de mutations si nécessaire
+            if (this.config.apply.onEdit) {
+                this.initMutationObserver();
+            }
+
+            // S'enregistrer aux hooks d'EditPlugin
+            this.registerWithEditPlugin();
+
+            // Appliquer les règles initiales si nécessaire
+            if (this.config.apply.onInit) {
+                await this.applyAllRules();
+            }
+
+            // Charger les règles sauvegardées si la persistance est activée
+            if (this.config.storage.enabled) {
+                await this.loadRules();
+            }
+
+            this.isInitialized = true;
+            this.logger.info('Plugin LineToggle initialisé avec succès');
+            this.metrics.increment('plugin_linetoggle_init');
         } catch (error) {
-            this.tableFlow.logger.error('LineTogglePlugin requiert EditPlugin');
+            this.errorHandler.handle(error, 'linetoggle_init');
             throw error;
-        }
-
-        // Initialiser l'observateur de mutations si nécessaire
-        if (this.config.apply.onEdit) {
-            this.initMutationObserver();
-        }
-
-        // S'enregistrer aux hooks d'EditPlugin
-        this.registerWithEditPlugin();
-
-        // Appliquer les règles initiales si nécessaire
-        if (this.config.apply.onInit) {
-            this.applyAllRules();
-        }
-
-        // Charger les règles sauvegardées si la persistance est activée
-        if (this.config.storage.enabled) {
-            this.loadRules();
         }
     }
 
@@ -142,24 +149,26 @@ export class LineTogglePlugin {
         this.editPlugin.on('row:add', this.handleRowAdd);
     }
 
-    /**
-     * Gère les changements de cellule
-     * @private
-     */
-    handleCellChange(event) {
+    async handleCellChange(event) {
         if (!this.state.enabled || !this.config.apply.onChange) return;
 
-        const { cell, value, columnId } = event;
-        if (!cell || !columnId) return;
+        try {
+            const { cell, value, columnId } = event;
+            if (!cell || !columnId) return;
 
-        // Vérifier si la colonne a des règles
-        const rules = this.getRulesForColumn(columnId);
-        if (!rules || rules.length === 0) return;
+            // Vérifier si la colonne a des règles
+            const rules = this.getRulesForColumn(columnId);
+            if (!rules || rules.length === 0) return;
 
-        // Ajouter la mise à jour à la file d'attente
-        const row = cell.closest('tr');
-        if (row) {
-            this.queueUpdate(row, columnId, value);
+            // Ajouter la mise à jour à la file d'attente
+            const row = cell.closest('tr');
+            if (row) {
+                this.queueUpdate(row, columnId, value);
+            }
+
+            this.metrics.increment('linetoggle_cell_changed');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_handle_cell_change');
         }
     }
 
@@ -219,11 +228,7 @@ export class LineTogglePlugin {
         );
     }
 
-    /**
-     * Traite les mises à jour en attente
-     * @private
-     */
-    processUpdates() {
+    async processUpdates() {
         if (this.state.updating || this.state.pendingUpdates.size === 0) return;
 
         this.state.updating = true;
@@ -242,12 +247,15 @@ export class LineTogglePlugin {
 
             // Appliquer les mises à jour groupées
             for (const [row, updates] of updatesByRow) {
-                this.applyRulesToRow(row, updates);
+                await this.applyRulesToRow(row, updates);
             }
 
             // Vider la file d'attente
             this.state.pendingUpdates.clear();
 
+            this.metrics.increment('linetoggle_updates_processed');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_process_updates');
         } finally {
             this.state.updating = false;
         }
@@ -294,101 +302,53 @@ export class LineTogglePlugin {
         return rules;
     }
 
-    /**
-     * Applique les règles à une ligne
-     * @private
-     */
-    applyRulesToRow(row, updates = null) {
-        if (!row) return;
+    async applyRulesToRow(row, updates = null) {
+        try {
+            const rowId = row.getAttribute('data-row-id');
+            if (!rowId) return;
 
-        // Émettre l'événement beforeApply
-        const beforeEvent = { row, updates, preventDefault: false };
-        this.tableFlow.emit('linetoggle:beforeApply', beforeEvent);
-        if (beforeEvent.preventDefault) return;
+            const currentState = this.cache.states.get(rowId) || new Set();
+            const newState = new Set();
 
-        const appliedRules = [];
-        const addedClasses = new Set();
-        const removedClasses = new Set();
+            // Appliquer les règles pour chaque colonne
+            for (const column of this.tableFlow.getColumns()) {
+                const columnId = column.getAttribute('data-column-id');
+                if (!columnId) continue;
 
-        // Pour chaque colonne avec des règles
-        const headers = this.tableFlow.table.querySelectorAll(`th[${this.config.toggleAttribute}]`);
-        headers.forEach(header => {
-            const columnId = header.id;
-            const rules = this.getRulesForColumn(columnId);
-            if (!rules || rules.length === 0) return;
+                const cell = row.querySelector(`[data-column-id="${columnId}"]`);
+                if (!cell) continue;
 
-            // Récupérer la valeur (soit des updates, soit de la cellule)
-            let value;
-            if (updates && updates.has(columnId)) {
-                value = updates.get(columnId);
-            } else {
-                const cell = row.querySelector(`td[data-column="${columnId}"]`);
-                value = cell?.getAttribute('data-value') || cell?.textContent.trim();
-            }
+                const value = updates?.get(columnId) || cell.getAttribute('data-value');
+                const rules = this.getRulesForColumn(columnId);
 
-            // Appliquer chaque règle
-            rules.forEach(rule => {
-                if (this.ruleMatches(rule, value)) {
-                    appliedRules.push({ columnId, rule, value });
-
-                    // Ajouter les classes
-                    if (rule.addClass) {
-                        const classes = Array.isArray(rule.addClass) 
-                            ? rule.addClass 
-                            : [rule.addClass];
-                        classes.forEach(cls => {
-                            if (cls) {
-                                row.classList.add(cls);
-                                addedClasses.add(cls);
-                            }
-                        });
-                    }
-
-                    // Retirer les classes
-                    if (rule.removeClass) {
-                        const classes = Array.isArray(rule.removeClass)
-                            ? rule.removeClass
-                            : [rule.removeClass];
-                        classes.forEach(cls => {
-                            if (cls) {
-                                row.classList.remove(cls);
-                                removedClasses.add(cls);
-                            }
-                        });
+                if (rules) {
+                    for (const rule of rules) {
+                        if (this.ruleMatches(rule, value)) {
+                            newState.add(rule.class);
+                        }
                     }
                 }
-            });
-        });
+            }
 
-        // Ajouter la classe d'animation si nécessaire
-        if (this.config.ui.animate && (addedClasses.size > 0 || removedClasses.size > 0)) {
-            row.classList.add('tf-row-animate');
-            setTimeout(() => {
-                row.classList.remove('tf-row-animate');
-            }, 600); // Durée de l'animation
-        }
+            // Calculer les changements
+            const addedClasses = [...newState].filter(cls => !currentState.has(cls));
+            const removedClasses = [...currentState].filter(cls => !newState.has(cls));
 
-        // Mettre à jour le cache d'état
-        if (this.config.performance.cacheRules) {
-            this.cache.states.set(row.id, {
-                appliedRules,
-                addedClasses: Array.from(addedClasses),
-                removedClasses: Array.from(removedClasses),
-                timestamp: Date.now()
-            });
-        }
+            // Appliquer les changements
+            if (addedClasses.length > 0 || removedClasses.length > 0) {
+                row.classList.remove(...removedClasses);
+                row.classList.add(...addedClasses);
 
-        // Émettre l'événement afterApply
-        this.tableFlow.emit('linetoggle:afterApply', {
-            row,
-            appliedRules,
-            addedClasses: Array.from(addedClasses),
-            removedClasses: Array.from(removedClasses)
-        });
+                // Mettre à jour le cache
+                this.cache.states.set(rowId, newState);
 
-        // Annoncer les changements pour l'accessibilité
-        if (this.config.accessibility.announceChanges && (addedClasses.size > 0 || removedClasses.size > 0)) {
-            this.announceChanges(row, addedClasses, removedClasses);
+                // Annoncer les changements
+                await this.announceChanges(row, addedClasses, removedClasses);
+            }
+
+            this.metrics.increment('linetoggle_rules_applied');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_apply_rules');
         }
     }
 
@@ -428,71 +388,68 @@ export class LineTogglePlugin {
         return false;
     }
 
-    /**
-     * Annonce les changements pour l'accessibilité
-     * @private
-     */
-    announceChanges(row, addedClasses, removedClasses) {
-        // Créer ou réutiliser l'élément d'annonce
-        let announcer = document.getElementById('tf-linetoggle-announcer');
-        if (!announcer) {
-            announcer = document.createElement('div');
-            announcer.id = 'tf-linetoggle-announcer';
-            announcer.setAttribute('role', 'status');
-            announcer.setAttribute('aria-live', 'polite');
-            announcer.style.position = 'absolute';
-            announcer.style.width = '1px';
-            announcer.style.height = '1px';
-            announcer.style.padding = '0';
-            announcer.style.margin = '-1px';
-            announcer.style.overflow = 'hidden';
-            announcer.style.clip = 'rect(0, 0, 0, 0)';
-            announcer.style.whiteSpace = 'nowrap';
-            announcer.style.border = '0';
-            document.body.appendChild(announcer);
-        }
+    async announceChanges(row, addedClasses, removedClasses) {
+        try {
+            if (this.config.accessibility.announceChanges) {
+                const message = [];
+                
+                if (addedClasses.length > 0) {
+                    message.push(`Classes ajoutées : ${addedClasses.join(', ')}`);
+                }
+                
+                if (removedClasses.length > 0) {
+                    message.push(`Classes supprimées : ${removedClasses.join(', ')}`);
+                }
 
-        // Construire le message
-        const rowId = row.getAttribute('data-row-id') || row.id || 'ligne';
-        const changes = [];
-        
-        if (addedClasses.size > 0) {
-            changes.push(`Ajout des états: ${Array.from(addedClasses).join(', ')}`);
-        }
-        if (removedClasses.size > 0) {
-            changes.push(`Suppression des états: ${Array.from(removedClasses).join(', ')}`);
-        }
+                if (message.length > 0) {
+                    const announcement = document.createElement('div');
+                    announcement.setAttribute('role', 'status');
+                    announcement.setAttribute('aria-live', 'polite');
+                    announcement.className = 'sr-only';
+                    announcement.textContent = message.join('. ');
+                    document.body.appendChild(announcement);
+                    setTimeout(() => announcement.remove(), 1000);
+                }
+            }
 
-        announcer.textContent = `${rowId}: ${changes.join('. ')}`;
+            this.metrics.increment('linetoggle_changes_announced');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_announce_changes');
+        }
     }
 
     /**
      * Applique toutes les règles au tableau
      */
-    applyAllRules() {
+    async applyAllRules() {
         const rows = this.tableFlow.table.querySelectorAll('tbody tr');
-        rows.forEach(row => this.applyRulesToRow(row));
+        for (const row of rows) {
+            await this.applyRulesToRow(row);
+        }
     }
 
     /**
      * Active ou désactive le plugin
      */
-    toggle(enabled = null) {
-        const newState = enabled === null ? !this.state.enabled : Boolean(enabled);
-        
-        if (newState === this.state.enabled) return;
-        
-        this.state.enabled = newState;
-        
-        if (newState) {
-            this.applyAllRules();
-        } else {
-            this.removeAllRules();
-        }
+    async toggle(enabled = null) {
+        try {
+            const newState = enabled !== null ? enabled : !this.state.enabled;
+            
+            if (newState === this.state.enabled) return;
 
-        this.tableFlow.emit('linetoggle:stateChange', {
-            enabled: newState
-        });
+            this.state.enabled = newState;
+
+            if (newState) {
+                await this.applyAllRules();
+            } else {
+                this.removeAllRules();
+            }
+
+            this.tableFlow.emit('linetoggle:toggled', { enabled: newState });
+            this.metrics.increment('linetoggle_toggled');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_toggle');
+        }
     }
 
     /**
@@ -537,7 +494,7 @@ export class LineTogglePlugin {
     /**
      * Charge les règles sauvegardées
      */
-    loadRules() {
+    async loadRules() {
         if (!this.config.storage.enabled) return;
 
         try {
@@ -554,7 +511,7 @@ export class LineTogglePlugin {
                     delete rules.version;
                     this.config.rules = rules;
                     this.cache.rules.clear();
-                    this.applyAllRules();
+                    await this.applyAllRules();
                 }
             }
         } catch (error) {
@@ -565,38 +522,33 @@ export class LineTogglePlugin {
     /**
      * Nettoie les ressources utilisées par le plugin
      */
-    destroy() {
-        // Arrêter l'observateur de mutations
-        if (this.observer) {
-            this.observer.disconnect();
-            this.observer = null;
+    async destroy() {
+        if (!this.isInitialized) return;
+
+        try {
+            if (this.observer) {
+                this.observer.disconnect();
+            }
+
+            if (this.editPlugin) {
+                this.editPlugin.off('cell:change', this.handleCellChange);
+                this.editPlugin.off('row:add', this.handleRowAdd);
+            }
+
+            this.cache.rules.clear();
+            this.cache.states.clear();
+            this.state.pendingUpdates.clear();
+
+            if (this.updateDebounceTimeout) {
+                clearTimeout(this.updateDebounceTimeout);
+            }
+
+            this.isInitialized = false;
+            this.logger.info('Plugin LineToggle détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'linetoggle_destroy');
+        } finally {
+            super.destroy();
         }
-
-        // Supprimer les écouteurs d'événements
-        if (this.editPlugin) {
-            this.editPlugin.off('cell:change', this.handleCellChange);
-            this.editPlugin.off('row:add', this.handleRowAdd);
-        }
-
-        // Annuler les mises à jour en attente
-        if (this.updateDebounceTimeout) {
-            clearTimeout(this.updateDebounceTimeout);
-            this.updateDebounceTimeout = null;
-        }
-
-        // Supprimer l'élément d'annonce
-        const announcer = document.getElementById('tf-linetoggle-announcer');
-        if (announcer) {
-            announcer.remove();
-        }
-
-        // Nettoyer les caches
-        this.cache.rules.clear();
-        this.cache.states.clear();
-
-        // Réinitialiser l'état
-        this.state = null;
-        this.editPlugin = null;
-        this.tableFlow = null;
     }
 }

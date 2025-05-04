@@ -1,0 +1,3 @@
+[submodule "public/assets/libs/colorFlow"]
+	path = public/assets/libs/colorFlow
+	url = git@github.com:nicko27/colorFlow.git

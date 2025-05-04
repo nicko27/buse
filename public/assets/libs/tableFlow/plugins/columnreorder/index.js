@@ -4,6 +4,7 @@
  * Version: 1.0.0
  */
 import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
 export class ColumnReorderPlugin extends BasePlugin {
@@ -11,8 +12,9 @@ export class ColumnReorderPlugin extends BasePlugin {
         super(tableFlow, { ...config.options, ...options });
         this.name = config.name;
         this.version = config.version;
-        this.type = config.type;
+        this.type = PluginType.ORDER;
         this.dependencies = config.dependencies;
+        this.isInitialized = false;
         
         this.isDragging = false;
         this.draggedColumn = null;
@@ -22,14 +24,25 @@ export class ColumnReorderPlugin extends BasePlugin {
     }
 
     async init() {
-        if (!this.tableFlow) {
-            throw new Error('TableFlow instance is required');
+        if (this.isInitialized) {
+            this.logger.warn('Plugin ColumnReorder déjà initialisé');
+            return;
         }
 
-        this.setupHandles();
-        this.setupEventListeners();
-        this.saveOriginalOrder();
-        this.initialized = true;
+        try {
+            if (!this.tableFlow) {
+                throw new Error('Instance de TableFlow requise');
+            }
+
+            this.setupHandles();
+            this.setupEventListeners();
+            this.saveOriginalOrder();
+            this.isInitialized = true;
+            this.logger.info('Plugin ColumnReorder initialisé avec succès');
+        } catch (error) {
+            this.errorHandler.handle(error, 'columnreorder_init');
+            throw error;
+        }
     }
 
     setupHandles() {
@@ -270,44 +283,71 @@ export class ColumnReorderPlugin extends BasePlugin {
     }
 
     moveColumn(header, direction) {
-        const headers = Array.from(header.parentElement.children);
-        const currentIndex = headers.indexOf(header);
-        const newIndex = currentIndex + direction;
-        
-        if (newIndex >= 0 && newIndex < headers.length) {
-            const newHeader = headers[newIndex];
-            header.parentElement.insertBefore(
-                header,
-                direction > 0 ? newHeader.nextSibling : newHeader
-            );
-            
-            this.updateColumnOrderInData(newIndex);
+        try {
+            const headers = Array.from(header.parentElement.children);
+            const currentIndex = headers.indexOf(header);
+            const newIndex = currentIndex + direction;
+
+            if (newIndex >= 0 && newIndex < headers.length) {
+                const beforeResult = this.tableFlow.hooks.trigger('beforeColumnMove', {
+                    header,
+                    fromIndex: currentIndex,
+                    toIndex: newIndex
+                });
+
+                if (beforeResult === false) return;
+
+                const parent = header.parentElement;
+                if (direction > 0) {
+                    parent.insertBefore(header, headers[newIndex + 1]);
+                } else {
+                    parent.insertBefore(header, headers[newIndex]);
+                }
+
+                this.updateColumnOrderInData(newIndex);
+
+                this.tableFlow.hooks.trigger('afterColumnMove', {
+                    header,
+                    fromIndex: currentIndex,
+                    toIndex: newIndex
+                });
+
+                this.metrics.increment('column_moved');
+            }
+        } catch (error) {
+            this.errorHandler.handle(error, 'columnreorder_move');
+            this.logger.error('Erreur lors du déplacement de la colonne:', error);
         }
     }
 
     cancelDrag() {
-        if (!this.draggedColumn || !this.placeholder) return;
-        
-        // Restaurer la position originale
-        this.placeholder.parentElement.insertBefore(
-            this.draggedColumn,
-            this.placeholder
-        );
-        
-        // Nettoyer
-        this.placeholder.remove();
-        this.ghost.remove();
-        this.draggedColumn.classList.remove(this.config.draggingClass);
-        
-        // Réinitialiser
-        this.isDragging = false;
-        this.draggedColumn = null;
-        this.placeholder = null;
-        this.ghost = null;
+        if (!this.isDragging) return;
+
+        try {
+            if (this.placeholder) {
+                this.placeholder.remove();
+            }
+            if (this.ghost) {
+                this.ghost.remove();
+            }
+            if (this.draggedColumn) {
+                this.draggedColumn.classList.remove(this.config.draggingClass);
+            }
+
+            this.isDragging = false;
+            this.draggedColumn = null;
+            this.placeholder = null;
+            this.ghost = null;
+
+            this.tableFlow.emit('columnreorder:cancelled');
+            this.metrics.increment('columnreorder_cancelled');
+        } catch (error) {
+            this.errorHandler.handle(error, 'columnreorder_cancel');
+        }
     }
 
     saveOriginalOrder() {
-        const headers = Array.from(this.tableFlow.getHeaders());
+        const headers = this.tableFlow.getHeaders();
         this.originalOrder = headers.map(header => 
             header.getAttribute('data-column-id') || 
             header.getAttribute('data-field') || 
@@ -316,33 +356,53 @@ export class ColumnReorderPlugin extends BasePlugin {
     }
 
     resetOrder() {
-        if (!this.originalOrder.length) return;
-        
-        const headers = Array.from(this.tableFlow.getHeaders());
-        const currentOrder = headers.map(header => 
-            header.getAttribute('data-column-id') || 
-            header.getAttribute('data-field') || 
-            header.textContent.trim()
-        );
-        
-        if (JSON.stringify(currentOrder) !== JSON.stringify(this.originalOrder)) {
+        try {
+            const beforeResult = this.tableFlow.hooks.trigger('beforeOrderReset');
+            if (beforeResult === false) return;
+
             this.tableFlow.updateColumnOrder(this.originalOrder);
+            this.tableFlow.emit('columnreorder:reset');
+
+            this.tableFlow.hooks.trigger('afterOrderReset');
+            this.metrics.increment('columnreorder_reset');
+        } catch (error) {
+            this.errorHandler.handle(error, 'columnreorder_reset');
+            this.logger.error('Erreur lors de la réinitialisation de l\'ordre:', error);
         }
     }
 
-    destroy() {
-        super.destroy();
-        // Nettoyage spécifique au plugin
-        const handles = this.tableFlow.table.querySelectorAll(`.${this.config.handleClass}`);
-        handles.forEach(handle => {
-            handle.removeEventListener('mousedown', this.handleMouseDown.bind(this));
-            handle.removeEventListener('touchstart', this.handleTouchStart.bind(this));
-            handle.removeEventListener('keydown', this.handleKeyDown.bind(this));
-        });
+    refresh() {
+        if (!this.isInitialized) {
+            this.logger.warn('Plugin ColumnReorder non initialisé');
+            return;
+        }
+        this.setupHandles();
+    }
 
-        document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.removeEventListener('mouseup', this.handleMouseUp.bind(this));
-        document.removeEventListener('touchmove', this.handleTouchMove.bind(this));
-        document.removeEventListener('touchend', this.handleTouchEnd.bind(this));
+    destroy() {
+        if (!this.isInitialized) return;
+
+        try {
+            this.cancelDrag();
+            
+            const handles = this.tableFlow.table.querySelectorAll(`.${this.config.handleClass}`);
+            handles.forEach(handle => {
+                handle.removeEventListener('mousedown', this.handleMouseDown);
+                handle.removeEventListener('touchstart', this.handleTouchStart);
+                handle.removeEventListener('keydown', this.handleKeyDown);
+            });
+
+            document.removeEventListener('mousemove', this.handleMouseMove);
+            document.removeEventListener('mouseup', this.handleMouseUp);
+            document.removeEventListener('touchmove', this.handleTouchMove);
+            document.removeEventListener('touchend', this.handleTouchEnd);
+
+            this.isInitialized = false;
+            this.logger.info('Plugin ColumnReorder détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'columnreorder_destroy');
+        } finally {
+            super.destroy();
+        }
     }
 }

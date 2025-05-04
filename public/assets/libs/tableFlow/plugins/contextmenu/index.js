@@ -1,23 +1,38 @@
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
-export class ContextMenuPlugin {
+export class ContextMenuPlugin extends BasePlugin {
     constructor(tableFlow, options = {}) {
-        this.tableFlow = tableFlow;
-        this.config = { ...config, ...options };
-        this.logger = tableFlow.logger;
-        this.metrics = tableFlow.metrics;
-        this.errorHandler = tableFlow.errorHandler;
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = PluginType.UI;
+        this.dependencies = config.dependencies;
+        this.isInitialized = false;
+        
         this.menu = null;
         this.providers = new Set();
         this.currentCell = null;
         this.activeItem = null;
     }
 
-    init() {
-        this.logger.info('Initializing ContextMenu plugin');
-        this.setupEventListeners();
-        this.registerHooks();
-        this.metrics.increment('plugin_contextmenu_init');
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin ContextMenu déjà initialisé');
+            return;
+        }
+
+        try {
+            this.logger.info('Initialisation du plugin ContextMenu');
+            this.setupEventListeners();
+            this.registerHooks();
+            this.isInitialized = true;
+            this.metrics.increment('plugin_contextmenu_init');
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_init');
+            throw error;
+        }
     }
 
     setupEventListeners() {
@@ -235,39 +250,50 @@ export class ContextMenuPlugin {
     }
 
     navigateItems(direction) {
-        const items = Array.from(this.menu.querySelectorAll(`.${this.config.itemClass}:not(.disabled)`));
-        if (items.length === 0) return;
+        try {
+            const items = Array.from(this.menu.querySelectorAll(`.${this.config.itemClass}:not(.disabled)`));
+            if (items.length === 0) return;
 
-        let index = 0;
-        if (this.activeItem) {
-            index = items.indexOf(this.activeItem) + direction;
-            if (index < 0) index = items.length - 1;
-            if (index >= items.length) index = 0;
+            let index = 0;
+            if (this.activeItem) {
+                index = items.indexOf(this.activeItem) + direction;
+                if (index < 0) index = items.length - 1;
+                if (index >= items.length) index = 0;
+            }
+
+            this.setActiveItem(items[index]);
+            this.metrics.increment('contextmenu_navigate');
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_navigate');
+            this.logger.error('Erreur lors de la navigation dans le menu:', error);
         }
-
-        this.setActiveItem(items[index]);
     }
 
     setActiveItem(item) {
-        if (this.activeItem) {
-            this.activeItem.classList.remove(this.config.activeClass);
-        }
+        try {
+            if (this.activeItem) {
+                this.activeItem.classList.remove(this.config.activeClass);
+            }
 
-        this.activeItem = item;
-        if (item) {
-            item.classList.add(this.config.activeClass);
-            item.focus();
+            this.activeItem = item;
+            if (item) {
+                item.classList.add(this.config.activeClass);
+                item.focus();
+            }
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_set_active');
+            this.logger.error('Erreur lors de la sélection de l\'élément:', error);
         }
     }
 
     async executeAction(item) {
         try {
-            const beforeActionResult = await this.tableFlow.hooks.trigger('beforeAction', {
+            const beforeResult = await this.tableFlow.hooks.trigger('beforeAction', {
                 cell: this.currentCell,
                 item
             });
 
-            if (beforeActionResult === false) return;
+            if (beforeResult === false) return;
 
             if (typeof item.action === 'function') {
                 await item.action(this.currentCell);
@@ -278,11 +304,11 @@ export class ContextMenuPlugin {
                 item
             });
 
-            this.tableFlow.emit('contextmenu:action', { cell: this.currentCell, item });
+            this.hideMenu();
             this.metrics.increment('contextmenu_action');
         } catch (error) {
             this.errorHandler.handle(error, 'contextmenu_action');
-            this.tableFlow.emit('contextmenu:error', { cell: this.currentCell, item, error });
+            this.logger.error('Erreur lors de l\'exécution de l\'action:', error);
         }
     }
 
@@ -290,17 +316,19 @@ export class ContextMenuPlugin {
         if (!this.menu) return;
 
         try {
-            this.tableFlow.hooks.trigger('beforeClose', {
+            const beforeCloseResult = this.tableFlow.hooks.trigger('beforeClose', {
                 cell: this.currentCell,
                 menu: this.menu
             });
 
+            if (beforeCloseResult === false) return;
+
             this.menu.classList.remove(this.config.activeClass);
             setTimeout(() => {
-                this.menu.remove();
-                this.menu = null;
-                this.currentCell = null;
-                this.activeItem = null;
+                if (this.menu) {
+                    this.menu.remove();
+                    this.menu = null;
+                }
             }, this.config.animationDuration);
 
             this.tableFlow.hooks.trigger('afterClose', {
@@ -315,13 +343,26 @@ export class ContextMenuPlugin {
     }
 
     registerProvider(provider) {
-        if (typeof provider.getMenuItems === 'function') {
+        try {
+            if (typeof provider.getMenuItems !== 'function') {
+                throw new Error('Le provider doit implémenter la méthode getMenuItems');
+            }
             this.providers.add(provider);
+            this.metrics.increment('contextmenu_provider_registered');
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_register_provider');
+            this.logger.error('Erreur lors de l\'enregistrement du provider:', error);
         }
     }
 
     unregisterProvider(provider) {
-        this.providers.delete(provider);
+        try {
+            this.providers.delete(provider);
+            this.metrics.increment('contextmenu_provider_unregistered');
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_unregister_provider');
+            this.logger.error('Erreur lors de la suppression du provider:', error);
+        }
     }
 
     beforeOpen({ cell, x, y }) {
@@ -344,12 +385,33 @@ export class ContextMenuPlugin {
     afterAction({ cell, item }) {
     }
 
-    destroy() {
-        this.tableFlow.off('cellContextMenu', this.handleContextMenu);
-        document.removeEventListener('click', this.handleDocumentClick);
-        document.removeEventListener('keydown', this.handleKeydown);
+    refresh() {
+        if (!this.isInitialized) {
+            this.logger.warn('Plugin ContextMenu non initialisé');
+            return;
+        }
         this.hideMenu();
-        this.providers.clear();
-        this.metrics.increment('plugin_contextmenu_destroy');
+    }
+
+    destroy() {
+        if (!this.isInitialized) return;
+
+        try {
+            this.hideMenu();
+            this.providers.clear();
+            
+            if (this.tableFlow) {
+                this.tableFlow.off('cellContextMenu', this.handleContextMenu);
+                document.removeEventListener('click', this.handleDocumentClick);
+                document.removeEventListener('keydown', this.handleKeydown);
+            }
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin ContextMenu détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'contextmenu_destroy');
+        } finally {
+            super.destroy();
+        }
     }
 }

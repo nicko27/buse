@@ -1,18 +1,30 @@
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
-export default class SearchPlugin {
-    constructor(options = {}) {
+export class SearchPlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
         this.name = config.name;
         this.version = config.version;
+        this.type = PluginType.SEARCH;
         this.dependencies = config.dependencies;
-        this.config = { ...config.options, ...options };
-        this.table = null;
-        this.container = null;
-        this.input = null;
-        this.results = null;
-        this.currentResults = [];
-        this.activeResult = null;
-        this.searchTimeout = null;
+        this.isInitialized = false;
+        
+        // État local
+        this.state = {
+            query: '',
+            results: [],
+            activeResult: null,
+            isSearching: false
+        };
+        
+        // Cache pour les performances
+        this.cache = {
+            searchTimeout: null,
+            lastSearchTime: 0,
+            regexCache: new Map()
+        };
         
         // Lier les méthodes
         this._boundInputHandler = this.handleInput.bind(this);
@@ -20,91 +32,141 @@ export default class SearchPlugin {
         this._boundClickHandler = this.handleClick.bind(this);
     }
     
-    async init(table) {
-        if (!table) {
-            throw new Error('Instance de TableFlow requise');
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin Search déjà initialisé');
+            return;
         }
-        
-        this.table = table;
-        
-        // Créer l'interface
-        this.createInterface();
-        
-        // Ajouter les écouteurs d'événements
-        this.setupEventListeners();
+
+        try {
+            this.logger.info('Initialisation du plugin Search');
+            
+            // Créer l'interface
+            await this.createInterface();
+            
+            // Ajouter les écouteurs d'événements
+            this.setupEventListeners();
+            
+            this.isInitialized = true;
+            this.metrics.increment('plugin_search_init');
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_init');
+            throw error;
+        }
     }
     
-    createInterface() {
-        // Créer le conteneur
-        this.container = document.createElement('div');
-        this.container.className = this.config.searchClass;
-        
-        // Créer l'input
-        this.input = document.createElement('input');
-        this.input.className = this.config.inputClass;
-        this.input.type = 'text';
-        this.input.placeholder = 'Rechercher...';
-        this.input.setAttribute('aria-label', 'Rechercher dans le tableau');
-        
-        // Créer le conteneur des résultats
-        this.results = document.createElement('div');
-        this.results.className = this.config.resultsClass;
-        this.results.setAttribute('role', 'listbox');
-        
-        // Assembler l'interface
-        this.container.appendChild(this.input);
-        this.container.appendChild(this.results);
-        
-        // Ajouter au DOM
-        this.table.table.parentNode.insertBefore(this.container, this.table.table);
+    async createInterface() {
+        try {
+            // Créer le conteneur
+            this.container = document.createElement('div');
+            this.container.className = this.config.searchClass;
+            this.container.setAttribute('role', 'search');
+            
+            // Créer l'input
+            this.input = document.createElement('input');
+            this.input.className = this.config.inputClass;
+            this.input.type = 'text';
+            this.input.placeholder = this.config.search.placeholder;
+            this.input.setAttribute('aria-label', this.config.search.ariaLabel);
+            this.input.setAttribute('aria-controls', 'search-results');
+            this.input.setAttribute('aria-expanded', 'false');
+            this.input.setAttribute('aria-autocomplete', 'list');
+            
+            // Créer le conteneur des résultats
+            this.results = document.createElement('div');
+            this.results.id = 'search-results';
+            this.results.className = this.config.resultsClass;
+            this.results.setAttribute('role', 'listbox');
+            this.results.setAttribute('aria-label', this.config.search.resultsLabel);
+            
+            // Assembler l'interface
+            this.container.appendChild(this.input);
+            this.container.appendChild(this.results);
+            
+            // Ajouter au DOM
+            this.tableFlow.container.insertBefore(this.container, this.tableFlow.table);
+            
+            this.metrics.increment('search_interface_created');
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_create_interface');
+            throw error;
+        }
     }
     
     setupEventListeners() {
-        // Événements de l'input
-        this.input.addEventListener('input', this._boundInputHandler);
-        this.input.addEventListener('keydown', this._boundKeyDownHandler);
-        
-        // Événements des résultats
-        this.results.addEventListener('click', this._boundClickHandler);
+        try {
+            // Événements de l'input
+            this.input.addEventListener('input', this._boundInputHandler);
+            this.input.addEventListener('keydown', this._boundKeyDownHandler);
+            this.input.addEventListener('focus', () => {
+                if (this.state.results.length > 0) {
+                    this.results.classList.add('active');
+                }
+            });
+            this.input.addEventListener('blur', () => {
+                setTimeout(() => this.hideResults(), 200);
+            });
+            
+            // Événements des résultats
+            this.results.addEventListener('click', this._boundClickHandler);
+            
+            this.metrics.increment('search_event_listeners_setup');
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_setup_listeners');
+        }
     }
     
-    handleInput(event) {
-        const query = event.target.value.trim();
-        
-        // Effacer le timeout précédent
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
-        }
-        
-        // Vérifier la longueur minimale
-        if (query.length < this.config.search.minLength) {
-            if (query.length > 0) {
-                this.showMessage(this.config.search.messages.tooShort.replace('{minLength}', this.config.search.minLength));
-            } else {
-                this.hideResults();
+    async handleInput(event) {
+        if (!this.isInitialized) return;
+
+        try {
+            const query = event.target.value.trim();
+            this.state.query = query;
+            
+            // Effacer le timeout précédent
+            if (this.cache.searchTimeout) {
+                clearTimeout(this.cache.searchTimeout);
             }
-            return;
+            
+            // Vérifier la longueur minimale
+            if (query.length < this.config.search.minLength) {
+                if (query.length > 0) {
+                    this.showMessage(this.config.search.messages.tooShort.replace('{minLength}', this.config.search.minLength));
+                } else {
+                    this.hideResults();
+                }
+                return;
+            }
+            
+            // Déclencher le hook beforeSearch
+            const beforeResult = await this.tableFlow.hooks.trigger('beforeSearch', {
+                query,
+                event
+            });
+            
+            if (beforeResult === false) return;
+            
+            // Afficher le message de recherche
+            this.showMessage(this.config.search.messages.searching);
+            
+            // Débouncer la recherche
+            this.cache.searchTimeout = setTimeout(async () => {
+                await this.search(query);
+            }, this.config.search.debounce);
+            
+            this.metrics.increment('search_input_handled');
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_handle_input');
         }
-        
-        // Déclencher le hook beforeSearch
-        const beforeSearchResult = this.table.hooks.trigger('beforeSearch', {
-            query,
-            event
-        });
-        
-        if (beforeSearchResult === false) return;
-        
-        // Afficher le message de recherche
-        this.showMessage(this.config.search.messages.searching);
-        
-        // Débouncer la recherche
-        this.searchTimeout = setTimeout(() => {
-            this.search(query);
-        }, this.config.search.debounce);
     }
     
     async search(query) {
+        if (!this.isInitialized) return;
+
         try {
+            this.state.isSearching = true;
+            const startTime = performance.now();
+            
             // Rechercher dans le tableau
             const results = await this.searchInTable(query);
             
@@ -114,45 +176,64 @@ export default class SearchPlugin {
             }
             
             // Mettre à jour les résultats
-            this.currentResults = results;
-            this.renderResults();
+            this.state.results = results;
+            await this.renderResults();
             
             // Déclencher le hook afterSearch
-            this.table.hooks.trigger('afterSearch', {
+            await this.tableFlow.hooks.trigger('afterSearch', {
                 query,
-                results
+                results,
+                performance: {
+                    duration: performance.now() - startTime,
+                    count: results.length
+                }
             });
+            
+            this.metrics.increment('search_completed');
+            this.metrics.record('search_duration', performance.now() - startTime);
         } catch (error) {
-            console.error('Erreur lors de la recherche:', error);
-            this.showMessage('Une erreur est survenue');
+            this.errorHandler.handle(error, 'search_execute');
+            this.showMessage(this.config.search.messages.error);
+        } finally {
+            this.state.isSearching = false;
         }
     }
     
     async searchInTable(query) {
-        const results = [];
-        const regex = this.createSearchRegex(query);
-        
-        // Parcourir les cellules du tableau
-        const cells = this.table.table.querySelectorAll('td');
-        for (const cell of cells) {
-            const text = cell.textContent;
-            const matches = text.match(regex);
+        try {
+            const results = [];
+            const regex = this.getCachedRegex(query);
             
-            if (matches) {
-                results.push({
-                    cell,
-                    text,
-                    matches
-                });
+            // Parcourir les cellules du tableau
+            const cells = this.tableFlow.table.querySelectorAll('td');
+            for (const cell of cells) {
+                const text = cell.textContent;
+                const matches = text.match(regex);
+                
+                if (matches) {
+                    results.push({
+                        cell,
+                        text,
+                        matches,
+                        row: cell.closest('tr'),
+                        column: cell.cellIndex
+                    });
+                }
             }
+            
+            return results;
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_in_table');
+            return [];
         }
-        
-        return results;
     }
     
-    createSearchRegex(query) {
-        let pattern = query;
+    getCachedRegex(query) {
+        if (this.cache.regexCache.has(query)) {
+            return this.cache.regexCache.get(query);
+        }
         
+        let pattern = query;
         if (!this.config.search.regex) {
             pattern = this.escapeRegex(query);
         }
@@ -161,7 +242,10 @@ export default class SearchPlugin {
             pattern = `\\b${pattern}\\b`;
         }
         
-        return new RegExp(pattern, this.config.search.caseSensitive ? 'g' : 'gi');
+        const regex = new RegExp(pattern, this.config.search.caseSensitive ? 'g' : 'gi');
+        this.cache.regexCache.set(query, regex);
+        
+        return regex;
     }
     
     escapeRegex(string) {
@@ -172,13 +256,13 @@ export default class SearchPlugin {
         // Vider les résultats
         this.results.innerHTML = '';
         
-        if (this.currentResults.length === 0) {
+        if (this.state.results.length === 0) {
             this.showMessage(this.config.search.messages.noResults);
             return;
         }
         
         // Rendre chaque résultat
-        this.currentResults.forEach((result, index) => {
+        this.state.results.forEach((result, index) => {
             const element = document.createElement('div');
             element.className = `${this.config.resultsClass}-item`;
             element.setAttribute('role', 'option');
@@ -188,7 +272,7 @@ export default class SearchPlugin {
             // Mettre en surbrillance les correspondances
             let text = result.text;
             if (this.config.search.highlight) {
-                text = text.replace(this.createSearchRegex(this.input.value), match => {
+                text = text.replace(this.getCachedRegex(this.state.query), match => {
                     return `<span class="${this.config.highlightClass}">${match}</span>`;
                 });
             }
@@ -208,8 +292,8 @@ export default class SearchPlugin {
     
     hideResults() {
         this.results.classList.remove('active');
-        this.currentResults = [];
-        this.activeResult = null;
+        this.state.results = [];
+        this.state.activeResult = null;
     }
     
     handleKeyDown(event) {
@@ -228,8 +312,8 @@ export default class SearchPlugin {
                 
             case 'Enter':
                 event.preventDefault();
-                if (this.activeResult) {
-                    this.selectResult(this.activeResult);
+                if (this.state.activeResult) {
+                    this.selectResult(this.state.activeResult);
                 }
                 break;
                 
@@ -244,7 +328,7 @@ export default class SearchPlugin {
         const items = this.results.querySelectorAll(`.${this.config.resultsClass}-item`);
         if (items.length === 0) return;
         
-        let index = this.activeResult ? parseInt(this.activeResult.dataset.index) : -1;
+        let index = this.state.activeResult ? parseInt(this.state.activeResult.dataset.index) : -1;
         
         if (direction === 'next') {
             index = index + 1 >= items.length ? 0 : index + 1;
@@ -257,18 +341,18 @@ export default class SearchPlugin {
     
     setActiveResult(result) {
         // Retirer la classe active de l'ancien résultat
-        if (this.activeResult) {
-            this.activeResult.classList.remove(this.config.activeClass);
-            this.activeResult.setAttribute('aria-selected', 'false');
+        if (this.state.activeResult) {
+            this.state.activeResult.classList.remove(this.config.activeClass);
+            this.state.activeResult.setAttribute('aria-selected', 'false');
         }
         
         // Définir le nouveau résultat actif
-        this.activeResult = result;
+        this.state.activeResult = result;
         
-        if (this.activeResult) {
-            this.activeResult.classList.add(this.config.activeClass);
-            this.activeResult.setAttribute('aria-selected', 'true');
-            this.activeResult.scrollIntoView({ block: 'nearest' });
+        if (this.state.activeResult) {
+            this.state.activeResult.classList.add(this.config.activeClass);
+            this.state.activeResult.setAttribute('aria-selected', 'true');
+            this.state.activeResult.scrollIntoView({ block: 'nearest' });
         }
     }
     
@@ -281,10 +365,10 @@ export default class SearchPlugin {
     
     async selectResult(result) {
         const index = parseInt(result.dataset.index);
-        const data = this.currentResults[index];
+        const data = this.state.results[index];
         
         // Déclencher le hook beforeSelect
-        const beforeSelectResult = this.table.hooks.trigger('beforeSelect', {
+        const beforeSelectResult = await this.tableFlow.hooks.trigger('beforeSelect', {
             result: data,
             index
         });
@@ -302,7 +386,7 @@ export default class SearchPlugin {
             }, 1000);
             
             // Déclencher le hook afterSelect
-            this.table.hooks.trigger('afterSelect', {
+            await this.tableFlow.hooks.trigger('afterSelect', {
                 result: data,
                 index
             });
@@ -314,23 +398,32 @@ export default class SearchPlugin {
         }
     }
     
-    destroy() {
-        // Nettoyer les événements
-        this.input.removeEventListener('input', this._boundInputHandler);
-        this.input.removeEventListener('keydown', this._boundKeyDownHandler);
-        this.results.removeEventListener('click', this._boundClickHandler);
-        
-        // Supprimer l'interface
-        if (this.container && this.container.parentNode) {
-            this.container.parentNode.removeChild(this.container);
+    async destroy() {
+        if (!this.isInitialized) return;
+
+        try {
+            if (this.container) {
+                this.container.remove();
+            }
+            
+            if (this.cache.searchTimeout) {
+                clearTimeout(this.cache.searchTimeout);
+            }
+            
+            this.cache.regexCache.clear();
+            this.state = {
+                query: '',
+                results: [],
+                activeResult: null,
+                isSearching: false
+            };
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin Search détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'search_destroy');
+        } finally {
+            super.destroy();
         }
-        
-        // Réinitialiser l'état
-        this.container = null;
-        this.input = null;
-        this.results = null;
-        this.currentResults = [];
-        this.activeResult = null;
-        this.searchTimeout = null;
     }
 } 

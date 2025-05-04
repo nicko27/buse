@@ -1,24 +1,19 @@
-import { Logger } from '../utils/logger.js';
-import { EventBus } from '../utils/eventBus.js';
+import { BasePlugin } from '../../src/BasePlugin.js';
+import { PluginType } from '../../src/types.js';
 import { config } from './config.js';
 
 /**
  * Plugin Color pour TableFlow
  * Permet de gérer des cellules avec sélection de couleur
  */
-export default class ColorPlugin {
-    constructor(config = {}) {
-        this.name = 'color';
-        this.version = '1.0.0';
-        this.type = 'edit';
-        this.table = null;
-        this.logger = new Logger('ColorPlugin');
-        this.eventBus = new EventBus();
-        this.config = {
-            ...this.getDefaultConfig(),
-            ...config
-        };
-        this.colorHandler = null;
+export class ColorPlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = PluginType.EDIT;
+        this.dependencies = config.dependencies;
+        this.isInitialized = false;
         
         // Lier les méthodes
         this._boundInputHandler = this.handleInput.bind(this);
@@ -26,46 +21,39 @@ export default class ColorPlugin {
         this._boundCellSavedHandler = this.handleCellSaved.bind(this);
         this._boundRowSavedHandler = this.handleRowSaved.bind(this);
         this._boundRowAddedHandler = this.handleRowAdded.bind(this);
-        
-        this.logger.debug('Plugin créé avec la config:', this.config);
     }
 
-    getDefaultConfig() {
-        return {
-            colorAttribute: 'th-color',
-            cellClass: 'td-color',
-            readOnlyClass: 'readonly',
-            modifiedClass: 'modified',
-            debug: false,
-            customClass: ''
-        };
-    }
+    async init() {
+        if (this.isInitialized) {
+            this.logger.warn('Plugin Color déjà initialisé');
+            return;
+        }
 
-    async init(tableFlow) {
-        if (!tableFlow) {
-            throw new Error('Instance de TableFlow requise');
+        try {
+            // Vérifier si ColorFlow est disponible
+            if (typeof ColorFlow === 'undefined') {
+                throw new Error('ColorFlow est requis pour ce plugin');
+            }
+            
+            // Initialiser ColorFlow
+            this.colorHandler = new ColorFlow({
+                customClass: this.config.customClass
+            });
+            
+            this.setupColorCells();
+            this.setupEventListeners();
+            this.isInitialized = true;
+            this.logger.info('Plugin Color initialisé avec succès');
+        } catch (error) {
+            this.errorHandler.handle(error, 'color_init');
+            throw error;
         }
-        
-        this.table = tableFlow;
-        
-        // Vérifier si ColorFlow est disponible
-        if (typeof ColorFlow === 'undefined') {
-            throw new Error('ColorFlow est requis pour ce plugin');
-        }
-        
-        // Initialiser ColorFlow
-        this.colorHandler = new ColorFlow({
-            customClass: this.config.customClass
-        });
-        
-        this.setupColorCells();
-        this.setupEventListeners();
     }
 
     setupColorCells() {
-        if (!this.table?.table) return;
+        if (!this.tableFlow?.table) return;
         
-        const headerCells = this.table.table.querySelectorAll('th');
+        const headerCells = this.tableFlow.table.querySelectorAll('th');
         const colorColumns = Array.from(headerCells)
             .filter(header => header.hasAttribute(this.config.colorAttribute))
             .map(header => ({
@@ -75,7 +63,7 @@ export default class ColorPlugin {
             
         if (!colorColumns.length) return;
         
-        const rows = this.table.table.querySelectorAll('tbody tr');
+        const rows = this.tableFlow.table.querySelectorAll('tbody tr');
         rows.forEach(row => {
             colorColumns.forEach(({id: columnId, index}) => {
                 const cell = row.cells[index];
@@ -128,11 +116,11 @@ export default class ColorPlugin {
     }
 
     setupEventListeners() {
-        if (!this.table?.table) return;
+        if (!this.tableFlow?.table) return;
         
-        this.table.table.addEventListener('cell:saved', this._boundCellSavedHandler);
-        this.table.table.addEventListener('row:saved', this._boundRowSavedHandler);
-        this.table.table.addEventListener('row:added', this._boundRowAddedHandler);
+        this.tableFlow.table.addEventListener('cell:saved', this._boundCellSavedHandler);
+        this.tableFlow.table.addEventListener('row:saved', this._boundRowSavedHandler);
+        this.tableFlow.table.addEventListener('row:added', this._boundRowAddedHandler);
     }
 
     handleInput(event) {
@@ -151,37 +139,50 @@ export default class ColorPlugin {
         this.updateValue(cell, input.value, true);
     }
 
-    updateValue(cell, newValue, triggerChange = false) {
-        const oldValue = cell.getAttribute('data-value');
-        if (oldValue === newValue) return;
-        
-        cell.setAttribute('data-value', newValue);
-        
-        const preview = cell.querySelector('.color-preview');
-        if (preview) {
-            preview.style.backgroundColor = newValue;
-        }
-        
-        const row = cell.closest('tr');
-        if (row) {
-            const isModified = newValue !== cell.getAttribute('data-initial-value');
-            row.classList.toggle(this.config.modifiedClass, isModified);
-        }
-        
-        if (triggerChange) {
-            const event = new CustomEvent('cell:change', {
-                detail: {
-                    cellId: cell.id,
-                    columnId: cell.id.split('_')[0],
-                    rowId: row?.id,
+    async updateValue(cell, newValue, triggerChange = false) {
+        try {
+            const beforeResult = await this.tableFlow.hooks.trigger('beforeColorUpdate', {
+                cell,
+                newValue
+            });
+
+            if (beforeResult === false) return;
+
+            const oldValue = cell.getAttribute('data-value');
+            if (oldValue === newValue) return;
+            
+            cell.setAttribute('data-value', newValue);
+            
+            const preview = cell.querySelector('.color-preview');
+            if (preview) {
+                preview.style.backgroundColor = newValue;
+            }
+            
+            const row = cell.closest('tr');
+            if (row) {
+                const isModified = newValue !== cell.getAttribute('data-initial-value');
+                row.classList.toggle(this.config.modifiedClass, isModified);
+            }
+            
+            if (triggerChange) {
+                this.tableFlow.emit('color:updated', {
+                    cell,
                     oldValue,
                     newValue,
-                    cell
-                },
-                bubbles: true
+                    columnId: cell.id.split('_')[0],
+                    rowId: row?.id
+                });
+            }
+
+            await this.tableFlow.hooks.trigger('afterColorUpdate', {
+                cell,
+                newValue
             });
-            
-            this.table.table.dispatchEvent(event);
+
+            this.metrics.increment('color_updated');
+        } catch (error) {
+            this.errorHandler.handle(error, 'color_update');
+            this.logger.error('Erreur lors de la mise à jour de la couleur:', error);
         }
     }
 
@@ -239,20 +240,41 @@ export default class ColorPlugin {
         return null;
     }
 
+    refresh() {
+        if (!this.isInitialized) {
+            this.logger.warn('Plugin Color non initialisé');
+            return;
+        }
+        this.setupColorCells();
+    }
+
     destroy() {
-        if (!this.table?.table) return;
-        
-        this.table.table.removeEventListener('cell:saved', this._boundCellSavedHandler);
-        this.table.table.removeEventListener('row:saved', this._boundRowSavedHandler);
-        this.table.table.removeEventListener('row:added', this._boundRowAddedHandler);
-        
-        const cells = this.table.table.querySelectorAll(`.${this.config.cellClass}`);
-        cells.forEach(cell => {
-            const input = cell.querySelector('input');
-            if (input) {
-                input.removeEventListener('input', this._boundInputHandler);
-                input.removeEventListener('change', this._boundChangeHandler);
+        if (!this.isInitialized) return;
+
+        try {
+            // Supprimer les écouteurs d'événements
+            if (this.tableFlow?.table) {
+                this.tableFlow.table.removeEventListener('cell:saved', this._boundCellSavedHandler);
+                this.tableFlow.table.removeEventListener('row:saved', this._boundRowSavedHandler);
+                this.tableFlow.table.removeEventListener('row:added', this._boundRowAddedHandler);
             }
-        });
+            
+            // Nettoyer les cellules
+            const cells = this.tableFlow.table.querySelectorAll(`.${this.config.cellClass}`);
+            cells.forEach(cell => {
+                const input = cell.querySelector('input');
+                if (input) {
+                    input.removeEventListener('input', this._boundInputHandler);
+                    input.removeEventListener('change', this._boundChangeHandler);
+                }
+            });
+            
+            this.isInitialized = false;
+            this.logger.info('Plugin Color détruit');
+        } catch (error) {
+            this.errorHandler.handle(error, 'color_destroy');
+        } finally {
+            super.destroy();
+        }
     }
 }

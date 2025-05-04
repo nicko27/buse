@@ -1,208 +1,100 @@
 import { Logger } from '../utils/logger.js';
 
 export class ConfigManager {
-    constructor(initialConfig = {}) {
+    constructor(options = {}) {
         this.logger = new Logger('ConfigManager');
-        this.config = {};
-        this.schema = {};
+        this.config = new Map();
+        this.schema = new Map();
         this.validators = new Map();
-        this.watchers = new Map();
-
-        // Configurer les validateurs par défaut
         this.setupDefaultValidators();
-
-        // Initialiser la configuration
-        this.setConfig(initialConfig);
     }
 
     setupDefaultValidators() {
-        // Types de base
-        this.addValidator('string', value => typeof value === 'string');
-        this.addValidator('number', value => typeof value === 'number' && !isNaN(value));
-        this.addValidator('boolean', value => typeof value === 'boolean');
-        this.addValidator('function', value => typeof value === 'function');
-        this.addValidator('object', value => typeof value === 'object' && value !== null);
-        this.addValidator('array', value => Array.isArray(value));
-
-        // Validateurs spéciaux
-        this.addValidator('positive', value => typeof value === 'number' && value > 0);
-        this.addValidator('integer', value => Number.isInteger(value));
-        this.addValidator('url', value => {
-            try {
-                new URL(value);
-                return true;
-            } catch {
-                return false;
-            }
-        });
-        this.addValidator('email', value => {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(value);
-        });
-    }
-
-    addValidator(name, validator) {
-        if (typeof validator !== 'function') {
-            throw new Error(`Le validateur ${name} doit être une fonction`);
-        }
-        this.validators.set(name, validator);
+        this.validators.set('string', value => typeof value === 'string');
+        this.validators.set('number', value => typeof value === 'number' && !isNaN(value));
+        this.validators.set('boolean', value => typeof value === 'boolean');
+        this.validators.set('object', value => value && typeof value === 'object' && !Array.isArray(value));
+        this.validators.set('array', value => Array.isArray(value));
     }
 
     setSchema(schema) {
-        this.validateSchema(schema);
-        this.schema = schema;
-        
-        // Valider la configuration existante avec le nouveau schéma
-        this.validateConfig(this.config);
-    }
+        if (!schema || typeof schema !== 'object') {
+            throw new Error('Le schéma doit être un objet');
+        }
 
-    validateSchema(schema) {
-        for (const [key, def] of Object.entries(schema)) {
-            // Vérifier la présence des propriétés requises
-            if (!def.type) {
-                throw new Error(`Le champ ${key} doit avoir un type défini`);
+        for (const [key, definition] of Object.entries(schema)) {
+            if (!definition.type || !this.validators.has(definition.type)) {
+                throw new Error(`Type invalide pour la clé ${key}`);
             }
-
-            // Vérifier que le validateur existe
-            if (!this.validators.has(def.type)) {
-                throw new Error(`Type de validateur inconnu: ${def.type}`);
-            }
-
-            // Vérifier la validité des valeurs par défaut
-            if ('default' in def) {
-                const validator = this.validators.get(def.type);
-                if (!validator(def.default)) {
-                    throw new Error(`Valeur par défaut invalide pour ${key}`);
-                }
-            }
+            this.schema.set(key, definition);
         }
     }
 
-    validateConfig(config) {
-        const errors = [];
-
-        for (const [key, def] of Object.entries(this.schema)) {
-            // Vérifier si la valeur est requise
-            if (def.required && !(key in config)) {
-                errors.push(`Le champ ${key} est requis`);
-                continue;
-            }
-
-            // Si la valeur est présente, la valider
-            if (key in config) {
-                const value = config[key];
-                const validator = this.validators.get(def.type);
-
-                if (!validator(value)) {
-                    errors.push(`Valeur invalide pour ${key}: attendu ${def.type}`);
-                }
-
-                // Validation personnalisée si définie
-                if (def.validate && !def.validate(value)) {
-                    errors.push(`Validation personnalisée échouée pour ${key}`);
-                }
-            }
+    validate(key, value) {
+        const definition = this.schema.get(key);
+        if (!definition) {
+            throw new Error(`Clé de configuration non définie: ${key}`);
         }
 
-        if (errors.length > 0) {
-            throw new Error(`Erreurs de validation:\n${errors.join('\n')}`);
-        }
-    }
-
-    setConfig(newConfig) {
-        // Créer une copie profonde de la configuration
-        const config = JSON.parse(JSON.stringify(newConfig));
-
-        // Valider la configuration si un schéma est défini
-        if (Object.keys(this.schema).length > 0) {
-            this.validateConfig(config);
+        const validator = this.validators.get(definition.type);
+        if (!validator(value)) {
+            throw new Error(`Type invalide pour ${key}: attendu ${definition.type}`);
         }
 
-        // Fusionner avec les valeurs par défaut du schéma
-        const mergedConfig = { ...this.getDefaultValues(), ...config };
-
-        // Détecter les changements
-        const changes = new Map();
-        for (const [key, value] of Object.entries(mergedConfig)) {
-            if (JSON.stringify(this.config[key]) !== JSON.stringify(value)) {
-                changes.set(key, {
-                    oldValue: this.config[key],
-                    newValue: value
-                });
-            }
+        if (definition.required && (value === undefined || value === null)) {
+            throw new Error(`${key} est requis`);
         }
 
-        // Mettre à jour la configuration
-        this.config = mergedConfig;
-
-        // Notifier les watchers des changements
-        this.notifyWatchers(changes);
-
-        this.logger.debug('Configuration mise à jour:', this.config);
-    }
-
-    getDefaultValues() {
-        const defaults = {};
-        for (const [key, def] of Object.entries(this.schema)) {
-            if ('default' in def) {
-                defaults[key] = def.default;
-            }
+        if (definition.validate && !definition.validate(value)) {
+            throw new Error(`Validation échouée pour ${key}`);
         }
-        return defaults;
-    }
 
-    get(key) {
-        if (key === undefined) {
-            return { ...this.config };
+        if (definition.enum && !definition.enum.includes(value)) {
+            throw new Error(`${key} doit être l'une des valeurs suivantes: ${definition.enum.join(', ')}`);
         }
-        return this.config[key];
+
+        return true;
     }
 
     set(key, value) {
-        const newConfig = { ...this.config, [key]: value };
-        this.setConfig(newConfig);
+        this.validate(key, value);
+        this.config.set(key, value);
+        this.logger.debug(`Configuration mise à jour: ${key} = ${JSON.stringify(value)}`);
     }
 
-    watch(key, callback) {
-        if (!this.watchers.has(key)) {
-            this.watchers.set(key, new Set());
+    get(key) {
+        const value = this.config.get(key);
+        if (value === undefined && this.schema.get(key)?.required) {
+            throw new Error(`Configuration requise manquante: ${key}`);
         }
-        this.watchers.get(key).add(callback);
-
-        // Retourner une fonction pour arrêter le watching
-        return () => {
-            this.watchers.get(key)?.delete(callback);
-        };
+        return value;
     }
 
-    notifyWatchers(changes) {
-        for (const [key, change] of changes) {
-            if (this.watchers.has(key)) {
-                this.watchers.get(key).forEach(callback => {
-                    try {
-                        callback(change.newValue, change.oldValue);
-                    } catch (error) {
-                        this.logger.error(`Erreur dans le watcher pour ${key}:`, error);
-                    }
-                });
+    has(key) {
+        return this.config.has(key);
+    }
+
+    setConfig(config) {
+        if (!config || typeof config !== 'object') {
+            throw new Error('La configuration doit être un objet');
+        }
+
+        for (const [key, value] of Object.entries(config)) {
+            try {
+                this.set(key, value);
+            } catch (error) {
+                this.logger.error(`Erreur de configuration pour ${key}: ${error.message}`);
+                throw error;
             }
         }
     }
 
+    getConfig() {
+        return Object.fromEntries(this.config);
+    }
+
     reset() {
-        this.setConfig(this.getDefaultValues());
-    }
-
-    toJSON() {
-        return JSON.stringify(this.config, null, 2);
-    }
-
-    fromJSON(json) {
-        try {
-            const config = JSON.parse(json);
-            this.setConfig(config);
-        } catch (error) {
-            throw new Error(`Erreur lors du parsing de la configuration: ${error.message}`);
-        }
+        this.config.clear();
+        this.logger.info('Configuration réinitialisée');
     }
 } 
