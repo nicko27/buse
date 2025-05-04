@@ -1,0 +1,291 @@
+/* Conteneur principal */
+.tableflow-texteditor {
+    position: relative;
+    font-family: var(--editor-font-family, -apple-system, system-ui, sans-serif);
+    font-size: var(--editor-font-size, 14px);
+    line-height: var(--editor-line-height, 1.5);
+    color: var(--editor-color, #333333);
+    background: var(--editor-background, #ffffff);
+    border: var(--editor-border, 1px solid #e0e0e0);
+    border-radius: var(--editor-border-radius, 4px);
+    min-height: var(--editor-min-height, 100px);
+    max-height: var(--editor-max-height, 300px);
+    overflow-y: auto;
+}
+
+/* Barre d'outils */
+.tableflow-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--toolbar-padding, 4px);
+    background: var(--toolbar-background, #ffffff);
+    border: var(--toolbar-border, 1px solid #e0e0e0);
+    border-radius: var(--toolbar-border-radius, 4px);
+    box-shadow: var(--toolbar-shadow, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+/* Position de la barre d'outils */
+.tableflow-toolbar[data-position="top"] {
+    border-bottom: var(--toolbar-border, 1px solid #e0e0e0);
+    margin-bottom: var(--toolbar-margin, 8px);
+}
+
+.tableflow-toolbar[data-position="bottom"] {
+    border-top: var(--toolbar-border, 1px solid #e0e0e0);
+    margin-top: var(--toolbar-margin, 8px);
+}
+
+.tableflow-toolbar[data-position="left"] {
+    flex-direction: column;
+    border-right: var(--toolbar-border, 1px solid #e0e0e0);
+    margin-right: var(--toolbar-margin, 8px);
+}
+
+.tableflow-toolbar[data-position="right"] {
+    flex-direction: column;
+    border-left: var(--toolbar-border, 1px solid #e0e0e0);
+    margin-left: var(--toolbar-margin, 8px);
+}
+
+/* Barre d'outils fixe */
+.tableflow-toolbar[data-sticky="true"] {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Boutons de la barre d'outils */
+.tableflow-toolbar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--button-size, 32px);
+    height: var(--button-size, 32px);
+    padding: var(--button-padding, 4px);
+    margin: var(--button-margin, 0 2px);
+    border: none;
+    border-radius: var(--button-border-radius, 4px);
+    background: var(--button-background, transparent);
+    color: var(--button-color, #666666);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-toolbar-button:hover {
+    background: var(--button-hover-background, #f5f5f5);
+    color: var(--button-hover-color, #333333);
+}
+
+.tableflow-toolbar-button[aria-pressed="true"] {
+    background: var(--button-active-background, #e3f2fd);
+    color: var(--button-active-color, #2196F3);
+}
+
+/* Séparateurs */
+.tableflow-toolbar-separator {
+    width: 1px;
+    height: 24px;
+    margin: var(--separator-margin, 0 8px);
+    background: var(--separator-color, #e0e0e0);
+}
+
+[data-position="left"] .tableflow-toolbar-separator,
+[data-position="right"] .tableflow-toolbar-separator {
+    width: 24px;
+    height: 1px;
+    margin: var(--separator-margin, 8px 0);
+}
+
+/* Dropdowns */
+.tableflow-toolbar-dropdown {
+    position: relative;
+}
+
+.tableflow-toolbar-dropdown-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 160px;
+    padding: var(--dropdown-padding, 4px 0);
+    margin-top: 4px;
+    background: var(--dropdown-background, #ffffff);
+    border: var(--dropdown-border, 1px solid #e0e0e0);
+    border-radius: var(--dropdown-border-radius, 4px);
+    box-shadow: var(--dropdown-shadow, 0 2px 5px rgba(0,0,0,0.1));
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: var(--transition, all 0.2s ease);
+    z-index: 1000;
+}
+
+.tableflow-toolbar-dropdown.active .tableflow-toolbar-dropdown-content {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Options des dropdowns */
+.tableflow-toolbar-dropdown-option {
+    display: flex;
+    align-items: center;
+    padding: var(--option-padding, 8px 12px);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-toolbar-dropdown-option:hover {
+    background: var(--option-hover-background, #f5f5f5);
+}
+
+.tableflow-toolbar-dropdown-option[aria-selected="true"] {
+    background: var(--option-active-background, #e3f2fd);
+    color: var(--button-active-color, #2196F3);
+}
+
+/* Palette de couleurs */
+.tableflow-color-palette {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 8px;
+}
+
+.tableflow-color-option {
+    width: var(--color-size, 24px);
+    height: var(--color-size, 24px);
+    border: var(--color-border, 1px solid #e0e0e0);
+    border-radius: var(--color-border-radius, 4px);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color-option:hover {
+    border: var(--color-hover-border, 1px solid #2196F3);
+    transform: scale(1.1);
+}
+
+.tableflow-color-option[aria-selected="true"] {
+    border: var(--color-active-border, 2px solid #2196F3);
+}
+
+/* Zone d'édition */
+.tableflow-editor-content {
+    padding: var(--editor-padding, 8px);
+    min-height: var(--editor-min-height, 100px);
+    outline: none;
+}
+
+/* Placeholder */
+.tableflow-editor-placeholder {
+    position: absolute;
+    top: var(--editor-padding, 8px);
+    left: var(--editor-padding, 8px);
+    color: var(--placeholder-color, #999999);
+    pointer-events: none;
+}
+
+.tableflow-editor-content:not(:empty) ~ .tableflow-editor-placeholder {
+    display: none;
+}
+
+/* Support du focus */
+.tableflow-texteditor:focus-within {
+    border-color: var(--focus-border-color, #2196F3);
+    box-shadow: var(--focus-shadow, 0 0 0 2px rgba(33, 150, 243, 0.2));
+}
+
+/* États désactivés */
+.tableflow-toolbar-button[disabled],
+.tableflow-toolbar-dropdown[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Support des thèmes sombres */
+@media (prefers-color-scheme: dark) {
+    .tableflow-texteditor {
+        --editor-background: #1a1a1a;
+        --editor-color: #ffffff;
+        --editor-border: 1px solid #333333;
+        
+        --toolbar-background: #1a1a1a;
+        --toolbar-border: 1px solid #333333;
+        --toolbar-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        
+        --button-color: #999999;
+        --button-hover-background: #333333;
+        --button-hover-color: #ffffff;
+        --button-active-background: #1a237e;
+        --button-active-color: #2196F3;
+        
+        --dropdown-background: #1a1a1a;
+        --dropdown-border: 1px solid #333333;
+        --option-hover-background: #333333;
+        --option-active-background: #1a237e;
+        
+        --separator-color: #333333;
+        --placeholder-color: #666666;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tableflow-toolbar {
+        flex-wrap: wrap;
+    }
+    
+    .tableflow-toolbar-button {
+        --button-size: 28px;
+        --button-padding: 2px;
+    }
+    
+    .tableflow-toolbar-dropdown-content {
+        min-width: 120px;
+    }
+    
+    .tableflow-color-palette {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .tableflow-color-option {
+        --color-size: 20px;
+    }
+}
+
+/* Support de l'impression */
+@media print {
+    .tableflow-toolbar {
+        display: none;
+    }
+    
+    .tableflow-texteditor {
+        border: none;
+        box-shadow: none;
+    }
+}
+
+/* Accessibilité */
+.tableflow-toolbar-button:focus,
+.tableflow-toolbar-dropdown:focus-within {
+    outline: 2px solid var(--focus-outline-color, #2196F3);
+    outline-offset: 2px;
+}
+
+.tableflow-toolbar-button:focus:not(:focus-visible),
+.tableflow-toolbar-dropdown:focus-within:not(:focus-visible) {
+    outline: none;
+}
+
+/* Support de la haute densité de pixels */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .tableflow-texteditor,
+    .tableflow-toolbar,
+    .tableflow-toolbar-button,
+    .tableflow-toolbar-dropdown-content,
+    .tableflow-color-option {
+        border-width: 0.5px;
+    }
+} 

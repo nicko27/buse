@@ -1,0 +1,276 @@
+/* Conteneur principal */
+.tableflow-color {
+    position: relative;
+    display: inline-block;
+    font-family: inherit;
+}
+
+/* Sélecteur de couleur */
+.tableflow-color-picker {
+    position: absolute;
+    z-index: 1000;
+    width: var(--width, 280px);
+    padding: var(--container-padding, 12px);
+    background: var(--container-background, #ffffff);
+    border: var(--container-border, 1px solid #e0e0e0);
+    border-radius: var(--container-border-radius, 4px);
+    box-shadow: var(--container-shadow, 0 2px 5px rgba(0,0,0,0.1));
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color.open .tableflow-color-picker {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Swatch */
+.tableflow-color-swatch {
+    width: var(--swatch-size, 24px);
+    height: var(--swatch-size, 24px);
+    border: var(--swatch-border, 1px solid #e0e0e0);
+    border-radius: var(--swatch-border-radius, 4px);
+    box-shadow: var(--swatch-shadow, inset 0 0 0 1px rgba(0,0,0,0.1));
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color-swatch:hover {
+    transform: scale(1.1);
+}
+
+/* Input */
+.tableflow-color-input {
+    width: 100%;
+    padding: var(--input-padding, 6px 8px);
+    background: var(--input-background, #ffffff);
+    border: var(--input-border, 1px solid #e0e0e0);
+    border-radius: var(--input-border-radius, 4px);
+    color: var(--input-color, #333333);
+    font-family: inherit;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color-input:focus {
+    outline: none;
+    border-color: var(--focus-border-color, #2196F3);
+}
+
+.tableflow-color-input::placeholder {
+    color: var(--input-placeholder-color, #999999);
+}
+
+/* Dropper */
+.tableflow-color-dropper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--dropper-size, 24px);
+    height: var(--dropper-size, 24px);
+    background: var(--dropper-background, #ffffff);
+    border: var(--dropper-border, 1px solid #e0e0e0);
+    border-radius: var(--dropper-border-radius, 4px);
+    color: var(--dropper-color, #666666);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color-dropper:hover {
+    border-color: var(--focus-border-color, #2196F3);
+    color: var(--focus-border-color, #2196F3);
+}
+
+/* Preview */
+.tableflow-color-preview {
+    width: var(--preview-size, 32px);
+    height: var(--preview-size, 32px);
+    border: var(--preview-border, 1px solid #e0e0e0);
+    border-radius: var(--preview-border-radius, 4px);
+    background-image: linear-gradient(45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #ccc 75%),
+                      linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+/* Palette */
+.tableflow-color-palette {
+    display: grid;
+    grid-template-columns: repeat(var(--palette-columns, 5), 1fr);
+    gap: var(--palette-gap, 8px);
+    margin: 12px 0;
+}
+
+.tableflow-color-palette .tableflow-color-swatch {
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%;
+}
+
+/* Sliders */
+.tableflow-color-slider {
+    position: relative;
+    height: var(--slider-height, 12px);
+    margin: 12px 0;
+    background: var(--slider-track-background, #f5f5f5);
+    border: var(--slider-track-border, 1px solid #e0e0e0);
+    border-radius: var(--slider-track-border-radius, 4px);
+}
+
+.tableflow-color-slider[data-type="hue"] {
+    background: linear-gradient(to right,
+        hsl(0, 100%, 50%),
+        hsl(60, 100%, 50%),
+        hsl(120, 100%, 50%),
+        hsl(180, 100%, 50%),
+        hsl(240, 100%, 50%),
+        hsl(300, 100%, 50%),
+        hsl(360, 100%, 50%)
+    );
+}
+
+.tableflow-color-slider[data-type="alpha"] {
+    background-image: linear-gradient(45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #ccc 75%),
+                      linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+.tableflow-color-slider .thumb {
+    position: absolute;
+    top: 50%;
+    width: var(--slider-thumb-size, 16px);
+    height: var(--slider-thumb-size, 16px);
+    background: currentColor;
+    border: var(--slider-thumb-border, 2px solid #ffffff);
+    border-radius: var(--slider-thumb-border-radius, 50%);
+    box-shadow: var(--slider-thumb-shadow, 0 0 0 1px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.2));
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+/* Format */
+.tableflow-color-format {
+    display: flex;
+    align-items: center;
+    padding: var(--format-padding, 6px 8px);
+    background: var(--format-background, #ffffff);
+    border: var(--format-border, 1px solid #e0e0e0);
+    border-radius: var(--format-border-radius, 4px);
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-color-format:hover {
+    border-color: var(--focus-border-color, #2196F3);
+}
+
+/* États */
+.tableflow-color.error .tableflow-color-input {
+    border-color: var(--error-border-color, #f44336);
+}
+
+.tableflow-color.disabled {
+    opacity: var(--disabled-opacity, 0.6);
+    pointer-events: none;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+    .tableflow-color {
+        --container-background: #1a1a1a;
+        --container-border: 1px solid #333333;
+        
+        --input-background: #1a1a1a;
+        --input-border: 1px solid #333333;
+        --input-color: #ffffff;
+        --input-placeholder-color: #666666;
+        
+        --dropper-background: #1a1a1a;
+        --dropper-border: 1px solid #333333;
+        --dropper-color: #999999;
+        
+        --slider-track-background: #333333;
+        --slider-track-border: 1px solid #444444;
+        
+        --format-background: #1a1a1a;
+        --format-border: 1px solid #333333;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tableflow-color-picker {
+        --width: 260px;
+        --container-padding: 8px;
+        --swatch-size: 20px;
+        --preview-size: 28px;
+        --slider-height: 10px;
+        --slider-thumb-size: 14px;
+    }
+    
+    .tableflow-color-palette {
+        --palette-gap: 6px;
+    }
+}
+
+/* High DPI support */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .tableflow-color-picker,
+    .tableflow-color-swatch,
+    .tableflow-color-input,
+    .tableflow-color-dropper,
+    .tableflow-color-preview,
+    .tableflow-color-slider,
+    .tableflow-color-format {
+        border-width: 0.5px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* Accessibilité */
+.tableflow-color-input:focus-visible,
+.tableflow-color-dropper:focus-visible,
+.tableflow-color-swatch:focus-visible,
+.tableflow-color-format:focus-visible {
+    outline: 2px solid var(--focus-border-color, #2196F3);
+    outline-offset: 2px;
+}
+
+/* RTL support */
+[dir="rtl"] .tableflow-color-picker {
+    transform-origin: top right;
+}
+
+[dir="rtl"] .tableflow-color-slider .thumb {
+    transform: translate(50%, -50%);
+} 

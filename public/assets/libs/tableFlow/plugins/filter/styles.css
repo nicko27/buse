@@ -1,0 +1,111 @@
+.tableflow-filter {
+    position: relative;
+    display: inline-block;
+}
+
+.tableflow-filter-input {
+    width: var(--input-width, 200px);
+    height: var(--input-height, 32px);
+    padding: var(--input-padding, 8px);
+    border: 1px solid var(--input-border-color, #e0e0e0);
+    border-radius: 4px;
+    background-color: var(--input-background, #ffffff);
+    color: var(--input-text-color, #333333);
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-filter-input:focus {
+    outline: none;
+    border-color: var(--input-border-color-focus, #2196F3);
+}
+
+.tableflow-filter-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    padding: 0 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--icon-color, #666666);
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-filter-button:hover {
+    color: var(--icon-color-active, #2196F3);
+}
+
+.tableflow-filter-active .tableflow-filter-button {
+    color: var(--icon-color-active, #2196F3);
+}
+
+.tableflow-filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: var(--dropdown-width, 200px);
+    background-color: var(--dropdown-background, #ffffff);
+    border: 1px solid var(--dropdown-border-color, #e0e0e0);
+    border-radius: 4px;
+    box-shadow: var(--dropdown-shadow, 0 2px 5px rgba(0,0,0,0.1));
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-filter-dropdown.active {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+.tableflow-filter-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-filter-option:hover {
+    background-color: var(--option-hover-color, #f5f5f5);
+}
+
+.tableflow-filter-option.active {
+    background-color: var(--option-active-color, #e3f2fd);
+}
+
+/* Animation pour le dropdown */
+@keyframes dropdownAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tableflow-filter-dropdown {
+    animation: dropdownAnimation 0.2s ease forwards;
+}
+
+/* Support du clavier */
+.tableflow-filter-input:focus,
+.tableflow-filter-option:focus {
+    outline: 2px solid var(--input-border-color-focus, #2196F3);
+    outline-offset: -2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tableflow-filter-input {
+        width: 160px;
+    }
+    
+    .tableflow-filter-dropdown {
+        width: 160px;
+    }
+} 

@@ -1,341 +1,838 @@
-// src/tableFlow.js
+import { Logger } from './utils/logger.js';
+import { EventBus } from './utils/eventBus.js';
+import { ConfigManager } from './config/configManager.js';
+import { CacheManager } from './cache/cacheManager.js';
+import { ValidationManager } from './validation/validationManager.js';
+import { MetricsManager } from './metrics/metricsManager.js';
+import { TableDom } from './dom/tableDom.js';
+import { TableState } from './state/tableState.js';
+import { NotificationManager } from './utils/notificationManager.js';
+import { DataManager } from './utils/dataManager.js';
 
-// Importe le gestionnaire d'instances centralisé
-import { instanceManager } from './instanceManager.js';
+class ErrorHandler {
+    constructor(tableFlow) {
+        this.tableFlow = tableFlow;
+        this.errorTypes = {
+            CONFIG: 'config',
+            INIT: 'init',
+            RUNTIME: 'runtime',
+            VALIDATION: 'validation',
+            CACHE: 'cache',
+            PLUGIN: 'plugin'
+        };
+    }
 
-/**
- * Classe principale TableFlow.
- * Agit comme une façade pour créer et interagir avec une instance de table gérée
- * via InstanceManager et TableInstance.
- * @class TableFlow
- */
-export default class TableFlow {
-    /**
-     * Crée une instance de TableFlow et initialise la gestion de la table associée.
-     * @param {object} options - Options de configuration pour la table et les plugins.
-     * @param {string} options.tableId - ID requis de l'élément <table> HTML.
-     * @param {object} [options.plugins={}] - Configuration des plugins (ex: { names: ['Sort', 'Edit'], sort: {...} }).
-     * @param {string} [options.pluginsPath='../plugins'] - Chemin vers le dossier des plugins.
-     * @param {boolean} [options.debug=false] - Active les logs de débogage.
-     * @param {number} [options.verbosity=0] - Niveau de verbosité des logs (0: erreurs, 1: +succès, 2: +debug).
-     * @param {object} [options.notifications={}] - Fonctions pour afficher les notifications (info, warning, success, error).
-     * @param {boolean} [options.wrapCellsEnabled=true] - Activer l'enveloppement des cellules <td>.
-     * @param {boolean} [options.wrapHeadersEnabled=true] - Activer l'enveloppement des en-têtes <th>.
-     * @param {string} [options.wrapCellClass='cell-wrapper'] - Classe CSS pour le wrapper de cellule.
-     * @param {string} [options.wrapHeaderClass='head-wrapper'] - Classe CSS pour le wrapper d'en-tête.
-     * @throws {Error} Si tableId est manquant ou si l'initialisation de l'instance échoue.
-     */
-    constructor(options = {}) {
-        /** @type {object} */
-        this.options = {
-            plugins: {}, // Initialiser comme objet vide par défaut
-            pluginsPath: '../plugins',
-            debug: false,
-            verbosity: 0,
-            notifications: {},
-            wrapCellsEnabled: true,
-            wrapHeadersEnabled: true,
-            wrapCellClass: 'cell-wrapper',
-            wrapHeaderClass: 'head-wrapper',
-            ...options // Fusionner avec les options fournies
+    handle(error, type = this.errorTypes.RUNTIME, context = {}) {
+        const errorData = {
+            type,
+            message: error.message,
+            stack: error.stack,
+            context,
+            timestamp: Date.now()
         };
 
-        // Configurer le système de journalisation (logger)
-        // Ce logger sera potentiellement passé à InstanceManager et TableInstance
-        this.logger = this._setupLogger(this.options);
+        // Log l'erreur
+        this.tableFlow.logger.error(`[${type}] ${error.message}`, error);
 
-        /** @type {string} */
-        this.tableId = this.options.tableId;
+        // Émettre l'événement d'erreur
+        this.tableFlow.eventBus.emit('error', errorData);
 
-        /** @type {TableInstance | null} */
-        this.tableInstance = null; // Référence à l'instance gérée par instanceManager
+        // Afficher la notification
+        this.tableFlow.notifications.show(error.message, 'error', {
+            duration: 0 // Notification persistante pour les erreurs
+        });
 
-        // Vérification initiale de tableId
-        if (!this.tableId) {
-            const error = new Error("L'option 'tableId' est requise pour initialiser TableFlow.");
-            this.logger.error(error.message);
-            throw error; // Arrêter l'exécution si tableId manque
-        }
+        // Enregistrer la métrique
+        this.tableFlow.metrics.increment('errors', 1, { type });
 
-        // --- Initialisation Déléguée ---
-        // L'initialisation réelle (chargement plugins, wrappers, etc.)
-        // est maintenant gérée par instanceManager.createInstance -> TableInstance.init()
-        // On stocke la promesse d'initialisation pour pouvoir l'attendre si nécessaire.
-        /** @type {Promise<TableInstance>} */
-        this._initializationPromise = this._initializeInstance();
+        return errorData;
+    }
 
-        // Log de début d'initialisation
-        this.logger.info(`[TableFlow] Initialisation demandée pour la table #${this.tableId}...`);
+    createError(message, type = this.errorTypes.RUNTIME, context = {}) {
+        const error = new Error(message);
+        error.type = type;
+        error.context = context;
+        return error;
+    }
+}
 
-        // Gérer les erreurs d'initialisation non capturées
-        this._initializationPromise.catch(error => {
-             // Log déjà fait dans instanceManager/TableInstance, mais on peut ajouter un log TableFlow
-             this.logger.error(`[TableFlow] Échec final de l'initialisation pour #${this.tableId}. L'instance n'est pas utilisable.`, error);
-             // L'erreur originale est déjà propagée par _initializeInstance
+export default class TableFlow {
+    constructor(options = {}) {
+        // Initialisation des gestionnaires
+        this.logger = new Logger('TableFlow', options);
+        this.eventBus = new EventBus();
+        this.config = new ConfigManager(options);
+        this.state = new TableState();
+        this.dom = null;
+        this.cache = new CacheManager(options.cache);
+        this.validation = new ValidationManager(options.validation);
+        this.metrics = new MetricsManager(options.metrics);
+        this.notifications = new NotificationManager(options.notifications);
+        this.dataManager = new DataManager(options.data);
+        this.errorHandler = new ErrorHandler(this);
+        this.hooks = new Map();
+        this.debug = {
+            enabled: options.debug || false,
+            performance: {
+                enabled: false,
+                threshold: 100, // ms
+                history: []
+            },
+            memory: {
+                enabled: false,
+                history: []
+            }
+        };
+
+        // État partagé pour les plugins
+        this.sharedState = {
+            filteredData: [],
+            currentPage: 1,
+            pageSize: 10,
+            totalItems: 0,
+            lastUpdate: Date.now(),
+            updateQueue: [],
+            isUpdating: false,
+            isReady: false
+        };
+
+        // Gestionnaire de plugins coopératifs
+        this.cooperativePlugins = {
+            filter: null,
+            pagination: null,
+            hooks: {
+                beforeFilter: [],
+                afterFilter: [],
+                beforePageChange: [],
+                afterPageChange: [],
+                beforeSizeChange: [],
+                afterSizeChange: []
+            }
+        };
+
+        // Ajouter le gestionnaire de promesses
+        this.readyPromise = new Promise(resolve => {
+            this.resolveReady = resolve;
+        });
+
+        // Configuration du schéma de configuration
+        this.setupConfigSchema();
+
+        // Initialisation
+        this.initialize(options).catch(error => {
+            this.errorHandler.handle(error, this.errorHandler.errorTypes.INIT);
+            throw error;
         });
     }
 
-    /**
-     * Met en place le logger basé sur les options.
-     * @param {object} options - Les options fournies au constructeur.
-     * @returns {object} L'instance du logger.
-     * @private
-     */
-    _setupLogger(options) {
-        // Utiliser le logger fourni si disponible, sinon créer un logger basé sur console
-        if (options.logger) {
-            return options.logger;
-        }
-
-        const debugEnabled = options.debug || options.verbosity > 1;
-        const infoEnabled = options.debug || options.verbosity > 0;
-
-        // Créer un objet logger simple
-        const logger = {
-            error: (message, data) => {
-                console.error(`[TableFlow] ❌ ERREUR: ${message}`, data ?? '');
-                this.notify('error', message); // Appelle la notification configurée
+    setupConfigSchema() {
+        this.config.setSchema({
+            tableId: {
+                type: 'string',
+                required: true
             },
-            warn: (message, data) => {
-                console.warn(`[TableFlow] ⚠️ ATTENTION: ${message}`, data ?? '');
-                this.notify('warning', message);
+            plugins: {
+                type: 'object',
+                default: {}
             },
-            info: (message, data) => {
-                if (infoEnabled) {
-                    console.info(`[TableFlow] ℹ️ INFO: ${message}`, data ?? '');
-                }
-                 // Ne pas notifier pour chaque info par défaut, sauf si explicitement voulu
-                 // this.notify('info', message);
+            pluginsPath: {
+                type: 'string',
+                default: '../plugins'
             },
-            debug: (message, data) => {
-                if (debugEnabled) {
-                    console.log(`[TableFlow] 🔍 DEBUG: ${message}`, data ?? '');
-                }
+            cellWrapperClass: {
+                type: 'string',
+                default: 'cell-wrapper'
             },
-            success: (message, data) => {
-                if (infoEnabled) { // Log succès si verbosité > 0
-                    console.log(`[TableFlow] ✅ SUCCÈS: ${message}`, data ?? '');
-                }
-                this.notify('success', message);
+            headerWrapperClass: {
+                type: 'string',
+                default: 'head-wrapper'
+            },
+            modifiedCellClass: {
+                type: 'string',
+                default: 'cell-modified'
+            },
+            wrapCellsEnabled: {
+                type: 'boolean',
+                default: true
+            },
+            wrapHeadersEnabled: {
+                type: 'boolean',
+                default: true
+            },
+            debug: {
+                type: 'boolean',
+                default: false
+            },
+            verbosity: {
+                type: 'number',
+                default: 0,
+                validate: value => value >= 0 && value <= 3
+            },
+            cache: {
+                type: 'object',
+                default: {}
+            },
+            validation: {
+                type: 'object',
+                default: {}
+            },
+            metrics: {
+                type: 'object',
+                default: {}
             }
-        };
-        return logger;
+        });
     }
 
-    /**
-     * Appelle instanceManager pour créer et initialiser l'instance de table.
-     * Stocke la référence à l'instance une fois initialisée.
-     * @returns {Promise<TableInstance>} La promesse résolue avec l'instance initialisée.
-     * @private
-     * @throws {Error} Si l'initialisation échoue.
-     */
-    async _initializeInstance() {
+    async initialize(options) {
         try {
-            // Passer le logger configuré à instanceManager
-            instanceManager.setLogger(this.logger);
-            // Créer (ou obtenir) et initialiser l'instance via le manager
-            // Passe toutes les options pour que TableInstance puisse les utiliser
-            const instance = await instanceManager.createInstance(this.tableId, this.options);
-            this.tableInstance = instance; // Stocker la référence
-            this.logger.success(`[TableFlow] Instance pour #${this.tableId} prête.`);
-            return instance;
+            this.logger.info('Démarrage de l\'initialisation...');
+
+            // Valider et appliquer la configuration
+            this.config.setConfig(options);
+
+            // Récupérer la table
+            const table = document.getElementById(this.config.get('tableId'));
+            if (!table) {
+                throw new Error(`Table avec l'id "${this.config.get('tableId')}" non trouvée`);
+            }
+            if (table.tagName.toLowerCase() !== 'table') {
+                throw new Error(`L'élément avec l'id "${this.config.get('tableId')}" n'est pas une table`);
+            }
+
+            // Initialiser le gestionnaire DOM
+            this.dom = new TableDom(table, {
+                cellWrapperClass: this.config.get('cellWrapperClass'),
+                headWrapperClass: this.config.get('headerWrapperClass')
+            });
+
+            // Initialiser les wrappers
+            this.dom.initializeWrappers();
+
+            // Stocker les valeurs initiales
+            this.storeInitialValues();
+
+            // Charger les plugins
+            await this.loadPlugins();
+
+            // Marquer comme prêt et résoudre la promesse
+            this.sharedState.isReady = true;
+            this.resolveReady();
+
+            this.logger.success('Initialisation terminée avec succès');
         } catch (error) {
-            // L'erreur est déjà logguée par instanceManager ou TableInstance
-            // On la propage pour que l'appelant de new TableFlow() soit informé
+            this.errorHandler.handle(error, this.errorHandler.errorTypes.INIT);
             throw error;
         }
     }
 
-    /**
-     * Retourne une promesse qui résout lorsque l'instance TableFlow est initialisée.
-     * Utile pour s'assurer que l'instance et ses plugins sont prêts avant d'interagir.
-     * @returns {Promise<TableFlow>} La promesse résout avec l'instance TableFlow elle-même.
-     */
-    ready() {
-        // Retourne la promesse stockée, mais résout avec 'this' (l'instance TableFlow)
-        return this._initializationPromise.then(() => this);
+    storeInitialValues() {
+        const rows = this.dom.getAllRows();
+        rows.forEach(row => {
+            Array.from(row.cells).forEach(cell => {
+                const columnId = this.dom.getHeaderCell(cell.cellIndex).id;
+                const value = this.dom.getCellValue(cell);
+                this.state.setInitialValue(row.id, columnId, value);
+            });
+        });
     }
 
-    // --- Méthodes API Déléguées à TableInstance ---
-    // Ces méthodes vérifient que l'initialisation est terminée avant de déléguer.
-
-    /**
-     * Vérifie si l'instance est initialisée et log une erreur si ce n'est pas le cas.
-     * @returns {boolean} True si l'instance est prête, false sinon.
-     * @private
-     */
-    _checkReady() {
-        if (!this.tableInstance) {
-            this.logger.error(`[TableFlow #${this.tableId}] Tentative d'appel API avant la fin de l'initialisation ou après un échec.`);
-            return false;
+    async loadPlugins() {
+        const plugins = this.config.get('plugins');
+        if (!plugins || Object.keys(plugins).length === 0) {
+            this.logger.info('Aucun plugin à charger');
+            return;
         }
-        return true;
+
+        const pluginsPath = this.config.get('pluginsPath');
+        const loadedPlugins = new Map();
+
+        for (const [name, config] of Object.entries(plugins)) {
+            if (config === false) continue;
+
+            try {
+                const timer = this.metrics.startTimer(`plugin_load_${name}`);
+                const pluginPath = `${pluginsPath}/${name.toLowerCase()}.js`;
+                
+                const module = await import(pluginPath);
+                if (!module.default) {
+                    throw new Error(`Le plugin ${name} n'exporte pas de classe par défaut`);
+                }
+
+                const pluginInstance = new module.default({
+                    ...config,
+                    debug: this.config.get('debug')
+                });
+
+                await pluginInstance.init(this);
+                loadedPlugins.set(name, pluginInstance);
+
+                this.metrics.stopTimer(timer);
+                this.logger.success(`Plugin ${name} chargé et initialisé`);
+            } catch (error) {
+                this.logger.error(`Échec du chargement du plugin ${name}: ${error.message}`, error);
+                this.metrics.increment('plugin_load_error');
+            }
+        }
+
+        return loadedPlugins;
     }
 
-    /**
-     * Récupère l'instance d'un plugin actif pour cette table.
-     * @param {string} name - Le nom du plugin (insensible à la casse).
-     * @returns {object | null} L'instance du plugin ou null si non trouvé ou non initialisé.
-     */
+    // API publique
     getPlugin(name) {
-        if (!this._checkReady()) return null;
-        // La méthode getPlugin de TableInstance gère déjà le cas où le plugin n'est pas trouvé
-        return this.tableInstance.getPlugin(name);
+        return this.plugins?.get(name.toLowerCase())?.instance;
     }
 
-    /**
-     * Appelle la méthode `refresh()` sur tous les plugins actifs de l'instance.
-     * @returns {Promise<void>}
-     */
-    async refreshPlugins() {
-        if (!this._checkReady()) return;
-        // Utilise le pluginManager de l'instance associée
-        await this.tableInstance.pluginManager.refreshAll();
+    hasPlugin(name) {
+        return this.plugins?.has(name.toLowerCase());
     }
 
-    /**
-     * Marque une ligne comme sauvegardée (met à jour les valeurs initiales).
-     * @param {HTMLTableRowElement} row - L'élément TR de la ligne.
-     * @param {object} [options={}] - Options à passer aux plugins et à l'événement row:saved.
-     */
-    markRowAsSaved(row, options = {}) {
-        if (!this._checkReady()) return;
-        // Déléguer à la méthode de TableInstance si elle existe
-        if (typeof this.tableInstance.markRowAsSaved === 'function') {
-             this.tableInstance.markRowAsSaved(row, options);
-        } else {
-             // Fallback ou implémentation si la méthode n'est pas sur TableInstance
-             this.logger.warn(`[TableFlow #${this.tableId}] La méthode markRowAsSaved n'est pas implémentée sur TableInstance.`);
-             // Logique de base (peut être déplacée dans TableInstance)
-             if (!row) return;
-             row.classList.remove(this.options.modifiedClass || 'modified');
-             // Mettre à jour les data-initial-value (logique plus complexe nécessaire ici)
-             this.logger.debug(`[TableFlow Fallback] Ligne ${row.id} marquée comme sauvegardée (basique).`);
-             // Déclencher l'événement
-             this.tableInstance.element?.dispatchEvent(new CustomEvent('row:saved', { detail: { row, options, rowId: row.id } }));
+    refreshPlugins() {
+        this.plugins?.forEach((plugin, name) => {
+            try {
+                if (typeof plugin.refresh === 'function') {
+                    plugin.refresh();
+                }
+            } catch (error) {
+                this.logger.error(`Erreur lors du rafraîchissement du plugin ${name}: ${error.message}`, error);
+            }
+        });
+    }
+
+    // Système de hooks
+    addHook(name, callback) {
+        if (!this.hooks.has(name)) {
+            this.hooks.set(name, new Set());
+        }
+        this.hooks.get(name).add(callback);
+        return () => this.removeHook(name, callback);
+    }
+
+    removeHook(name, callback) {
+        if (this.hooks.has(name)) {
+            this.hooks.get(name).delete(callback);
         }
     }
 
-    /**
-     * Ajoute une nouvelle ligne au tableau.
-     * @param {object | Array} [data={}] - Données pour la nouvelle ligne (objet {columnId: value} ou tableau [value1, value2]).
-     * @param {'start' | 'end'} [position='end'] - Où ajouter la ligne ('start' ou 'end').
-     * @returns {HTMLTableRowElement | null} L'élément TR ajouté ou null en cas d'échec.
-     */
-    addRow(data = {}, position = 'end') {
-        if (!this._checkReady()) return null;
-        // Déléguer à TableInstance si la méthode existe
-        if (typeof this.tableInstance.addRow === 'function') {
-            return this.tableInstance.addRow(data, position);
-        } else {
-            this.logger.error(`[TableFlow #${this.tableId}] La méthode addRow n'est pas implémentée sur TableInstance.`);
-            return null;
+    async runHook(name, ...args) {
+        if (!this.hooks.has(name)) return;
+        
+        const results = [];
+        for (const callback of this.hooks.get(name)) {
+            try {
+                const result = await callback(...args);
+                results.push(result);
+            } catch (error) {
+                this.errorHandler.handle(error, this.errorHandler.errorTypes.RUNTIME, {
+                    hook: name,
+                    args
+                });
+            }
         }
+        return results;
     }
 
-    /**
-     * Supprime une ligne du tableau.
-     * @param {HTMLTableRowElement | string} rowOrId - L'élément TR de la ligne ou son ID.
-     * @returns {boolean} True si la suppression a réussi, false sinon.
-     */
-    removeRow(rowOrId) {
-        if (!this._checkReady()) return false;
-         // Déléguer à TableInstance si la méthode existe
-         if (typeof this.tableInstance.removeRow === 'function') {
-            return this.tableInstance.removeRow(rowOrId);
-        } else {
-            this.logger.error(`[TableFlow #${this.tableId}] La méthode removeRow n'est pas implémentée sur TableInstance.`);
-            return false;
-        }
+    // Hooks disponibles
+    async beforeRowAdd(data, position) {
+        return this.runHook('beforeRowAdd', data, position);
     }
 
-    /**
-     * Récupère les données d'une ligne spécifique.
-     * @param {HTMLTableRowElement | string} rowOrId - L'élément TR de la ligne ou son ID.
-     * @returns {object | null} Un objet { columnId: value } ou null si la ligne n'est pas trouvée.
-     */
-    getRowData(rowOrId) {
-        if (!this._checkReady()) return null;
-        // Déléguer à TableInstance si la méthode existe
-        if (typeof this.tableInstance.getRowData === 'function') {
-            return this.tableInstance.getRowData(rowOrId);
-        } else {
-            this.logger.error(`[TableFlow #${this.tableId}] La méthode getRowData n'est pas implémentée sur TableInstance.`);
-            return null;
-        }
+    async afterRowAdd(row, data, position) {
+        return this.runHook('afterRowAdd', row, data, position);
     }
 
-    /**
-     * Récupère toutes les lignes actuellement dans le tbody.
-     * @returns {Array<HTMLTableRowElement>} Un tableau des éléments TR.
-     */
-    getAllRows() {
-        if (!this._checkReady()) return [];
-         // Déléguer à TableInstance si la méthode existe
-         if (typeof this.tableInstance.getAllRows === 'function') {
-            return this.tableInstance.getAllRows();
-        } else {
-             // Fallback
-             return Array.from(this.tableInstance.element?.querySelectorAll('tbody tr') ?? []);
-        }
+    async beforeRowRemove(row) {
+        return this.runHook('beforeRowRemove', row);
     }
 
-     /**
-     * Récupère les lignes actuellement visibles (non masquées par CSS ou filtrage).
-     * @returns {Array<HTMLTableRowElement>} Un tableau des éléments TR visibles.
-     */
-    getVisibleRows() {
-        if (!this._checkReady()) return [];
-        // Déléguer à TableInstance si la méthode existe
-        if (typeof this.tableInstance.getVisibleRows === 'function') {
-            return this.tableInstance.getVisibleRows();
-        } else {
-             // Fallback simple (ne prend pas en compte le filtrage complexe)
-             return Array.from(this.tableInstance.element?.querySelectorAll('tbody tr') ?? [])
-                 .filter(row => row.style.display !== 'none');
-        }
+    async afterRowRemove(rowId) {
+        return this.runHook('afterRowRemove', rowId);
     }
 
-    /**
-     * Détruit l'instance TableFlow et l'instance de table associée.
-     * @returns {Promise<void>}
-     */
-    async destroy() {
-        this.logger.info(`[TableFlow] Destruction demandée pour #${this.tableId}...`);
-        // Attendre que l'initialisation soit terminée (ou ait échoué) avant de détruire
+    async beforeCellModify(cell, oldValue, newValue) {
+        return this.runHook('beforeCellModify', cell, oldValue, newValue);
+    }
+
+    async afterCellModify(cell, oldValue, newValue) {
+        return this.runHook('afterCellModify', cell, oldValue, newValue);
+    }
+
+    async beforeValidation(data) {
+        return this.runHook('beforeValidation', data);
+    }
+
+    async afterValidation(data, errors) {
+        return this.runHook('afterValidation', data, errors);
+    }
+
+    // Modification des méthodes existantes pour utiliser les hooks
+    async addRow(data = {}, position = 'end') {
+        const timer = this.metrics.startTimer('add_row');
         try {
-            await this._initializationPromise; // Attend la fin de l'init
-        } catch (error) {
-            // L'initialisation a échoué, mais on tente quand même de nettoyer via instanceManager
-            this.logger.warn(`[TableFlow #${this.tableId}] Destruction après échec d'initialisation.`);
-        }
+            // Hook beforeRowAdd
+            const beforeResults = await this.beforeRowAdd(data, position);
+            if (beforeResults.some(result => result === false)) {
+                throw this.errorHandler.createError('Ajout de ligne annulé par un hook', 
+                    this.errorHandler.errorTypes.RUNTIME);
+            }
 
-        // Utiliser instanceManager pour détruire l'instance gérée
-        if (this.tableId) {
-            await instanceManager.destroyInstance(this.tableId);
-        }
-        this.tableInstance = null; // Effacer la référence
-        this.logger.info(`[TableFlow] Instance pour #${this.tableId} détruite.`);
-    }
+            const headers = Array.from(this.dom.table.querySelectorAll('thead th'));
+            const row = this.dom.createRow(data, headers);
 
-    /**
-     * Affiche une notification en utilisant le système configuré.
-     * @param {'info' | 'warning' | 'success' | 'error'} type - Le type de notification.
-     * @param {string} message - Le message à afficher.
-     */
-    notify(type, message) {
-        try {
-            const notificationCallback = this.options.notifications?.[type];
-            if (typeof notificationCallback === 'function') {
-                notificationCallback(message);
-            } else if (!this.options.notifications || Object.keys(this.options.notifications).length === 0) {
-                // Pas de log si aucun système de notif n'a été fourni, pour éviter le bruit
+            const tbody = this.dom.table.querySelector('tbody');
+            if (position === 'start') {
+                tbody.insertBefore(row, tbody.firstChild);
             } else {
-                // Log si un système de notif est fourni mais manque le type spécifique
-                this.logger.warn?.(`[TableFlow] Type de notification non géré: '${type}'`);
+                tbody.appendChild(row);
+            }
+
+            // Hook afterRowAdd
+            await this.afterRowAdd(row, data, position);
+
+            this.metrics.increment('rows_added');
+            return row;
+        } catch (error) {
+            this.errorHandler.handle(error);
+            throw error;
+        } finally {
+            this.metrics.stopTimer(timer);
+        }
+    }
+
+    async removeRow(row) {
+        const timer = this.metrics.startTimer('remove_row');
+        try {
+            if (!row || !row.parentNode) {
+                throw this.errorHandler.createError('Ligne invalide ou déjà supprimée',
+                    this.errorHandler.errorTypes.RUNTIME);
+            }
+
+            // Hook beforeRowRemove
+            const beforeResults = await this.beforeRowRemove(row);
+            if (beforeResults.some(result => result === false)) {
+                throw this.errorHandler.createError('Suppression de ligne annulée par un hook',
+                    this.errorHandler.errorTypes.RUNTIME);
+            }
+
+            const rowId = row.id;
+            const rowData = this.getRowData(row);
+
+            this.eventBus.emit('row:removing', { row, rowId, data: rowData });
+
+            if (this.dom.removeRow(row)) {
+                this.state.clearRowState(rowId);
+                this.eventBus.emit('row:removed', { rowId });
+
+                // Hook afterRowRemove
+                await this.afterRowRemove(rowId);
+
+                this.metrics.increment('rows_removed');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            this.errorHandler.handle(error);
+            throw error;
+        } finally {
+            this.metrics.stopTimer(timer);
+        }
+    }
+
+    getRowData(row) {
+        if (!row) return {};
+        
+        const data = { id: row.id };
+        const headers = Array.from(this.dom.table.querySelectorAll('thead th'));
+        
+        Array.from(row.cells).forEach((cell, index) => {
+            const header = headers[index];
+            if (!header?.id) return;
+            
+            const value = this.dom.getCellValue(cell);
+            
+            // Conversion de type
+            if (!isNaN(value) && value !== '') {
+                data[header.id] = Number(value);
+            } else if (value === 'true' || value === 'false') {
+                data[header.id] = value === 'true';
+            } else {
+                data[header.id] = value;
+            }
+        });
+        
+        return data;
+    }
+
+    // Gestion des événements
+    on(event, callback) {
+        return this.eventBus.on(event, callback);
+    }
+
+    off(event, callback) {
+        this.eventBus.off(event, callback);
+    }
+
+    // Fonctionnalités de débogage
+    enableDebug(options = {}) {
+        this.debug.enabled = true;
+        this.debug.performance.enabled = options.performance || false;
+        this.debug.memory.enabled = options.memory || false;
+        
+        if (this.debug.performance.enabled) {
+            this.startPerformanceMonitoring();
+        }
+        
+        if (this.debug.memory.enabled) {
+            this.startMemoryMonitoring();
+        }
+    }
+
+    disableDebug() {
+        this.debug.enabled = false;
+        this.debug.performance.enabled = false;
+        this.debug.memory.enabled = false;
+    }
+
+    startPerformanceMonitoring() {
+        if (!this.debug.performance.enabled) return;
+
+        const originalMethods = {
+            addRow: this.addRow,
+            removeRow: this.removeRow,
+            getRowData: this.getRowData
+        };
+
+        // Wrapper pour mesurer les performances
+        const measurePerformance = async (method, ...args) => {
+            const start = performance.now();
+            try {
+                return await method.apply(this, args);
+            } finally {
+                const duration = performance.now() - start;
+                this.debug.performance.history.push({
+                    method: method.name,
+                    duration,
+                    timestamp: Date.now(),
+                    args
+                });
+
+                if (duration > this.debug.performance.threshold) {
+                    this.logger.warn(`Performance warning: ${method.name} took ${duration.toFixed(2)}ms`);
+                }
+            }
+        };
+
+        // Appliquer les wrappers
+        this.addRow = measurePerformance.bind(this, originalMethods.addRow);
+        this.removeRow = measurePerformance.bind(this, originalMethods.removeRow);
+        this.getRowData = measurePerformance.bind(this, originalMethods.getRowData);
+    }
+
+    startMemoryMonitoring() {
+        if (!this.debug.memory.enabled) return;
+
+        const measureMemory = () => {
+            if (performance.memory) {
+                this.debug.memory.history.push({
+                    usedJSHeapSize: performance.memory.usedJSHeapSize,
+                    totalJSHeapSize: performance.memory.totalJSHeapSize,
+                    timestamp: Date.now()
+                });
+            }
+        };
+
+        this.memoryInterval = setInterval(measureMemory, 1000);
+    }
+
+    getPerformanceStats() {
+        if (!this.debug.performance.enabled) return null;
+
+        const stats = {};
+        const methods = new Set(this.debug.performance.history.map(h => h.method));
+
+        methods.forEach(method => {
+            const methodHistory = this.debug.performance.history.filter(h => h.method === method);
+            const durations = methodHistory.map(h => h.duration);
+            
+            stats[method] = {
+                count: methodHistory.length,
+                average: durations.reduce((a, b) => a + b, 0) / durations.length,
+                min: Math.min(...durations),
+                max: Math.max(...durations),
+                thresholdExceeded: methodHistory.filter(h => h.duration > this.debug.performance.threshold).length
+            };
+        });
+
+        return stats;
+    }
+
+    getMemoryStats() {
+        if (!this.debug.memory.enabled) return null;
+
+        const history = this.debug.memory.history;
+        if (history.length === 0) return null;
+
+        return {
+            current: history[history.length - 1],
+            average: {
+                usedJSHeapSize: history.reduce((a, b) => a + b.usedJSHeapSize, 0) / history.length,
+                totalJSHeapSize: history.reduce((a, b) => a + b.totalJSHeapSize, 0) / history.length
+            },
+            max: {
+                usedJSHeapSize: Math.max(...history.map(h => h.usedJSHeapSize)),
+                totalJSHeapSize: Math.max(...history.map(h => h.totalJSHeapSize))
+            }
+        };
+    }
+
+    // Optimisation des performances
+    optimize() {
+        // Optimisation du DOM
+        this.optimizeDOM();
+
+        // Optimisation du cache
+        this.optimizeCache();
+
+        // Optimisation de la validation
+        this.optimizeValidation();
+    }
+
+    optimizeDOM() {
+        // Utiliser requestAnimationFrame pour les mises à jour du DOM
+        const originalMethods = {
+            addRow: this.addRow,
+            removeRow: this.removeRow
+        };
+
+        this.addRow = async (...args) => {
+            return new Promise(resolve => {
+                requestAnimationFrame(async () => {
+                    const result = await originalMethods.addRow.apply(this, args);
+                    resolve(result);
+                });
+            });
+        };
+
+        this.removeRow = async (...args) => {
+            return new Promise(resolve => {
+                requestAnimationFrame(async () => {
+                    const result = await originalMethods.removeRow.apply(this, args);
+                    resolve(result);
+                });
+            });
+        };
+    }
+
+    optimizeCache() {
+        // Optimiser la stratégie de cache en fonction de l'utilisation
+        const stats = this.cache.getStats();
+        if (stats) {
+            if (stats.hitRate < 0.5) {
+                this.cache.setStrategy('lru');
+            } else if (stats.hitRate > 0.8) {
+                this.cache.setStrategy('lfu');
+            }
+        }
+    }
+
+    optimizeValidation() {
+        // Optimiser la validation en fonction des erreurs courantes
+        const validationStats = this.validation.getStats();
+        if (validationStats) {
+            const mostCommonErrors = validationStats.getMostCommonErrors();
+            this.validation.setPriorityRules(mostCommonErrors);
+        }
+    }
+
+    // Nettoyage
+    destroy() {
+        if (this.memoryInterval) {
+            clearInterval(this.memoryInterval);
+        }
+        const timer = this.metrics.startTimer('destroy');
+        try {
+            this.logger.info('Destruction de l\'instance TableFlow...');
+
+            // Détruire les gestionnaires
+            this.eventBus.removeAllListeners();
+            this.cache.destroy();
+            this.validation.destroy();
+            this.metrics.destroy();
+            this.dom.destroy();
+
+            // Détruire les plugins
+            this.plugins?.forEach(plugin => {
+                try {
+                    plugin.destroy();
+                } catch (error) {
+                    this.logger.error(`Erreur lors de la destruction du plugin: ${error.message}`, error);
+                }
+            });
+            this.plugins?.clear();
+
+            this.logger.success('Instance TableFlow détruite avec succès');
+        } catch (error) {
+            this.logger.error(`Erreur lors de la destruction: ${error.message}`, error);
+            throw error;
+        } finally {
+            this.metrics.stopTimer(timer);
+        }
+    }
+
+    /**
+     * Exporte les données du tableau au format CSV
+     * @returns {string} - Données au format CSV
+     */
+    exportToCSV() {
+        const headers = Array.from(this.dom.table.querySelectorAll('thead th'));
+        const data = Array.from(this.dom.table.querySelectorAll('tbody tr'))
+            .map(row => this.getRowData(row));
+        return this.dataManager.exportToCSV(data, headers);
+    }
+
+    /**
+     * Exporte les données du tableau au format JSON
+     * @returns {string} - Données au format JSON
+     */
+    exportToJSON() {
+        const data = Array.from(this.dom.table.querySelectorAll('tbody tr'))
+            .map(row => this.getRowData(row));
+        return this.dataManager.exportToJSON(data);
+    }
+
+    /**
+     * Importe des données depuis un fichier CSV
+     * @param {string} csv - Contenu CSV
+     */
+    importFromCSV(csv) {
+        try {
+            const headers = Array.from(this.dom.table.querySelectorAll('thead th'));
+            const data = this.dataManager.importFromCSV(csv, headers);
+            
+            // Vider le tableau
+            const tbody = this.dom.table.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            // Ajouter les nouvelles données
+            data.forEach(rowData => {
+                this.addRow(rowData);
+            });
+
+            this.notifications.show('Données importées avec succès', 'success');
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'import CSV: ${error.message}`, error);
+            this.notifications.show(`Erreur d'import: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Importe des données depuis un fichier JSON
+     * @param {string} json - Contenu JSON
+     */
+    importFromJSON(json) {
+        try {
+            const data = this.dataManager.importFromJSON(json);
+            
+            // Vider le tableau
+            const tbody = this.dom.table.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            // Ajouter les nouvelles données
+            data.forEach(rowData => {
+                this.addRow(rowData);
+            });
+
+            this.notifications.show('Données importées avec succès', 'success');
+        } catch (error) {
+            this.logger.error(`Erreur lors de l'import JSON: ${error.message}`, error);
+            this.notifications.show(`Erreur d'import: ${error.message}`, 'error');
+        }
+    }
+
+    // Méthodes pour la gestion des plugins coopératifs
+    registerCooperativePlugin(plugin) {
+        if (plugin.name === 'filter') {
+            this.cooperativePlugins.filter = plugin;
+        } else if (plugin.name === 'pagination') {
+            this.cooperativePlugins.pagination = plugin;
+        }
+    }
+
+    async updateSharedState(updates) {
+        if (!updates || typeof updates !== 'object') {
+            this.errorHandler.handle(
+                new Error('Invalid updates format'),
+                this.errorHandler.errorTypes.VALIDATION
+            );
+            return;
+        }
+
+        if (this.sharedState.isUpdating) {
+            this.sharedState.updateQueue.push(updates);
+            return;
+        }
+
+        const startTime = performance.now();
+        this.sharedState.isUpdating = true;
+
+        try {
+            // Valider les mises à jour
+            for (const [key, value] of Object.entries(updates)) {
+                if (this.sharedState[key] === undefined) {
+                    throw new Error(`Invalid state key: ${key}`);
+                }
+                if (key === 'pageSize' && (!Number.isInteger(value) || value < 1)) {
+                    throw new Error('Invalid page size');
+                }
+                if (key === 'currentPage' && (!Number.isInteger(value) || value < 1)) {
+                    throw new Error('Invalid page number');
+                }
+            }
+
+            // Appliquer les mises à jour
+            Object.assign(this.sharedState, updates);
+            this.sharedState.lastUpdate = Date.now();
+
+            // Synchroniser les plugins
+            await this.synchronizePlugins(updates);
+
+            // Émettre l'événement de mise à jour
+            this.eventBus.emit('state:updated', {
+                updates,
+                duration: performance.now() - startTime
+            });
+
+            // Traiter la file d'attente
+            while (this.sharedState.updateQueue.length > 0) {
+                const queuedUpdates = this.sharedState.updateQueue.shift();
+                await this.updateSharedState(queuedUpdates);
             }
         } catch (error) {
-            console.error(`[TableFlow] Erreur interne lors de la notification (${type}): ${error.message}`);
+            this.errorHandler.handle(error, this.errorHandler.errorTypes.RUNTIME, {
+                context: 'updateSharedState',
+                updates
+            });
+        } finally {
+            this.sharedState.isUpdating = false;
         }
+    }
+
+    async synchronizePlugins(updates = null) {
+        const plugins = [this.cooperativePlugins.filter, this.cooperativePlugins.pagination]
+            .filter(Boolean);
+
+        try {
+            await Promise.all(plugins.map(plugin => 
+                plugin?.handleSharedStateChange(updates || this.sharedState)
+            ));
+        } catch (error) {
+            this.errorHandler.handle(error, this.errorHandler.errorTypes.PLUGIN, {
+                context: 'synchronizePlugins'
+            });
+        }
+    }
+
+    async whenReady() {
+        return this.readyPromise;
     }
 }

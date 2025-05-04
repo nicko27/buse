@@ -1,0 +1,149 @@
+/* Conteneur de recherche */
+.tableflow-search {
+    position: relative;
+    z-index: 1000;
+    background: var(--container-background, #ffffff);
+    border: var(--container-border, 1px solid #e0e0e0);
+    border-radius: var(--container-border-radius, 4px);
+    padding: var(--container-padding, 8px);
+    box-shadow: var(--container-shadow, 0 2px 5px rgba(0,0,0,0.1));
+    transition: var(--transition, all 0.2s ease);
+}
+
+/* Input de recherche */
+.tableflow-search-input {
+    width: 100%;
+    padding: var(--input-padding, 8px 12px);
+    background: var(--input-background, #ffffff);
+    color: var(--input-color, #333333);
+    border: var(--input-border, 1px solid #e0e0e0);
+    border-radius: var(--input-border-radius, 4px);
+    font-size: 14px;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-search-input:focus {
+    outline: none;
+    border-color: var(--input-focus-border-color, #2196F3);
+}
+
+/* Résultats de recherche */
+.tableflow-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--results-background, #ffffff);
+    border: var(--results-border, 1px solid #e0e0e0);
+    border-radius: var(--results-border-radius, 4px);
+    max-height: var(--results-max-height, 300px);
+    padding: var(--results-padding, 8px);
+    margin-top: 4px;
+    overflow-y: auto;
+    display: none;
+}
+
+.tableflow-search-results.active {
+    display: block;
+}
+
+/* Élément de résultat */
+.tableflow-search-result {
+    padding: 8px;
+    cursor: pointer;
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-search-result:hover {
+    background: var(--item-hover-background, #f5f5f5);
+}
+
+.tableflow-search-result.active {
+    background: var(--item-active-background, #e3f2fd);
+}
+
+/* Surbrillance */
+.tableflow-search-highlight {
+    background: var(--highlight-background, #fff3cd);
+    color: var(--highlight-color, #000000);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+/* Message d'état */
+.tableflow-search-message {
+    padding: 8px;
+    text-align: center;
+    color: #666666;
+    font-style: italic;
+}
+
+/* Support du thème sombre */
+@media (prefers-color-scheme: dark) {
+    .tableflow-search {
+        --container-background: #1a1a1a;
+        --container-border: 1px solid #333333;
+        --input-background: #1a1a1a;
+        --input-color: #ffffff;
+        --input-border: 1px solid #333333;
+        --results-background: #1a1a1a;
+        --results-border: 1px solid #333333;
+        --item-hover-background: #333333;
+        --item-active-background: #1a237e;
+        --highlight-background: #4a4a4a;
+        --highlight-color: #ffffff;
+    }
+}
+
+/* Support responsive */
+@media (max-width: 768px) {
+    .tableflow-search {
+        --container-padding: 4px;
+        --input-padding: 6px 10px;
+    }
+    
+    .tableflow-search-results {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 50vh;
+        border-radius: 8px 8px 0 0;
+    }
+}
+
+/* Support RTL */
+[dir="rtl"] .tableflow-search-results {
+    left: auto;
+    right: 0;
+}
+
+/* Accessibilité */
+.tableflow-search-input:focus-visible {
+    outline: 2px solid var(--input-focus-border-color, #2196F3);
+    outline-offset: 2px;
+}
+
+.tableflow-search-result:focus-visible {
+    outline: 2px solid var(--input-focus-border-color, #2196F3);
+    outline-offset: -2px;
+}
+
+/* Barre de défilement personnalisée */
+.tableflow-search-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tableflow-search-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tableflow-search-results::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.tableflow-search-results::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+} 

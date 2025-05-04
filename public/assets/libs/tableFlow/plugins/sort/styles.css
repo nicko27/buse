@@ -1,0 +1,76 @@
+.tableflow-sort-header {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+    background-color: var(--header-background, #f5f5f5);
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-sort-header:hover {
+    background-color: var(--header-background-hover, #e0e0e0);
+}
+
+.tableflow-sort-header.active {
+    background-color: var(--header-background-active, #e3f2fd);
+}
+
+.tableflow-sort-icon {
+    display: inline-block;
+    width: var(--icon-size, 16px);
+    height: var(--icon-size, 16px);
+    margin-left: 4px;
+    color: var(--icon-color, #666666);
+    transition: var(--transition, all 0.2s ease);
+}
+
+.tableflow-sort-header.active .tableflow-sort-icon {
+    color: var(--icon-color-active, #2196F3);
+}
+
+.tableflow-sort-asc .tableflow-sort-icon::after {
+    content: '↑';
+}
+
+.tableflow-sort-desc .tableflow-sort-icon::after {
+    content: '↓';
+}
+
+/* Animation pour le tri */
+@keyframes sortAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tableflow-sort-header.active {
+    animation: sortAnimation 0.2s ease forwards;
+}
+
+/* Support du clavier */
+.tableflow-sort-header:focus {
+    outline: 2px solid var(--icon-color-active, #2196F3);
+    outline-offset: -2px;
+}
+
+/* Tri multiple */
+.tableflow-sort-header.multi-sort {
+    background-color: var(--header-background-active, #e3f2fd);
+    opacity: 0.8;
+}
+
+.tableflow-sort-header.multi-sort .tableflow-sort-icon::after {
+    content: '⇅';
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tableflow-sort-icon {
+        width: 14px;
+        height: 14px;
+    }
+} 
