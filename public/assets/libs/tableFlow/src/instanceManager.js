@@ -237,7 +237,96 @@ class TableInstance {
             }
         });
     }
-}
 
-// Export pour ES modules
-export const instanceManager = new InstanceManager();
+    /**
+     * Réinitialise l'état des cellules
+     */
+    clearRowState() {
+        this.cellStates.clear();
+    }
+
+    /**
+     * Met à jour l'état d'une cellule
+     * @param {string} rowId - ID de la ligne
+     * @param {string} cellId - ID de la cellule
+     * @param {any} state - État à définir
+     */
+    setCellState(rowId, cellId, state) {
+        const cellKey = `${rowId}:${cellId}`;
+        this.cellStates.set(cellKey, state);
+    }
+
+    /**
+     * Récupère l'état d'une cellule
+     * @param {string} rowId - ID de la ligne
+     * @param {string} cellId - ID de la cellule
+     * @returns {any} État de la cellule
+     */
+    getCellState(rowId, cellId) {
+        const cellKey = `${rowId}:${cellId}`;
+        return this.cellStates.get(cellKey);
+    }
+
+    /**
+     * Vérifie si une cellule a un état
+     * @param {string} rowId - ID de la ligne
+     * @param {string} cellId - ID de la cellule
+     * @returns {boolean} True si la cellule a un état
+     */
+    hasCellState(rowId, cellId) {
+        const cellKey = `${rowId}:${cellId}`;
+        return this.cellStates.has(cellKey);
+    }
+
+    /**
+     * Supprime l'état d'une cellule
+     * @param {string} rowId - ID de la ligne
+     * @param {string} cellId - ID de la cellule
+     */
+    removeCellState(rowId, cellId) {
+        const cellKey = `${rowId}:${cellId}`;
+        this.cellStates.delete(cellKey);
+    }
+
+    /**
+     * Rafraîchit l'instance
+     */
+    async refresh() {
+        // Rafraîchir les plugins
+        await this.initPlugins();
+        
+        // Rafraîchir l'état
+        this.cellStates.clear();
+        
+        // Rafraîchir le DOM
+        this.setupTable();
+    }
+
+    /**
+     * Vérifie si l'instance est valide
+     * @returns {boolean} True si l'instance est valide
+     */
+    isValid() {
+        return this.element && this.pluginManager;
+    }
+
+    /**
+     * Récupère la configuration de l'instance
+     * @returns {Object} Configuration de l'instance
+     */
+    getConfig() {
+        return { ...this.config };
+    }
+
+    /**
+     * Met à jour la configuration de l'instance
+     * @param {Object} newConfig - Nouvelle configuration
+     */
+    updateConfig(newConfig) {
+        this.config = {
+            ...this.config,
+            ...newConfig
+        };
+        this.setupTable();
+    }
+}

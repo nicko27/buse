@@ -32,6 +32,10 @@ export class MetricsManager {
             sampleRate: 1.0, // 1.0 = 100% des mesures
             maxMetrics: 1000,
             flushInterval: 60000, // 1 minute
+            monitorFPS: true,
+            monitorMemory: true,
+            monitorDOM: true,
+            fpsThreshold: 16, // 60 FPS
             ...config
         };
 
@@ -40,11 +44,72 @@ export class MetricsManager {
         this.counters = new Map();
         this.gauges = new Map();
         this.histograms = new Map();
+        this.performanceEntries = new Map();
+        this.lastFrameTime = 0;
+        this.frameCount = 0;
 
-        // Démarrer le flush automatique
-        if (this.config.enabled && this.config.flushInterval > 0) {
-            this.flushInterval = setInterval(() => this.flush(), this.config.flushInterval);
+        // Initialiser les monitors
+        if (this.config.enabled) {
+            if (this.config.monitorFPS) this.startFPSMonitoring();
+            if (this.config.monitorMemory) this.startMemoryMonitoring();
+            if (this.config.monitorDOM) this.startDOMMonitoring();
+            if (this.config.flushInterval > 0) {
+                this.flushInterval = setInterval(() => this.flush(), this.config.flushInterval);
+            }
         }
+
+        this.logger.info('MetricsManager initialisé');
+    }
+
+    // Monitoring FPS
+    startFPSMonitoring() {
+        this.lastFrameTime = performance.now();
+        this.monitoringInterval = setInterval(() => {
+            const currentTime = performance.now();
+            const deltaTime = currentTime - this.lastFrameTime;
+            const fps = Math.round(1000 / deltaTime);
+            this.lastFrameTime = currentTime;
+
+            this.gauge('fps', fps);
+            if (fps < this.config.fpsThreshold) {
+                this.logger.warn('FPS bas détecté:', fps);
+                this.eventBus.emit('metrics:fps:low', { fps });
+            }
+        }, 1000);
+    }
+
+    // Monitoring mémoire
+    startMemoryMonitoring() {
+        if (performance.memory) {
+            setInterval(() => {
+                const memory = performance.memory.usedJSHeapSize;
+                this.gauge('memory', memory);
+                if (memory > 100 * 1024 * 1024) { // 100MB
+                    this.logger.warn('Utilisation mémoire élevée:', memory);
+                    this.eventBus.emit('metrics:memory:high', { memory });
+                }
+            }, 1000);
+        }
+    }
+
+    // Monitoring DOM
+    startDOMMonitoring() {
+        const observer = new MutationObserver(() => {
+            const domNodes = document.getElementsByTagName('*').length;
+            this.gauge('dom_nodes', domNodes);
+            this.increment('dom_reflows');
+            
+            if (domNodes > 10000) {
+                this.logger.warn('Nombre élevé de nœuds DOM:', domNodes);
+                this.eventBus.emit('metrics:dom:large', { nodes: domNodes });
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true
+        });
     }
 
     // Métriques de base
@@ -105,10 +170,25 @@ export class MetricsManager {
     async measure(name, fn, tags = {}) {
         const timerName = this.startTimer(name, tags);
         try {
-            return await fn();
-        } finally {
+            const result = await fn();
+            const duration = this.stopTimer(timerName);
+            this.performanceEntries.set(name, {
+                duration,
+                timestamp: Date.now(),
+                count: (this.performanceEntries.get(name)?.count || 0) + 1
+            });
+            return result;
+        } catch (error) {
             this.stopTimer(timerName);
+            throw error;
         }
+    }
+
+    // Optimisation
+    optimize(fn) {
+        return (...args) => {
+            return this.measure(fn.name, () => fn(...args));
+        };
     }
 
     // Enregistrement des métriques
@@ -200,6 +280,9 @@ export class MetricsManager {
 
     // Nettoyage
     destroy() {
+        if (this.monitoringInterval) {
+            clearInterval(this.monitoringInterval);
+        }
         if (this.flushInterval) {
             clearInterval(this.flushInterval);
         }
@@ -209,6 +292,8 @@ export class MetricsManager {
         this.counters.clear();
         this.gauges.clear();
         this.histograms.clear();
+        this.performanceEntries.clear();
         this.eventBus.removeAllListeners();
+        this.logger.info('MetricsManager détruit');
     }
 } 

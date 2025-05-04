@@ -34,130 +34,132 @@
  */
 export class EventBus {
     constructor() {
+        this.listeners = new Map();
+        this.globalListeners = new Set();
         this.channels = new Map();
-        this.globalListeners = new Map();
     }
 
     /**
-     * Crée un canal d'événements
-     * @param {string} channel - Nom du canal
-     */
-    createChannel(channel) {
-        if (!this.channels.has(channel)) {
-            this.channels.set(channel, new Map());
-        }
-    }
-
-    /**
-     * Supprime un canal d'événements
-     * @param {string} channel - Nom du canal
-     */
-    removeChannel(channel) {
-        this.channels.delete(channel);
-    }
-
-    /**
-     * Écoute un événement sur un canal spécifique
-     * @param {string} channel - Nom du canal
+     * Émet un événement
      * @param {string} event - Nom de l'événement
-     * @param {Function} callback - Fonction de callback
-     * @returns {Function} - Fonction pour supprimer l'écouteur
+     * @param {any} data - Données de l'événement
+     * @param {string} [channel] - Canal optionnel
      */
-    on(channel, event, callback) {
-        if (!this.channels.has(channel)) {
-            this.createChannel(channel);
-        }
-
-        const channelListeners = this.channels.get(channel);
-        if (!channelListeners.has(event)) {
-            channelListeners.set(event, new Set());
-        }
-
-        channelListeners.get(event).add(callback);
-
-        return () => this.off(channel, event, callback);
-    }
-
-    /**
-     * Écoute un événement global
-     * @param {string} event - Nom de l'événement
-     * @param {Function} callback - Fonction de callback
-     * @returns {Function} - Fonction pour supprimer l'écouteur
-     */
-    onGlobal(event, callback) {
-        if (!this.globalListeners.has(event)) {
-            this.globalListeners.set(event, new Set());
-        }
-
-        this.globalListeners.get(event).add(callback);
-
-        return () => this.offGlobal(event, callback);
-    }
-
-    /**
-     * Supprime un écouteur d'événement d'un canal
-     * @param {string} channel - Nom du canal
-     * @param {string} event - Nom de l'événement
-     * @param {Function} callback - Fonction de callback
-     */
-    off(channel, event, callback) {
-        if (this.channels.has(channel)) {
-            const channelListeners = this.channels.get(channel);
-            if (channelListeners.has(event)) {
-                channelListeners.get(event).delete(callback);
+    emit(event, data, channel) {
+        // Notifier les écouteurs globaux
+        this.globalListeners.forEach(listener => {
+            try {
+                listener(event, data);
+            } catch (error) {
+                console.error(`Erreur dans l'écouteur global pour ${event}:`, error);
             }
-        }
-    }
+        });
 
-    /**
-     * Supprime un écouteur d'événement global
-     * @param {string} event - Nom de l'événement
-     * @param {Function} callback - Fonction de callback
-     */
-    offGlobal(event, callback) {
-        if (this.globalListeners.has(event)) {
-            this.globalListeners.get(event).delete(callback);
-        }
-    }
-
-    /**
-     * Émet un événement sur un canal spécifique
-     * @param {string} channel - Nom du canal
-     * @param {string} event - Nom de l'événement
-     * @param {*} data - Données de l'événement
-     */
-    emit(channel, event, data) {
-        // Émettre sur le canal spécifique
-        if (this.channels.has(channel)) {
-            const channelListeners = this.channels.get(channel);
-            if (channelListeners.has(event)) {
-                channelListeners.get(event).forEach(callback => {
-                    try {
-                        callback(data);
-                    } catch (error) {
-                        console.error(`Erreur dans l'écouteur d'événement ${channel}.${event}:`, error);
-                    }
-                });
+        // Notifier les écouteurs spécifiques
+        const eventListeners = this.listeners.get(event) || new Set();
+        eventListeners.forEach(listener => {
+            try {
+                listener(data);
+            } catch (error) {
+                console.error(`Erreur dans l'écouteur pour ${event}:`, error);
             }
-        }
+        });
 
-        // Émettre sur les écouteurs globaux
-        if (this.globalListeners.has(event)) {
-            this.globalListeners.get(event).forEach(callback => {
+        // Notifier les écouteurs du canal
+        if (channel) {
+            const channelListeners = this.channels.get(channel) || new Set();
+            channelListeners.forEach(listener => {
                 try {
-                    callback(data);
+                    listener(event, data);
                 } catch (error) {
-                    console.error(`Erreur dans l'écouteur global d'événement ${event}:`, error);
+                    console.error(`Erreur dans l'écouteur du canal ${channel} pour ${event}:`, error);
                 }
             });
         }
     }
 
     /**
-     * Détruit l'EventBus et nettoie toutes les références
+     * Ajoute un écouteur d'événement
+     * @param {string} event - Nom de l'événement
+     * @param {Function} callback - Fonction de callback
+     * @returns {Function} Fonction de désinscription
+     */
+    on(event, callback) {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, new Set());
+        }
+        this.listeners.get(event).add(callback);
+        return () => this.off(event, callback);
+    }
+
+    /**
+     * Supprime un écouteur d'événement
+     * @param {string} event - Nom de l'événement
+     * @param {Function} callback - Fonction de callback
+     */
+    off(event, callback) {
+        const eventListeners = this.listeners.get(event);
+        if (eventListeners) {
+            eventListeners.delete(callback);
+            if (eventListeners.size === 0) {
+                this.listeners.delete(event);
+            }
+        }
+    }
+
+    /**
+     * Ajoute un écouteur global
+     * @param {Function} callback - Fonction de callback
+     * @returns {Function} Fonction de désinscription
+     */
+    onGlobal(callback) {
+        this.globalListeners.add(callback);
+        return () => this.offGlobal(callback);
+    }
+
+    /**
+     * Supprime un écouteur global
+     * @param {Function} callback - Fonction de callback
+     */
+    offGlobal(callback) {
+        this.globalListeners.delete(callback);
+    }
+
+    /**
+     * S'abonne à un canal
+     * @param {string} channel - Nom du canal
+     * @param {Function} callback - Fonction de callback
+     * @returns {Function} Fonction de désinscription
+     */
+    subscribe(channel, callback) {
+        if (!this.channels.has(channel)) {
+            this.channels.set(channel, new Set());
+        }
+        this.channels.get(channel).add(callback);
+        return () => this.unsubscribe(channel, callback);
+    }
+
+    /**
+     * Se désabonne d'un canal
+     * @param {string} channel - Nom du canal
+     * @param {Function} callback - Fonction de callback
+     */
+    unsubscribe(channel, callback) {
+        const channelListeners = this.channels.get(channel);
+        if (channelListeners) {
+            channelListeners.delete(callback);
+            if (channelListeners.size === 0) {
+                this.channels.delete(channel);
+            }
+        }
+    }
+
+    /**
+     * Nettoie tous les écouteurs
      */
     destroy() {
-        this.channels.clear();
+        this.listeners.clear();
         this.globalListeners.clear();
+        this.channels.clear();
     }
 } 

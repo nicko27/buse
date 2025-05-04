@@ -20,8 +20,10 @@ export default class PluginRegistry {
 
     init() {
         // Ajouter les écouteurs d'événements
-        window.addEventListener('plugin:load', this._boundPluginLoadHandler);
-        window.addEventListener('plugin:error', this._boundPluginErrorHandler);
+        if (typeof window !== "undefined") {
+            window.addEventListener('plugin:load', this._boundPluginLoadHandler);
+            window.addEventListener('plugin:error', this._boundPluginErrorHandler);
+        }
     }
 
     handlePluginLoad(e) {
@@ -108,9 +110,10 @@ export default class PluginRegistry {
 
     destroy() {
         // Supprimer les écouteurs d'événements
-        window.removeEventListener('plugin:load', this._boundPluginLoadHandler);
-        window.removeEventListener('plugin:error', this._boundPluginErrorHandler);
-
+        if (typeof window !== "undefined") {
+            window.removeEventListener('plugin:load', this._boundPluginLoadHandler);
+            window.removeEventListener('plugin:error', this._boundPluginErrorHandler);
+        }
         // Vider le registre
         this.plugins.clear();
     }

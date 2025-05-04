@@ -3,37 +3,42 @@ import { pluginRegistry } from './pluginRegistry.js';
 import InstancePluginManager from './instancePluginManager.js';
 
 export class TableFlowInitializer {
-    constructor(config = {}) {
+    constructor(config = {}, dependencies = {}) {
         this.config = {
             debug: false,
             ...config
+        };
+        this.dependencies = {
+            instanceManager: dependencies.instanceManager,
+            pluginRegistry: dependencies.pluginRegistry,
+            instancePluginManager: dependencies.instancePluginManager
         };
     }
 
     async init() {
         // Initialiser le registre de plugins
-        await pluginRegistry.init();
+        await this.dependencies.pluginRegistry.init();
 
         // Créer et initialiser le gestionnaire de plugins
-        const pluginManager = new InstancePluginManager(this.config);
-        await pluginManager.init(pluginRegistry);
+        const pluginManager = new this.dependencies.instancePluginManager(this.config);
+        await pluginManager.init(this.dependencies.pluginRegistry);
 
         // Initialiser le gestionnaire d'instances
-        await instanceManager.init();
+        await this.dependencies.instanceManager.init();
 
         return {
-            instanceManager,
-            pluginRegistry,
+            instanceManager: this.dependencies.instanceManager,
+            pluginRegistry: this.dependencies.pluginRegistry,
             pluginManager
         };
     }
 
     async createTable(tableId, config = {}) {
         // Créer une nouvelle instance de table
-        const instance = instanceManager.createInstance(tableId, config);
+        const instance = this.dependencies.instanceManager.createInstance(tableId, config);
 
         // Initialiser l'instance avec le gestionnaire de plugins
-        await instance.init(instanceManager.pluginManager);
+        await instance.init(this.dependencies.instanceManager.pluginManager);
 
         return instance;
     }
