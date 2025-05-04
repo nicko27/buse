@@ -1,222 +1,178 @@
+/**
+ * Plugin d'édition pour TableFlow
+ * Gère l'édition des cellules du tableau
+ */
+import { BasePlugin } from '../../src/BasePlugin.js';
 import { config } from './config.js';
 
-export class EditPlugin {
+export class EditPlugin extends BasePlugin {
     constructor(tableFlow, options = {}) {
-        this.tableFlow = tableFlow;
-        this.config = { ...config, ...options };
-        this.logger = tableFlow.logger;
-        this.metrics = tableFlow.metrics;
-        this.errorHandler = tableFlow.errorHandler;
-        this.currentEdit = null;
-        this.undoStack = [];
-        this.redoStack = [];
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = config.type;
+        this.dependencies = config.dependencies;
+
+        this.editingCell = null;
+        this.originalValue = null;
+        this.editInput = null;
     }
 
-    init() {
-        this.logger.info('Initializing Edit plugin');
+    /**
+     * Initialise le plugin
+     * @returns {Promise<void>}
+     */
+    async init() {
+        if (!this.tableFlow) {
+            throw new Error('TableFlow instance is required');
+        }
+
         this.setupEventListeners();
-        this.registerHooks();
-        this.metrics.increment('plugin_edit_init');
+        this.initialized = true;
     }
 
+    /**
+     * Configure les écouteurs d'événements
+     */
     setupEventListeners() {
-        this.tableFlow.on('cellClick', this.handleCellClick.bind(this));
-        this.tableFlow.on('keydown', this.handleKeydown.bind(this));
-        this.tableFlow.on('blur', this.handleBlur.bind(this));
+        this.tableFlow.table.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+        document.addEventListener('keydown', this.handleKeyDown.bind(this));
+        document.addEventListener('click', this.handleDocumentClick.bind(this));
     }
 
-    registerHooks() {
-        this.tableFlow.hooks.register('beforeEdit', this.beforeEdit.bind(this));
-        this.tableFlow.hooks.register('afterEdit', this.afterEdit.bind(this));
-        this.tableFlow.hooks.register('beforeSave', this.beforeSave.bind(this));
-        this.tableFlow.hooks.register('afterSave', this.afterSave.bind(this));
-    }
-
-    handleCellClick(event) {
+    /**
+     * Gère le double-clic sur une cellule
+     * @param {MouseEvent} event
+     */
+    handleDoubleClick(event) {
         const cell = event.target.closest('td');
-        if (!cell || !cell.classList.contains(this.config.editClass)) return;
+        if (!cell || cell.classList.contains(this.config.classes.readOnly)) return;
 
-        this.startEdit(cell);
+        this.startEditing(cell);
     }
 
-    handleKeydown(event) {
-        if (!this.currentEdit) return;
+    /**
+     * Gère les touches du clavier
+     * @param {KeyboardEvent} event
+     */
+    handleKeyDown(event) {
+        if (!this.editingCell) return;
 
         switch (event.key) {
             case 'Enter':
-                this.saveEdit();
+                this.finishEditing();
                 break;
             case 'Escape':
-                this.cancelEdit();
-                break;
-            case 'z':
-                if (event.ctrlKey || event.metaKey) {
-                    event.shiftKey ? this.redo() : this.undo();
-                }
+                this.cancelEditing();
                 break;
         }
     }
 
-    handleBlur(event) {
-        if (this.currentEdit && !event.relatedTarget?.closest('td')) {
-            this.saveEdit();
+    /**
+     * Gère le clic en dehors de la cellule en édition
+     * @param {MouseEvent} event
+     */
+    handleDocumentClick(event) {
+        if (!this.editingCell) return;
+
+        const isClickInside = this.editingCell.contains(event.target);
+        if (!isClickInside) {
+            this.finishEditing();
         }
     }
 
-    async startEdit(cell) {
-        try {
-            const beforeEditResult = await this.tableFlow.hooks.trigger('beforeEdit', { cell });
-            if (beforeEditResult === false) return;
+    /**
+     * Démarre l'édition d'une cellule
+     * @param {HTMLTableCellElement} cell - Cellule à éditer
+     */
+    startEditing(cell) {
+        // Sauvegarder la valeur originale
+        this.originalValue = cell.textContent;
+        this.editingCell = cell;
 
-            this.currentEdit = {
-                cell,
-                originalValue: cell.textContent,
-                input: this.createInput(cell)
-            };
+        // Créer l'input d'édition
+        this.editInput = document.createElement('input');
+        this.editInput.type = 'text';
+        this.editInput.className = this.config.classes.editInput;
+        this.editInput.value = this.originalValue;
 
-            cell.classList.add(this.config.editingClass);
-            cell.innerHTML = '';
-            cell.appendChild(this.currentEdit.input);
-            this.currentEdit.input.focus();
+        // Remplacer le contenu de la cellule
+        cell.textContent = '';
+        cell.appendChild(this.editInput);
+        cell.classList.add(this.config.classes.editing);
 
-            this.tableFlow.emit('editStart', { cell });
-            this.metrics.increment('edit_start');
-        } catch (error) {
-            this.errorHandler.handle(error, 'edit_start');
-        }
+        // Focus sur l'input
+        this.editInput.focus();
+        this.editInput.select();
+
+        // Émettre l'événement
+        this.tableFlow.emit('edit:started', {
+            cell,
+            value: this.originalValue
+        });
     }
 
-    createInput(cell) {
-        const input = document.createElement('input');
-        input.className = 'tableflow-input';
-        input.type = this.getInputType(cell);
-        input.value = cell.textContent.trim();
+    /**
+     * Termine l'édition de la cellule
+     */
+    finishEditing() {
+        if (!this.editingCell || !this.editInput) return;
 
-        if (this.config.autoSelect) {
-            input.select();
-        }
+        const newValue = this.editInput.value;
+        const cell = this.editingCell;
 
-        return input;
-    }
+        // Restaurer la cellule
+        cell.textContent = newValue;
+        cell.classList.remove(this.config.classes.editing);
 
-    getInputType(cell) {
-        const type = cell.getAttribute('data-type') || 'text';
-        return this.config.inputTypes[type] || 'text';
-    }
+        // Nettoyer
+        this.editInput.remove();
+        this.editInput = null;
+        this.editingCell = null;
 
-    async saveEdit() {
-        if (!this.currentEdit) return;
-
-        try {
-            const { cell, input } = this.currentEdit;
-            const newValue = input.value;
-
-            const beforeSaveResult = await this.tableFlow.hooks.trigger('beforeSave', {
-                cell,
-                oldValue: this.currentEdit.originalValue,
-                newValue
-            });
-
-            if (beforeSaveResult === false) {
-                this.cancelEdit();
-                return;
-            }
-
-            this.undoStack.push({
-                cell,
-                oldValue: this.currentEdit.originalValue,
-                newValue
-            });
-
-            cell.textContent = newValue;
-            this.cleanupEdit();
-
-            await this.tableFlow.hooks.trigger('afterSave', {
-                cell,
-                oldValue: this.currentEdit.originalValue,
-                newValue
-            });
-
-            this.tableFlow.emit('editComplete', { cell, newValue });
-            this.metrics.increment('edit_save');
-        } catch (error) {
-            this.errorHandler.handle(error, 'edit_save');
-        }
-    }
-
-    cancelEdit() {
-        if (!this.currentEdit) return;
-
-        try {
-            const { cell, originalValue } = this.currentEdit;
-            cell.textContent = originalValue;
-            this.cleanupEdit();
-
-            this.tableFlow.emit('editCancel', { cell });
-            this.metrics.increment('edit_cancel');
-        } catch (error) {
-            this.errorHandler.handle(error, 'edit_cancel');
-        }
-    }
-
-    cleanupEdit() {
-        if (this.currentEdit) {
-            this.currentEdit.cell.classList.remove(this.config.editingClass);
-            this.currentEdit = null;
-        }
-    }
-
-    undo() {
-        if (this.undoStack.length === 0) return;
-
-        const action = this.undoStack.pop();
-        this.redoStack.push({
-            cell: action.cell,
-            oldValue: action.newValue,
-            newValue: action.oldValue
+        // Émettre l'événement
+        this.tableFlow.emit('edit:finished', {
+            cell,
+            oldValue: this.originalValue,
+            newValue
         });
 
-        action.cell.textContent = action.oldValue;
-        this.metrics.increment('edit_undo');
+        this.originalValue = null;
     }
 
-    redo() {
-        if (this.redoStack.length === 0) return;
+    /**
+     * Annule l'édition de la cellule
+     */
+    cancelEditing() {
+        if (!this.editingCell || !this.editInput) return;
 
-        const action = this.redoStack.pop();
-        this.undoStack.push({
-            cell: action.cell,
-            oldValue: action.newValue,
-            newValue: action.oldValue
+        const cell = this.editingCell;
+
+        // Restaurer la valeur originale
+        cell.textContent = this.originalValue;
+        cell.classList.remove(this.config.classes.editing);
+
+        // Nettoyer
+        this.editInput.remove();
+        this.editInput = null;
+        this.editingCell = null;
+
+        // Émettre l'événement
+        this.tableFlow.emit('edit:cancelled', {
+            cell,
+            value: this.originalValue
         });
 
-        action.cell.textContent = action.oldValue;
-        this.metrics.increment('edit_redo');
+        this.originalValue = null;
     }
 
-    beforeEdit({ cell }) {
-        // Hook pour validation pré-édition
-        return true;
-    }
-
-    afterEdit({ cell }) {
-        // Hook pour post-traitement après édition
-    }
-
-    beforeSave({ cell, oldValue, newValue }) {
-        // Hook pour validation avant sauvegarde
-        return true;
-    }
-
-    afterSave({ cell, oldValue, newValue }) {
-        // Hook pour post-traitement après sauvegarde
-    }
-
+    /**
+     * Nettoie les ressources
+     */
     destroy() {
-        this.tableFlow.off('cellClick', this.handleCellClick);
-        this.tableFlow.off('keydown', this.handleKeydown);
-        this.tableFlow.off('blur', this.handleBlur);
-        this.cleanupEdit();
-        this.metrics.increment('plugin_edit_destroy');
+        super.destroy();
+        if (this.editingCell) {
+            this.cancelEditing();
+        }
     }
 }

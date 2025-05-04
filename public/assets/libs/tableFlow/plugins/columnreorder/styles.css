@@ -1,41 +1,63 @@
-/* Handle de réordonnancement */
+/* Styles de base pour le plugin ColumnReorder */
 .tableflow-columnreorder-handle {
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--handle-size, 8px);
+    width: 8px;
     height: 100%;
-    background: var(--handle-background, #e0e0e0);
+    cursor: move;
+    background-color: var(--handle-background, #e0e0e0);
     border: var(--handle-border, 1px solid #bdbdbd);
     border-radius: var(--handle-border-radius, 2px);
-    cursor: move;
-    opacity: 0;
     transition: var(--transition, all 0.2s ease);
 }
 
 .tableflow-columnreorder-handle:hover {
-    background: var(--handle-hover-background, #2196F3);
+    background-color: var(--handle-hover-background, #2196F3);
 }
 
 .tableflow-columnreorder-handle:active {
-    background: var(--handle-active-background, #1976D2);
+    background-color: var(--handle-active-background, #1976D2);
 }
 
-/* Colonne en cours de glissement */
-.tableflow-columnreorder-dragging {
-    position: relative;
-    z-index: 1000;
-    background: var(--ghost-background, #ffffff);
+/* Styles pour le placeholder */
+.tableflow-columnreorder-placeholder {
+    background-color: var(--placeholder-background, rgba(33, 150, 243, 0.1));
+    border: var(--placeholder-border, 2px dashed #2196F3);
+    opacity: 0.5;
+}
+
+/* Styles pour le ghost */
+.tableflow-columnreorder-ghost {
+    background-color: var(--ghost-background, #ffffff);
     border: var(--ghost-border, 1px solid #e0e0e0);
     box-shadow: var(--ghost-shadow, 0 2px 5px rgba(0,0,0,0.1));
     opacity: var(--ghost-opacity, 0.5);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Styles pour la colonne en cours de déplacement */
+.tableflow-columnreorder-dragging {
+    opacity: 0.5;
     cursor: move;
 }
 
-/* Placeholder */
-.tableflow-columnreorder-placeholder {
-    background: var(--placeholder-background, rgba(33, 150, 243, 0.1));
-    border: var(--placeholder-border, 2px dashed #2196F3);
+/* Styles pour le handle positionné à droite */
+.tableflow-columnreorder-handle[data-position="right"] {
+    left: auto;
+    right: 0;
+}
+
+/* Styles pour l'accessibilité */
+.tableflow-columnreorder-handle:focus {
+    outline: 2px solid #2196F3;
+    outline-offset: 2px;
+}
+
+/* Animation de transition */
+.tableflow-columnreorder-transition {
+    transition: transform 0.2s ease;
 }
 
 /* Support du thème sombre */

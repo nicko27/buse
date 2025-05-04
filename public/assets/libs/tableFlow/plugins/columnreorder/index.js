@@ -3,16 +3,16 @@
  * Permet de réorganiser les colonnes d'un tableau par glisser-déposer
  * Version: 1.0.0
  */
+import { BasePlugin } from '../../src/BasePlugin.js';
 import { config } from './config.js';
 
-export class ColumnReorderPlugin {
-    constructor(tableFlow) {
-        this.tableFlow = tableFlow;
+export class ColumnReorderPlugin extends BasePlugin {
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
         this.name = config.name;
         this.version = config.version;
         this.type = config.type;
         this.dependencies = config.dependencies;
-        this.config = config;
         
         this.isDragging = false;
         this.draggedColumn = null;
@@ -21,7 +21,7 @@ export class ColumnReorderPlugin {
         this.originalOrder = [];
     }
 
-    init() {
+    async init() {
         if (!this.tableFlow) {
             throw new Error('TableFlow instance is required');
         }
@@ -29,6 +29,7 @@ export class ColumnReorderPlugin {
         this.setupHandles();
         this.setupEventListeners();
         this.saveOriginalOrder();
+        this.initialized = true;
     }
 
     setupHandles() {
@@ -41,7 +42,7 @@ export class ColumnReorderPlugin {
 
     createHandle(header) {
         const handle = document.createElement('div');
-        handle.className = this.config.classNames.handleClass;
+        handle.className = this.config.handleClass;
         handle.setAttribute('role', 'button');
         handle.setAttribute('aria-label', this.config.messages.dragHandle);
         handle.setAttribute('tabindex', '0');
@@ -56,7 +57,7 @@ export class ColumnReorderPlugin {
     }
 
     setupEventListeners() {
-        const handles = this.tableFlow.table.querySelectorAll(`.${this.config.classNames.handleClass}`);
+        const handles = this.tableFlow.table.querySelectorAll(`.${this.config.handleClass}`);
         
         handles.forEach(handle => {
             handle.addEventListener('mousedown', this.handleMouseDown.bind(this));
@@ -104,8 +105,8 @@ export class ColumnReorderPlugin {
         document.body.appendChild(this.ghost);
         
         // Appliquer les classes
-        header.classList.add(this.config.classNames.draggingClass);
-        this.ghost.classList.add(this.config.classNames.ghostClass);
+        header.classList.add(this.config.draggingClass);
+        this.ghost.classList.add(this.config.ghostClass);
         
         // Position initiale
         this.initialX = clientX;
@@ -119,7 +120,7 @@ export class ColumnReorderPlugin {
 
     createPlaceholder(header) {
         const placeholder = document.createElement('th');
-        placeholder.className = this.config.classNames.placeholderClass;
+        placeholder.className = this.config.placeholderClass;
         placeholder.style.width = `${header.offsetWidth}px`;
         placeholder.style.height = `${header.offsetHeight}px`;
         return placeholder;
@@ -208,7 +209,7 @@ export class ColumnReorderPlugin {
         // Nettoyer
         this.placeholder.remove();
         this.ghost.remove();
-        this.draggedColumn.classList.remove(this.config.classNames.draggingClass);
+        this.draggedColumn.classList.remove(this.config.draggingClass);
         
         // Mettre à jour l'ordre des colonnes dans les données
         this.updateColumnOrderInData(newIndex);
@@ -296,7 +297,7 @@ export class ColumnReorderPlugin {
         // Nettoyer
         this.placeholder.remove();
         this.ghost.remove();
-        this.draggedColumn.classList.remove(this.config.classNames.draggingClass);
+        this.draggedColumn.classList.remove(this.config.draggingClass);
         
         // Réinitialiser
         this.isDragging = false;
@@ -330,9 +331,15 @@ export class ColumnReorderPlugin {
     }
 
     destroy() {
-        const handles = this.tableFlow.table.querySelectorAll(`.${this.config.classNames.handleClass}`);
-        handles.forEach(handle => handle.remove());
-        
+        super.destroy();
+        // Nettoyage spécifique au plugin
+        const handles = this.tableFlow.table.querySelectorAll(`.${this.config.handleClass}`);
+        handles.forEach(handle => {
+            handle.removeEventListener('mousedown', this.handleMouseDown.bind(this));
+            handle.removeEventListener('touchstart', this.handleTouchStart.bind(this));
+            handle.removeEventListener('keydown', this.handleKeyDown.bind(this));
+        });
+
         document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
         document.removeEventListener('mouseup', this.handleMouseUp.bind(this));
         document.removeEventListener('touchmove', this.handleTouchMove.bind(this));

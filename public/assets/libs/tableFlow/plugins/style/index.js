@@ -1,4 +1,8 @@
-import { BasePlugin } from '../basePlugin.js';
+/**
+ * Plugin de style pour TableFlow
+ * Gère les styles, thèmes et animations du tableau
+ */
+import { BasePlugin } from '../../src/BasePlugin.js';
 import { config } from './config.js';
 import { StyleManager } from './StyleManager.js';
 import { RuleEngine } from './RuleEngine.js';
@@ -9,32 +13,12 @@ import { ThemeModule } from './modules/ThemeModule.js';
 import { AnimationModule } from './modules/AnimationModule.js';
 
 export class StylePlugin extends BasePlugin {
-    constructor(config = {}) {
-        const pluginConfig = {
-            enabled: true,
-            debug: false,
-            execOrder: 10,
-            dependencies: [],
-            
-            // Configuration spécifique au style
-            modules: {
-                highlight: {
-                    enabled: true
-                },
-                conditional: {
-                    enabled: true
-                },
-                theme: {
-                    enabled: true
-                },
-                animation: {
-                    enabled: true
-                }
-            },
-            ...config
-        };
-
-        super(pluginConfig);
+    constructor(tableFlow, options = {}) {
+        super(tableFlow, { ...config.options, ...options });
+        this.name = config.name;
+        this.version = config.version;
+        this.type = config.type;
+        this.dependencies = config.dependencies;
 
         // Gestionnaires principaux
         this.styleManager = new StyleManager(this);
@@ -43,18 +27,19 @@ export class StylePlugin extends BasePlugin {
 
         // Modules
         this.modules = new Map();
-        
-        // Interface
-        this.container = null;
-        this.toolbar = null;
-        this.menu = null;
     }
 
-    async onInit(context) {
-        this.logger.info('Initialisation du StylePlugin');
+    /**
+     * Initialise le plugin
+     * @returns {Promise<void>}
+     */
+    async init() {
+        if (!this.tableFlow) {
+            throw new Error('TableFlow instance is required');
+        }
 
-        // Créer les éléments d'interface
-        await this.createInterface();
+        // Initialiser les gestionnaires
+        this.styleManager.init();
 
         // Initialiser les modules
         await this.initModules();
@@ -62,187 +47,116 @@ export class StylePlugin extends BasePlugin {
         // Charger l'état sauvegardé
         await this.stateManager.load();
 
-        // Configurer les écouteurs d'événements
-        this.setupEventListeners();
-
-        this.logger.success('StylePlugin initialisé avec succès');
+        this.initialized = true;
     }
 
-    async createInterface() {
-        // Créer le conteneur principal
-        this.container = document.createElement('div');
-        this.container.className = this.config.classes.container;
-
-        // Créer la barre d'outils
-        this.toolbar = document.createElement('div');
-        this.toolbar.className = this.config.classes.toolbar;
-        this.container.appendChild(this.toolbar);
-
-        // Créer le menu
-        this.menu = document.createElement('div');
-        this.menu.className = this.config.classes.menu;
-        this.menu.style.display = 'none';
-        this.container.appendChild(this.menu);
-
-        // Ajouter au DOM
-        context.container.appendChild(this.container);
-    }
-
+    /**
+     * Initialise les modules
+     * @returns {Promise<void>}
+     */
     async initModules() {
-        // Highlight Module
-        if (this.config.get('modules.highlight.enabled')) {
+        // Module de surbrillance
+        if (this.config.modules.highlight.enabled) {
             const highlightModule = new HighlightModule(this);
             await highlightModule.init();
             this.modules.set('highlight', highlightModule);
         }
 
-        // Conditional Module
-        if (this.config.get('modules.conditional.enabled')) {
+        // Module de styles conditionnels
+        if (this.config.modules.conditional.enabled) {
             const conditionalModule = new ConditionalModule(this);
             await conditionalModule.init();
             this.modules.set('conditional', conditionalModule);
         }
 
-        // Theme Module
-        if (this.config.get('modules.theme.enabled')) {
+        // Module de thèmes
+        if (this.config.modules.theme.enabled) {
             const themeModule = new ThemeModule(this);
             await themeModule.init();
             this.modules.set('theme', themeModule);
         }
 
-        // Animation Module
-        if (this.config.get('modules.animation.enabled')) {
+        // Module d'animations
+        if (this.config.modules.animation.enabled) {
             const animationModule = new AnimationModule(this);
             await animationModule.init();
             this.modules.set('animation', animationModule);
         }
     }
 
-    setupEventListeners() {
-        // Écouter les changements de données
-        context.eventBus.on('data:change', this.handleDataChange.bind(this));
-        
-        // Écouter les changements d'état
-        context.eventBus.on('state:change', this.handleStateChange.bind(this));
-        
-        // Écouter les événements de sélection
-        context.table.addEventListener('mousedown', this.handleSelectionStart.bind(this));
-        context.table.addEventListener('mousemove', this.handleSelectionMove.bind(this));
-        document.addEventListener('mouseup', this.handleSelectionEnd.bind(this));
-        
-        // Écouter les événements clavier
-        document.addEventListener('keydown', this.handleKeyDown.bind(this));
-    }
-
-    handleDataChange(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Mettre à jour les styles conditionnels
-        if (this.modules.has('conditional')) {
-            this.modules.get('conditional').update(event.data);
-        }
-    }
-
-    handleStateChange(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Mettre à jour l'état des modules
-        this.modules.forEach(module => {
-            if (typeof module.handleStateChange === 'function') {
-                module.handleStateChange(event);
-            }
-        });
-    }
-
-    handleSelectionStart(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Déléguer aux modules actifs
-        this.modules.forEach(module => {
-            if (typeof module.handleSelectionStart === 'function') {
-                module.handleSelectionStart(event);
-            }
-        });
-    }
-
-    handleSelectionMove(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Déléguer aux modules actifs
-        this.modules.forEach(module => {
-            if (typeof module.handleSelectionMove === 'function') {
-                module.handleSelectionMove(event);
-            }
-        });
-    }
-
-    handleSelectionEnd(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Déléguer aux modules actifs
-        this.modules.forEach(module => {
-            if (typeof module.handleSelectionEnd === 'function') {
-                module.handleSelectionEnd(event);
-            }
-        });
-    }
-
-    handleKeyDown(event) {
-        if (!this.config.get('enabled')) return;
-        
-        // Déléguer aux modules actifs
-        this.modules.forEach(module => {
-            if (typeof module.handleKeyDown === 'function') {
-                module.handleKeyDown(event);
-            }
-        });
-    }
-
-    // API publique
+    /**
+     * Applique un style à des éléments
+     * @param {HTMLElement|HTMLElement[]} elements - Éléments à styliser
+     * @param {Object} style - Style à appliquer
+     * @returns {string} - ID du style appliqué
+     */
     applyStyle(elements, style) {
         return this.styleManager.applyStyle(elements, style);
     }
 
+    /**
+     * Supprime un style appliqué
+     * @param {HTMLElement|HTMLElement[]} elements - Éléments concernés
+     * @param {string} styleId - ID du style à supprimer
+     */
     removeStyle(elements, styleId) {
-        return this.styleManager.removeStyle(elements, styleId);
+        this.styleManager.removeStyle(elements, styleId);
     }
 
+    /**
+     * Ajoute une règle conditionnelle
+     * @param {Function} condition - Fonction de condition
+     * @param {Object} style - Style à appliquer
+     * @returns {string} - ID de la règle
+     */
     addRule(condition, style) {
         return this.ruleEngine.addRule(condition, style);
     }
 
-    setTheme(themeName) {
+    /**
+     * Supprime une règle
+     * @param {string} ruleId - ID de la règle à supprimer
+     */
+    removeRule(ruleId) {
+        this.ruleEngine.removeRule(ruleId);
+    }
+
+    /**
+     * Définit le thème actif
+     * @param {string} name - Nom du thème
+     * @returns {Promise<void>}
+     */
+    async setTheme(name) {
         if (this.modules.has('theme')) {
-            return this.modules.get('theme').setTheme(themeName);
+            await this.modules.get('theme').setTheme(name);
         }
     }
 
-    async onRefresh() {
-        this.logger.info('Rafraîchissement du StylePlugin...');
-        await this.stateManager.load();
+    /**
+     * Applique une animation à un élément
+     * @param {HTMLElement} element - Élément à animer
+     * @param {string} name - Nom de l'animation
+     * @param {Object} [options] - Options supplémentaires
+     */
+    animate(element, name, options) {
+        if (this.modules.has('animation')) {
+            this.modules.get('animation').animate(element, name, options);
+        }
     }
 
-    async onDestroy() {
-        this.logger.info('Destruction du StylePlugin...');
-        
-        // Supprimer les écouteurs d'événements
-        context.eventBus.off('data:change', this.handleDataChange);
-        context.eventBus.off('state:change', this.handleStateChange);
-        context.table.removeEventListener('mousedown', this.handleSelectionStart);
-        context.table.removeEventListener('mousemove', this.handleSelectionMove);
-        document.removeEventListener('mouseup', this.handleSelectionEnd);
-        document.removeEventListener('keydown', this.handleKeyDown);
+    /**
+     * Nettoie les ressources
+     */
+    destroy() {
+        super.destroy();
 
         // Détruire les modules
         this.modules.forEach(module => module.destroy());
         this.modules.clear();
 
-        // Nettoyer le DOM
-        if (this.container && this.container.parentNode) {
-            this.container.parentNode.removeChild(this.container);
-        }
-
-        // Sauvegarder l'état final
-        this.stateManager.save();
+        // Détruire les gestionnaires
+        this.styleManager.destroy();
+        this.ruleEngine.destroy();
+        this.stateManager.destroy();
     }
 } 

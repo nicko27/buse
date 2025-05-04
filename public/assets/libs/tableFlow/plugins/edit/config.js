@@ -1,29 +1,52 @@
 export const config = {
     name: 'edit',
     version: '1.0.0',
-    dependencies: ['texteditor'],
+    type: 'edit',
+    dependencies: [],
     options: {
-        editClass: 'editable',
-        editingClass: 'editing',
-        saveOnBlur: true,
-        saveOnEnter: true,
-        cancelOnEscape: true,
-        autoFocus: true,
-        inputTypes: {
-            text: 'text',
-            number: 'number',
-            email: 'email',
-            date: 'date',
-            time: 'time',
-            datetime: 'datetime-local',
-            url: 'url',
-            tel: 'tel',
-            password: 'password'
+        // Classes CSS
+        classes: {
+            editing: 'tableflow-editing',
+            editInput: 'tableflow-edit-input',
+            readOnly: 'tableflow-read-only'
         },
-        defaultInputType: 'text',
-        inputAttributes: {
-            class: 'tableflow-input',
-            spellcheck: 'false'
+
+        // Messages
+        messages: {
+            editPlaceholder: 'Éditer...',
+            saveTooltip: 'Sauvegarder (Entrée)',
+            cancelTooltip: 'Annuler (Échap)'
+        },
+
+        // Configuration de l'édition
+        edit: {
+            autoSelect: true,
+            validateOnBlur: true,
+            validateOnEnter: true,
+            inputTypes: {
+                text: 'text',
+                number: 'number',
+                date: 'date',
+                email: 'email',
+                url: 'url'
+            }
+        },
+
+        // Validation
+        validation: {
+            required: false,
+            minLength: 0,
+            maxLength: null,
+            pattern: null,
+            custom: null
+        },
+
+        // Hooks
+        hooks: {
+            beforeEdit: null,
+            afterEdit: null,
+            beforeSave: null,
+            afterSave: null
         }
     }
 }; 

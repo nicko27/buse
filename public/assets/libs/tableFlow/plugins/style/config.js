@@ -1,111 +1,94 @@
 export const config = {
     name: 'style',
     version: '1.0.0',
-    type: 'display',
-    dependencies: ['Edit'],
+    type: 'style',
+    dependencies: [],
+    options: {
+        // Configuration des modules
+        modules: {
+            highlight: {
+                enabled: true,
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                transition: 'background-color 0.2s ease'
+            },
+            conditional: {
+                enabled: true
+            },
+            theme: {
+                enabled: true,
+                defaultTheme: 'light'
+            },
+            animation: {
+                enabled: true,
+                defaultAnimation: 'fade'
+            }
+        },
 
-    // Options générales
-    enabled: true,
-    debug: false,
-    storageKey: 'tableflow-style-rules',
+        // Classes CSS
+        classes: {
+            container: 'tableflow-style-container',
+            toolbar: 'tableflow-style-toolbar',
+            menu: 'tableflow-style-menu',
+            button: 'tableflow-style-button',
+            menuItem: 'tableflow-style-menu-item'
+        },
 
-    // Modules
-    modules: {
-        highlight: {
-            enabled: true,
-            mode: 'cell', // 'cell', 'row', 'column'
-            colors: [
-                { id: 'red', name: 'Rouge', value: '#FF0000', textColor: '#FFFFFF' },
-                { id: 'yellow', name: 'Jaune', value: '#FFFF00', textColor: '#000000' },
-                { id: 'green', name: 'Vert', value: '#008000', textColor: '#FFFFFF' },
-                { id: 'blue', name: 'Bleu', value: '#0000FF', textColor: '#FFFFFF' }
-            ],
-            interface: {
-                buttonIcon: '🎨',
-                buttonText: 'Styles',
-                buttonPosition: 'toolbar',
-                showColorPicker: true,
-                showLabels: true,
-                closeOnSelect: true,
-                closeOnClickOutside: true
+        // Messages
+        messages: {
+            highlight: 'Surbrillance',
+            conditional: 'Styles conditionnels',
+            theme: 'Thème',
+            animation: 'Animation'
+        },
+
+        // Configuration des thèmes
+        themes: {
+            light: {
+                backgroundColor: '#ffffff',
+                textColor: '#333333',
+                borderColor: '#e0e0e0',
+                headerBackground: '#f5f5f5',
+                headerTextColor: '#333333',
+                hoverBackground: '#f0f0f0',
+                selectedBackground: '#e3f2fd',
+                selectedTextColor: '#1976d2'
+            },
+            dark: {
+                backgroundColor: '#1a1a1a',
+                textColor: '#ffffff',
+                borderColor: '#333333',
+                headerBackground: '#2d2d2d',
+                headerTextColor: '#ffffff',
+                hoverBackground: '#333333',
+                selectedBackground: '#0d47a1',
+                selectedTextColor: '#ffffff'
             }
         },
-        conditional: {
-            enabled: true,
-            maxRules: 100,
-            defaultOperators: ['equals', 'contains', 'greater', 'less', 'between', 'empty'],
-            interface: {
-                showRuleBuilder: true,
-                showPreview: true
+
+        // Configuration des animations
+        animations: {
+            fade: {
+                duration: 300,
+                easing: 'ease-in-out'
+            },
+            slide: {
+                duration: 300,
+                easing: 'ease-out'
+            },
+            scale: {
+                duration: 300,
+                easing: 'ease-out'
             }
         },
-        theme: {
-            enabled: true,
-            defaultTheme: 'light',
-            themes: {
-                light: {
-                    background: '#FFFFFF',
-                    text: '#000000',
-                    border: '#DDDDDD'
-                },
-                dark: {
-                    background: '#222222',
-                    text: '#FFFFFF',
-                    border: '#444444'
-                }
-            }
-        },
-        animation: {
-            enabled: true,
-            duration: 300,
-            easing: 'ease-in-out',
-            effects: ['fade', 'slide']
+
+        // Hooks
+        hooks: {
+            beforeStyleApply: null,
+            afterStyleApply: null,
+            beforeThemeChange: null,
+            afterThemeChange: null,
+            beforeAnimation: null,
+            afterAnimation: null
         }
-    },
-
-    // Style par défaut
-    style: {
-        // Base
-        fontFamily: 'inherit',
-        fontSize: 'inherit',
-        transition: 'all 0.3s ease',
-
-        // Conteneurs
-        containerBackground: '#FFFFFF',
-        containerBorder: '1px solid #DDD',
-        containerBorderRadius: '4px',
-        containerPadding: '8px',
-        containerMargin: '4px',
-
-        // Éléments d'interface
-        buttonBackground: '#F5F5F5',
-        buttonHoverBackground: '#E5E5E5',
-        buttonActiveBackground: '#D5D5D5',
-        buttonBorder: '1px solid #DDD',
-        buttonBorderRadius: '4px',
-        buttonPadding: '6px 12px',
-        buttonMargin: '4px',
-
-        // Menus et popups
-        menuBackground: '#FFFFFF',
-        menuBorder: '1px solid #DDD',
-        menuBorderRadius: '4px',
-        menuShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        menuMaxHeight: '300px',
-        menuZIndex: 1000
-    },
-
-    // Classes CSS
-    classes: {
-        container: 'tf-style-container',
-        button: 'tf-style-button',
-        menu: 'tf-style-menu',
-        menuItem: 'tf-style-menu-item',
-        active: 'tf-style-active',
-        disabled: 'tf-style-disabled',
-        highlight: 'tf-style-highlight',
-        conditional: 'tf-style-conditional',
-        theme: 'tf-style-theme',
-        animation: 'tf-style-animation'
     }
 }; 
