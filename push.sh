@@ -1041,14 +1041,14 @@ if [[ "$PUSH_ALL" == "true" || "$PUSH_MAIN" == "true" ]]; then
             fi
 
              # Determine branch and remote for push
-            local push_branch=$SPECIFIED_BRANCH
-            local push_remote=$SPECIFIED_REMOTE
+            push_branch=$SPECIFIED_BRANCH
+            push_remote=$SPECIFIED_REMOTE
 
 
             echo -e "${GREEN}🚀 Push projet principal ($push_branch) → '$push_remote'...${NC}"
 
             # Push main repo with timeout if available
-            local push_cmd=(git push "$push_remote" "$push_branch")
+            push_cmd=(git push "$push_remote" "$push_branch")
             if [[ -n "$TIMEOUT_CMD" ]]; then
                  if ! $TIMEOUT_CMD "$TIMEOUT" "${push_cmd[@]}"; then
                      handle_error "Timeout ou erreur lors du push du projet principal vers '$push_remote/$push_branch'"
