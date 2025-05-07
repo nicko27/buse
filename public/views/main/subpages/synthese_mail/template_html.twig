@@ -1,0 +1,38 @@
+<h2 style="font-family: Arial, sans-serif; color: #2c3e50;">Bonjour,</h2>
+<p style="font-family: Arial, sans-serif; color: #34495e;">
+    Voici les derniers évènements ayant eu lieu sur votre commune :
+</p>
+
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Date et heure</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Commune</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Catégorie / Nature</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Premiers éléments</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Compte-rendu</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for m in mails_tbl %}
+        <tr style="background-color: {{ loop.index is even ? '#ffffff' : '#f9f9f9' }};">
+            <td style="border: 1px solid #ccc; padding: 8px;">{{ m.date }} à {{ m.heure }}</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">{{ m.name }} {% if m.old_name|length > 0 %} ({{ m.old_name }}){% endif %}
+            </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">
+                {% if m.nature|length > 0 %}
+                    {{ m.nature }}
+                {% else %}
+                    {{ m.categorie }}
+                {% endif %}
+            </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">{{ m.premiers_elt }}</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">{{ m.cro }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p style="font-family: Arial, sans-serif; color: #7f8c8d; font-size: 12px; margin-top: 20px;">
+    Message généré automatiquement – ne pas répondre.
+</p>

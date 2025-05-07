@@ -1,0 +1,72 @@
+Date: Wed, 7 May 2025 14:07:31 +0200
+From: nicolas.voirin@me.com
+Message-ID: <b4eA6lg8yQUfGE3DJbrXrQjOy8D1EH4GG2bp7qHvw@localhost>
+X-Mailer: PHPMailer 6.10.0 (https://github.com/PHPMailer/PHPMailer)
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="b1=_b4eA6lg8yQUfGE3DJbrXrQjOy8D1EH4GG2bp7qHvw"
+Content-Transfer-Encoding: 8bit
+To: mairie.trinite.thoub@wanadoo.fr
+Subject: =?UTF-8?Q?Ev=C3=A8nement(s)_ayant_eu_lieu_sur_votre_commune?=
+
+--b1=_b4eA6lg8yQUfGE3DJbrXrQjOy8D1EH4GG2bp7qHvw
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Bonjour, voici les derniers évènements ayant eu lieu sur votre commune:%
+
+
+
+    Le 2025-05-04 à 17:24:22
+    Dans la commune de BOURG ACHARD     Nature de l'évènements:
+            conduite - dangereuse
+        Premiers éléments:
+        bmw - bk-096-jf - voiture conduite dangereuse dépassement par la droite et vitesse excessive  - 
+A13 apres air eturqueray 132.2 - en direction  - Paris Bleu nuit foncé 
+ a menacé le requérant car ce dernier ne se laissé pas dépassé par la droite
+    Compte Rendu de l'intervention:
+        véhicule non intercepté 
+    ---
+
+Message généré automatiquement – ne pas répondre.
+
+--b1=_b4eA6lg8yQUfGE3DJbrXrQjOy8D1EH4GG2bp7qHvw
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<h2 style="font-family: Arial, sans-serif; color: #2c3e50;">Bonjour,</h2>
+<p style="font-family: Arial, sans-serif; color: #34495e;">
+    Voici les derniers évènements ayant eu lieu sur votre commune :
+</p>
+
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Date et heure</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Commune</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Catégorie / Nature</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Premiers éléments</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Compte-rendu</th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr style="background-color: #f9f9f9;">
+            <td style="border: 1px solid #ccc; padding: 8px;">2025-05-04 à 17:24:22</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">BOURG ACHARD             </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">
+                                    conduite - dangereuse
+                            </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">bmw - bk-096-jf - voiture conduite dangereuse dépassement par la droite et vitesse excessive  - 
+A13 apres air eturqueray 132.2 - en direction  - Paris Bleu nuit foncé 
+ a menacé le requérant car ce dernier ne se laissé pas dépassé par la droite</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">véhicule non intercepté </td>
+        </tr>
+            </tbody>
+</table>
+
+<p style="font-family: Arial, sans-serif; color: #7f8c8d; font-size: 12px; margin-top: 20px;">
+    Message généré automatiquement – ne pas répondre.
+</p>
+
+
+--b1=_b4eA6lg8yQUfGE3DJbrXrQjOy8D1EH4GG2bp7qHvw--

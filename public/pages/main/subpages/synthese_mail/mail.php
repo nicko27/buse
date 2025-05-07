@@ -1,29 +1,36 @@
 <?php
-require_once dirname(__DIR__, 2) . "/pages/commun/init.php";
+require_once dirname(__DIR__, 3) . "/commun/init.php";
 use Commun\EMLGenerator\EMLGenerator;
+$id  = $_POST['id'];
 $sql = "SELECT
 evenements.*,
 categories.niveau,
 categories.categorie,
+categories.nature,
 cities.name,
+mairies.mail,
 cities.old_name
 FROM evenements
 JOIN categories      ON evenements.categorie_id = categories.id
 JOIN cities          ON evenements.commune_id = cities.id
 JOIN mairies         ON cities.insee = mairies.insee
-WHERE cities.id=:id
+WHERE cities.id=:id AND evenements.sent=0 AND evenements.need_to_send=1
 ORDER BY cities.name, evenements.date, evenements.heure";
 $stmt = $sqlManager->prepare($sql);
-$stmt->execute(["cu" => $cu]);
-$vars["mails_tbl"] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$eml = new EMLGenerator();
-$eml->setFrom("nicolas.voirin@me.com");
-$eml->setTo("nicolas.voirin@gendarmerie.interieur.gouv.fr");
-$eml->setSubject("Evènement(s) sur la commune");
-$eml->setBody('<h1>Bonjour Nicolas</h1><p>Voici un email <b>généré</b> depuis PHP.</p>',
-    'Bonjour Bob, voici un email généré depuis PHP.');
-$file = $config->get("MAILS_DIR") . "/mail.eml";
+$stmt->execute(["id" => $id]);
+$sqlManager->update("evenements", ["sent" => 1], "commune_id=:id", ["id" => $id]);
+$varsMail              = [];
+$varsMail["mails_tbl"] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$html                  = $twig->render('/main/subpages/synthese_mail/template_html.twig', $varsMail);
+$raw                   = $twig->render('/main/subpages/synthese_mail/template_raw.twig', $varsMail);
+$from                  = "nicolas.voirin@me.com";
+$to                    = $varsMail["mails_tbl"][0]['mail'];
+$eml                   = new EMLGenerator();
+$eml->setFrom($from);
+$eml->setTo($to);
+$eml->setSubject("Evènement(s) ayant eu lieu sur votre commune");
+$eml->setBody($html, $raw);
+$file = sprintf("%s/mail_%s.eml", $config->get("MAILS_DIR"), $id);
 $eml->generateEML($file);
 // Forcer le téléchargement
 header('Content-Description: File Transfer');

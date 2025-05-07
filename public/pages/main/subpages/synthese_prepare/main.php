@@ -31,6 +31,7 @@ JOIN cities          ON evenements.commune_id = cities.id
 JOIN mairies         ON cities.insee = mairies.insee
 JOIN unites_ldap     ON mairies.unit_id = unites_ldap.id
 WHERE unites_ldap.cu = :cu
+AND evenements.sent = 0
 ORDER BY cities.name, evenements.date, evenements.heure
 ";
     $stmt = $sqlManager->prepare($sql);

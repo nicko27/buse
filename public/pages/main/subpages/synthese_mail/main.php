@@ -2,6 +2,7 @@
 
 $cu  = 14431;
 $sql = "SELECT
+    cities.id,
     cities.name,
     cities.old_name,
     COUNT(*) AS nb_evenements_non_envoyes

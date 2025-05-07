@@ -1,0 +1,70 @@
+Date: Wed, 7 May 2025 14:26:05 +0200
+From: nicolas.voirin@me.com
+Message-ID: <sRhRgf9JnsicdE0rJzxUSZQL7xVSg3jJOwXlu1NtUjM@localhost>
+X-Mailer: PHPMailer 6.10.0 (https://github.com/PHPMailer/PHPMailer)
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="b1=_sRhRgf9JnsicdE0rJzxUSZQL7xVSg3jJOwXlu1NtUjM"
+Content-Transfer-Encoding: 8bit
+To: mairie.valletot@wanadoo.fr
+Subject: =?UTF-8?Q?Ev=C3=A8nement(s)_ayant_eu_lieu_sur_votre_commune?=
+
+--b1=_sRhRgf9JnsicdE0rJzxUSZQL7xVSg3jJOwXlu1NtUjM
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Bonjour, voici les derniers évènements ayant eu lieu sur votre commune:%
+
+
+
+    Le 2025-05-04 à 17:38:42
+    Dans la commune de ROUGEMONTIER  (ROUGEMONTIERS)    Nature de l'évènements:
+            Véhicule gendarmerie ou d&#039;un particulier visé par un jet de pierre ou tout autres objets ayant pour conséquence de dégrader ou de détruire le véhicule et / ou occasionner un accident ou l&#039;arrêt du véhicule
+        Premiers éléments:
+        Automobiliste circulant sur l&#039;A13 en direction de Paris nous signale avoir recu un projectil en passant sous le pont avec le PK 135 en direction PARIS - pare brise fissuré - pas de blessé
+    Compte Rendu de l'intervention:
+        Avons reconnu l&#039;axe en question, aucune personne présente ni meme au centre-ville de Routot / Rougemontiers.
+RAS
+    ---
+
+Message généré automatiquement – ne pas répondre.
+
+--b1=_sRhRgf9JnsicdE0rJzxUSZQL7xVSg3jJOwXlu1NtUjM
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<h2 style="font-family: Arial, sans-serif; color: #2c3e50;">Bonjour,</h2>
+<p style="font-family: Arial, sans-serif; color: #34495e;">
+    Voici les derniers évènements ayant eu lieu sur votre commune :
+</p>
+
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+    <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Date et heure</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Commune</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Catégorie / Nature</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Premiers éléments</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">Compte-rendu</th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr style="background-color: #f9f9f9;">
+            <td style="border: 1px solid #ccc; padding: 8px;">2025-05-04 à 17:38:42</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">ROUGEMONTIER  (ROUGEMONTIERS)            </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">
+                                    Véhicule gendarmerie ou d&#039;un particulier visé par un jet de pierre ou tout autres objets ayant pour conséquence de dégrader ou de détruire le véhicule et / ou occasionner un accident ou l&#039;arrêt du véhicule
+                            </td>
+            <td style="border: 1px solid #ccc; padding: 8px;">Automobiliste circulant sur l&#039;A13 en direction de Paris nous signale avoir recu un projectil en passant sous le pont avec le PK 135 en direction PARIS - pare brise fissuré - pas de blessé</td>
+            <td style="border: 1px solid #ccc; padding: 8px;">Avons reconnu l&#039;axe en question, aucune personne présente ni meme au centre-ville de Routot / Rougemontiers.
+RAS</td>
+        </tr>
+            </tbody>
+</table>
+
+<p style="font-family: Arial, sans-serif; color: #7f8c8d; font-size: 12px; margin-top: 20px;">
+    Message généré automatiquement – ne pas répondre.
+</p>
+
+
+--b1=_sRhRgf9JnsicdE0rJzxUSZQL7xVSg3jJOwXlu1NtUjM--

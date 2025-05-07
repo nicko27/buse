@@ -1,0 +1,21 @@
+Bonjour, voici les derniers évènements ayant eu lieu sur votre commune:%
+
+
+
+{% for m in mails_tbl %}
+    Le {{ m.date }} à {{ m.heure }}
+    Dans la commune de {{ m.name }} {% if m.old_name|length > 0 %} ({{ m.old_name }}){% endif %}
+    Nature de l'évènements:
+    {% if m.nature|length >0 %}
+        {{ m.nature }}
+    {% else %}
+        {{ m.categorie }}
+    {% endif %}
+    Premiers éléments:
+        {{ m.premiers_elt }}
+    Compte Rendu de l'intervention:
+        {{ m.cro }}
+    ---
+{% endfor %}
+
+Message généré automatiquement – ne pas répondre.

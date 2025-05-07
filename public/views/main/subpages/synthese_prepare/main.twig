@@ -24,18 +24,18 @@
             <table id="evenementsTbl">
                 <thead>
                     <tr>
-                        <th id="num"></th>
+                        <th id="num" th-sql-exclude></th>
                         <th id="id" th-hide>Id</th>
                         <th id="date">Date</th>
-                        <th id="niveau">Niveau</th>
-                        <th id="categorie">Nature</th>
-                        <th id="commune">Commune concernée</th>
-                        <th id="unite">Unité engagée</th>
+                        <th id="niveau" th-sql-exclude>Niveau</th>
+                        <th id="categorie" th-sql-exclude>Nature</th>
+                        <th id="commune" th-sql-exclude>Commune concernée</th>
+                        <th id="unite" th-sql-exclude>Unité engagée</th>
                         <th id="premiers_elt" th-edit>Premiers Elements</th>
                         <th id="cro" th-edit>CRO</th>
                         <th id="sent" th-choice>Déja envoyé</th>
                         {% if enable_mail==1 %}
-                            <th id="need_to_send" th-choice th-linetoggle>Pris en compte</th>
+                            <th id="need_to_send" th-choice th-linetoggle>A envoyer</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -62,15 +62,7 @@
                             <td id="sent_{{ e.id }}" name="sent_{{ e.id}}">{{ e.sent }}</td>
                             {% if enable_mail==1 %}
                                 <td id="need_to_send_{{ e.id }}" name="need_to_send_{{ e.id}}">
-                                    {% if e.need_to_send==0 %}
-                                        0
-                                    {% else %}
-                                        {% if e.unite_engagee|length ==0 %}
-                                            0
-                                        {% else %}
-                                            {{ e.need_to_send }}
-                                        {% endif %}
-                                    {% endif %}
+                                    {{ e.need_to_send }}
                                 </td>
                             {% endif %}
                         </tr>
@@ -155,7 +147,7 @@ const evenementsTable = new TableFlow({
                 save: {
                     handler: function(context) {
                         console.log('Handler save appelé avec:', context);
-                        const url = "/main/subpages/synthese_prepare/update.php";
+                        const url = "/main/actions.php";
                         const data = {
                             ...context.data,
                             table: 'evenements',
