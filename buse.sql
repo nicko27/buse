@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : localhost:3306
--- Généré le : mer. 07 mai 2025 à 11:11
+-- Généré le : mer. 07 mai 2025 à 16:32
 -- Version du serveur : 8.0.42-0ubuntu0.22.04.1
 -- Version de PHP : 8.1.2-1ubuntu2.21
 
@@ -39680,6 +39680,50 @@ INSERT INTO `compagnies` (`id`, `color`, `cu`, `ordre`, `autoHide`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `configuration`
+--
+
+DROP TABLE IF EXISTS `configuration`;
+CREATE TABLE `configuration` (
+  `id` int UNSIGNED NOT NULL,
+  `var` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci,
+  `twig` tinyint NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `configuration`
+--
+
+INSERT INTO `configuration` (`id`, `var`, `value`, `description`, `twig`) VALUES
+(1, 'SITE', 'BUSE', 'Nom du site', 1),
+(2, 'SUBTITLE', 'Application de gestion des services et permanences, préparation des messages pour les unités en vue de transmission aux mairies', 'Sous-titre du site', 1),
+(3, 'SITE_LONG_NAME', 'Bandeau Unifié de Suivi des Equipes et des Synthèses', 'Nom long du site', 1),
+(4, 'SHORTCUT_ICON', 'buseg.png', 'Icône raccourci', 1),
+(5, 'PAGE_INDEX', '1', 'ID de la page d\'accueil', 0),
+(6, 'PAGE_SHOW_TIMELINE', '2', 'ID de la page de timeline', 0),
+(7, 'PAGE_SHOW_PERMANENCES', '3', 'ID de la page de permanences', 0),
+(8, 'PAGE_ACCUEIL', '1', 'ID de la page d\'administration', 0),
+(9, 'NB_QUART_HEURE', '16', 'Nombre de quarts d\'heure à afficher dans la timeline', 0),
+(10, 'CASE_POS_NOW', '6', 'Position actuelle dans la timeline', 0),
+(11, 'INTERVAL', '15', 'Intervalle en minutes entre les colonnes de la timeline', 0),
+(12, 'MINIMUM_BLOCK_CONCAT', '3', 'Nombre minimum de blocs à concaténer', 0),
+(13, 'NB_LINES_TIMELINE', '12', 'Nombre de lignes dans la timeline', 0),
+(14, 'LARGEUR_MIN_TPH', '5', 'Largeur minimale pour l\'affichage du téléphone', 0),
+(15, 'DEBUT_MATIN', '7h30', 'Heure de début du matin', 0),
+(16, 'FIN_MATIN', '13h00', 'Heure de fin du matin', 0),
+(17, 'DEBUT_APREM', '13h00', 'Heure de début de l\'après-midi', 0),
+(18, 'FIN_APREM', '19h00', 'Heure de fin de l\'après-midi', 0),
+(19, 'DEBUT_NUIT', '19h00', 'Heure de début de la nuit', 0),
+(20, 'FIN_NUIT', '7h30', 'Heure de fin de la nuit', 0),
+(21, 'TRUNCATE_PAM_LEN', '15', 'Longueur pour tronquer le nom du PAM', 0),
+(22, 'CITY_DEPARTMENT', '76', 'Code département pour le filtrage des villes', 0),
+(23, 'LDAP_HOST', 'ldap.gendarmerie.fr', 'Adresse LDAP', 0);
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `evenements`
 --
 
@@ -39703,7 +39747,7 @@ CREATE TABLE `evenements` (
 --
 
 INSERT INTO `evenements` (`id`, `date`, `heure`, `categorie_id`, `commune_id`, `unite_engagee`, `premiers_elt`, `cro`, `hash`, `sent`, `need_to_send`) VALUES
-(1, '2025-05-04', '08:05:04', 316, 9871, '', 'barrières de chantier ont été déplacées et positionnées au milieu d\'une voie, en face du garage -\nun panneau déplacé rue du colombier, vers la vierge ', 'de CD 27 - aucune gène à la circulation, barrières étaient positionnées normalement sur la zone de travaux -', 'd8426a5780dea380417984dabecbfed80d9e5fd1', 0, 1),
+(1, '2025-05-04', '08:05:04', 316, 9871, '', 'barrières de chantier ont été déplacées et positionnées au milieu d\'une voie, en face du garage -\nun panneau déplacé rue du colombier, vers la vierge ', 'de CD 27 - aucune gène à la circulation, barrières étaient positionnées normalement sur la zone de travaux -', 'd8426a5780dea380417984dabecbfed80d9e5fd1', 1, 1),
 (2, '2025-05-04', '08:30:01', 314, 10451, '628 (27) - BTA LES-ANDELYS - 143.101', 'groupe d\'individus en train de camper, font de la tronçonneuse, \nmusique toute la nuit\nzone interdite d\'accès \nen face du Val Saint Martin \nnombre d\'individus indéterminé ', 'Chemin d\'accès à travers champ qui mène à une propriété privée. Nettoyage de la parcelle par le propriétaire et des amis, arrivés la veille.\nA notre arrivée, nettoyage en cours et musique assez forte avec enceinte. Problème de résonance sur l\'autre rive de la Seine. Musique stoppée sur notre demande. Écobuage cessé également. Avons invité les intéressés à prendre une remorque pour les déchets verts en déchetterie et de respecter les horaires des utilisations des débroussailleuses.\nMaire des trois lacs avisé.', '6c7a09d8da82cebe061a44b79f49fab33124ca95', 0, 1),
 (3, '2025-05-04', '08:36:35', 310, 21342, '', '05-06 chevaux sur la VP dans les virages dans la partie boisée', '1er adjoint au maire gère la situation', '3f6757319f6fd1006cdc292a8970aa77a29222dd', 0, 1),
 (4, '2025-05-04', '08:47:28', 197, 21357, '', 'Fugue d\'un patient très fortement alcoolisé - Il y a moins d\'une heure - Pas de caractère sensible\nTph de la mère : 0232440894', 'aucune personne découverte sur le secteur de BERNAY', 'c4510b94f214165f36bb0c362a5e0f9d67eba6da', 0, 1),
@@ -39747,15 +39791,15 @@ INSERT INTO `evenements` (`id`, `date`, `heure`, `categorie_id`, `commune_id`, `
 (42, '2025-05-04', '16:30:50', 310, 21357, '', '2 chiens en liberté - sur le stade de bernay un chien type staffy et noir  et un type labrador  crème - pas de collier pas agressfi ', 'engagement de la fourrière municipale ', '917517bb25ba9028e22f6f36dbe5740cd4be93fe', 0, 1),
 (43, '2025-05-04', '16:36:15', 354, 9945, 'PAM2 - IVRY LA BATAILLE - DirLoc 815 - 104.102, SCENIC PSIG EVREUX - DirLoc 3798 - 102.101', 'CODIS 27 - moto cross - douleur dorsal seul en cause. homme de 20 ans \nRequérant pompiers 07 80 18 27 82 ', 'Intéressé a effectué une roue arrière en moto cross et a chuté sur le sol. Transporté au CH EVREUX pour controle. il était équipé d\'un casque, de gants et de chaussures adaptées.', 'b83f260cbd9cbe7e70cd880ef34019e51b25582b', 0, 1),
 (44, '2025-05-04', '16:45:23', 314, 10214, '637 (27) - BP BERNAY - 123.104', 'signale que le voisin a frappé son fils  (personne vulnérable)  le voisin a saisit son fils et la projeté au sol . \nsuite à une différent entre enfant dans lequel le fils de la requérante n\'avait rien a voir. \nle voisin habite la rue de derrière . ( les bois de montreuils) ', 'ASL nous rencontrons la mère de l\'enfant vulnérable, elle nous dit que son enfant aurait été poussé par terre par le père d\'un autre enfant qui habite de l\'autre côté de la rue. Madame se rends de suite à l\'hôpital afin d\'avoir un certificat médical concernant les blessures de son enfant ( petite égratignure au genoux ). Prise de contact avec l\'autre partie, le père était déjà a l\'hôpital pour faire constater les blessures de son fils ( nez gonflé, bleu ), l\'enfant vulnérable aurait frappé l\'enfant. Les deux parties se réservent le droit deposer plainte. ', 'bf88964dce799706fb53fb2ef695a0c9fbdcdd5d', 0, 1),
-(45, '2025-05-04', '17:24:22', 353, 9898, '', 'bmw - bk-096-jf - voiture conduite dangereuse dépassement par la droite et vitesse excessive  - \nA13 apres air eturqueray 132.2 - en direction  - Paris Bleu nuit foncé \n a menacé le requérant car ce dernier ne se laissé pas dépassé par la droite', 'véhicule non intercepté ', 'f46c58e26730d73c0b5579c4fb26da37a122c9e0', 0, 1),
+(45, '2025-05-04', '17:24:22', 353, 9898, '', 'bmw - bk-096-jf - voiture conduite dangereuse dépassement par la droite et vitesse excessive  - \nA13 apres air eturqueray 132.2 - en direction  - Paris Bleu nuit foncé \n a menacé le requérant car ce dernier ne se laissé pas dépassé par la droite', 'véhicule non intercepté ', 'f46c58e26730d73c0b5579c4fb26da37a122c9e0', 1, 1),
 (46, '2025-05-04', '17:25:37', 354, 10089, 'PAM 1 - SCENIC - BTA VSE - 144.102', 'PAM VEXIN signale un AVP - D1 / D313 -  moto contre 1 VL.', 'Choc avant droit entre le VL arrivant de la D1 et refusant la priorité après arrêt au stop et la moto arrivant de la D313 VERNON. Conducteur moto se plaint de douleur à la cheville et à l\'épaule, transporté CH VERNON par SP VERNON. Dépistages négatifs pour les deux conducteurs. VL et moto enlevés par JDL GISORS', 'f732236a52c438244588b1176cac7d6ae49fce56', 0, 1),
 (47, '2025-05-04', '17:28:05', 342, 21231, '628 (27) - BTA LES-ANDELYS - 143.101, BMO LES-ANDELYS - PEUGEOT EXPERT 21620412 - 063.101', 'les tours du levant -- moto cross dans les tours-  bleu sans casque -', 'À notre arrivé sur les lieux, la moto nous fait face à une dizaines de mètres. Il prend la fuite par des espaces verts non roulant pour VL. Reconnaissons formellement le conducteur.\nLa moto est perdu de vue. Nos recherches n’amenè rien de plus.\nProcédure ouverte à notre unité.\nSituation calme à notre départ.', '2b8ee4b8227d141179aa416d84528e9f35ae1cbb', 0, 1),
-(48, '2025-05-04', '17:38:42', 131, 39289, 'KODIAK GRD-BOURGTHEROULDE DIR 3318 - 164.111', 'Automobiliste circulant sur l\'A13 en direction de Paris nous signale avoir recu un projectil en passant sous le pont avec le PK 135 en direction PARIS - pare brise fissuré - pas de blessé', 'Avons reconnu l\'axe en question, aucune personne présente ni meme au centre-ville de Routot / Rougemontiers.\nRAS', 'efaf8f6e3f24736e78f074f291543987321c63ec', 0, 1),
+(48, '2025-05-04', '17:38:42', 131, 39289, 'KODIAK GRD-BOURGTHEROULDE DIR 3318 - 164.111', 'Automobiliste circulant sur l\'A13 en direction de Paris nous signale avoir recu un projectil en passant sous le pont avec le PK 135 en direction PARIS - pare brise fissuré - pas de blessé', 'Avons reconnu l\'axe en question, aucune personne présente ni meme au centre-ville de Routot / Rougemontiers.\nRAS', 'efaf8f6e3f24736e78f074f291543987321c63ec', 1, 1),
 (49, '2025-05-04', '17:55:12', 162, 10275, 'PAM BTA PONT-DE-L-ARCHE DIR 3808 - 156.102', 'CIC POLICE 76 nous met en relation avec la requérante. Jeune fille de 15 ans signale avoir été agressé par une autre fille. Non blessé mais souffre à la tête et bras - Auteur est partie en haut de la rue près du camping \nVictime invité à rentrer chez elle et aller consulter un médecin en compagnie de ses parents ', 'sommes rendus au domicile de la victime où nous avons rencontré le père qui n\'était pas au courant que sa fille avait été agressée et cette dernière n\'était pas à la maison . Le père l\'a appelée elle se trouvait chez son petit ami dans une rue adjacente.  Nous y sommes rendus,  la jeune fille nous a dit avoir eu les cheveux et le bras tirés par une adolescente sans plus de précision , il s\'agirait d\'une collégienne de Pont de l\'arche, qui serait encore sur  les rives de l\'Eure à PDL, le père souhaitant porter plainte lui avons demandé de fournir un certificat médical .  Nous  sommes partis à la recherche de la fille sans la trouver, avis au père  qui a été invité à porter plainte et a communiquer le nom de l\'agresseuse. ', '519e1a7719c445dc6c6f172606b7435bb3cf41ee', 0, 1),
 (50, '2025-05-04', '18:00:07', 320, 9924, 'PAM1 - PEUGEOT 5008 - 103.101', '1925 - accident  - pietons VL  \nsp avisé par les pam ', 'Accident entre un VL et un piéton.\nLe piéton a été percuté par le rétroviseur du véhicule mis en cause.\nAucune notion de vitesse.\nDépistage ALCO négatif.\nPiéton transporté au CH ÉVREUX pour examen suite à une douleur au niveau de la hanche.\n', '49a4ebe5d0c6511cc09d9737e77cfd342b1a49ff', 0, 1),
 (51, '2025-05-04', '18:03:27', 314, 10456, 'VERNEUIL PAM 1 - 106.102', 'Recreation de fiche suite beug logiciel\nindique qu\'ils se sont transportés transporté au domicile de la mère de sa belle fille en vue de récupérer des documents administratifs  lui appartenant  cette dernière est bien présente au domicile mais refuse de lui rendre ', 'ASL : prenons attache avec la requérante, nous explique avoir un différend avec sa mère, qu\'elle lui vole son argent, qu\'elle ne veut pas lui redonner ses affaires, qu\'elle est partie vivre avec son copain sur LIMAY (78). Prenons attache avec sa mère, lui expliquons qu\'elle doit redonner les papiers à sa fille, elle accepte sans difficulté. Un dépôt de plainte a été réalisé au commissariat de mantes la jolie pour l\'argent que sa mère lui volerait. ', 'b4459b9c799270bb217784af706b0c81b4fb1d12', 0, 1),
 (52, '2025-05-04', '18:11:07', 312, 10320, 'PAM1 AMFREVILLE-ST-AMAND DirLoc 3294 - 125.111', 'Signale voir son voisin courir dans le jardin. Il est muni d\'un couteau et court après sa fille. \nLe requérant explique que à la fin de l\'appel - l\'homme est dans le jardin et tente de rentrer dans le domicile \nStéphane LEMS et GUYOT Carolan', 'Vérifications au domicile effectuées. La fille et le père vont bien. Ce n\'est pas la première fois que nous intervenons pour les mêmes faits à la même adresse. Avons tenté de rappeler le numéro du requérant mais le numéro n\'est pas attribué. La fille devait changer de ligne téléphonique mais rencontre des difficultés avec son opérateur. Il s\'agit de canulars téléphoniques effectués depuis une autre ligne. Avons vérifié l\'historique d\'appel de la fille, aucun numéro d\'urgence n\'a été composé.\nNous sommes allés voir au numéro 7 rue du lièvre mais ce numéro est inexistant dans la rue. ', 'a90420b0fe0b49da141a2bad1cebe53ea444bada', 0, 1),
-(53, '2025-05-04', '18:18:22', 324, 10431, 'KODIAK GRD-BOURGTHEROULDE DIR 3318 - 164.111', 'Requérante signale avoir été menacé par son ex-conjoint lors de l\'échange de garde des enfants en ces termes \" C\'est parce que les enfants sont là sinon je t\'aurais cassé la gueule. Si je te croise je te démonte la gueule, je te bute\" puis lui a crashé au visage. \nEx-compagnon a appris via le biais de son fils qu\'une procédure pour violence sur mineur a été diligenté à son encontre d\'ou ce comportement. \nRequérante veut absolument déposer plainte à la gendarmerie de Grand Bourgtheroulde ou elle a déjà déposé de multiples plaintes pour VIF', 'CRO PREFORMATE : \n\nV (Victime): Identité complète, coordonnées téléphoniques, lien à l\'auteur, profession\n--\n\nI (Intervention/Intervenant): Auteur des faits (identité complète), traces apparentes, coercition ou non\n--\n\nF (Facteurs aggravants): Armes, enfants (nombre, âge), psychotropes (alcool, stupéfiants, médicaments), troubles divers\n--\n\nS (Suites données): judiciaires (interpellé/garde à vue),administratives et/ou médicales (strictement utile à l\'intervention)\n--\n\n || La personne s\'est présentée à l\'unité - elle est invité a déposer plainte lundi après midi - ', 'bd1057e84370cb5d9e2af84cc5cb800ed92c58a8', 0, 1),
+(53, '2025-05-04', '18:18:22', 324, 10431, 'KODIAK GRD-BOURGTHEROULDE DIR 3318 - 164.111', 'Requérante signale avoir été menacé par son ex-conjoint lors de l\'échange de garde des enfants en ces termes \" C\'est parce que les enfants sont là sinon je t\'aurais cassé la gueule. Si je te croise je te démonte la gueule, je te bute\" puis lui a crashé au visage. \nEx-compagnon a appris via le biais de son fils qu\'une procédure pour violence sur mineur a été diligenté à son encontre d\'ou ce comportement. \nRequérante veut absolument déposer plainte à la gendarmerie de Grand Bourgtheroulde ou elle a déjà déposé de multiples plaintes pour VIF', 'CRO PREFORMATE : \n\nV (Victime): Identité complète, coordonnées téléphoniques, lien à l\'auteur, profession\n--\n\nI (Intervention/Intervenant): Auteur des faits (identité complète), traces apparentes, coercition ou non\n--\n\nF (Facteurs aggravants): Armes, enfants (nombre, âge), psychotropes (alcool, stupéfiants, médicaments), troubles divers\n--\n\nS (Suites données): judiciaires (interpellé/garde à vue),administratives et/ou médicales (strictement utile à l\'intervention)\n--\n\n || La personne s\'est présentée à l\'unité - elle est invité a déposer plainte lundi après midi - ', 'bd1057e84370cb5d9e2af84cc5cb800ed92c58a8', 1, 1),
 (54, '2025-05-04', '18:18:41', 313, 9950, '628 (27) - BTA LES-ANDELYS - 143.101, 633 (27) - BP LYONS-LA-FORET - 146.112, PSIG LES-ANDELYS - DirLoc 3812 - 142.103', 'CODIS 27 - Suite bagarre au stade - SAMU engage un hélicoptère suite personne inconsciente.  ', 'Les pompiers interviennent pour une personne de 75 ans ayant fait un malaise et se plaignant de douleurs thoracique sur le rassemblement NORMANDIE RIDERS qui se tient au stade de CHARLEVAL. L\'hélico du SAMU est demandé par les SP. Ces derniers pour faciliter l\'accès demande à un exposant de déplacer son stand. La famille de la personne trouvant que cela ne va pas assez vite à leur goût commence à déplacer le stand et à invectiver les participants du rassemblement. Des échauffourées ont lieu autour du véhicule des SP qui sollicitent notre intervention. Situation calme à l\'arrivée. La personne de 75 ans est héliporté par le SAMU au CHU ROUEN. Nous invitons la famille à quitter les lieux. Pas de dégradations sur le stand, pas de violence à déplorer. Rassemblement terminé à notre départ. Les organisateurs sont en cours de démontage. PSIG LES ANDELYS sur les lieux. CR GP et Officier Cie LES ANDELYS. Astreinte élu avisé. ', 'cf171b25dddab554d47dfe59ba64f5e6a43448c2', 0, 1),
 (55, '2025-05-04', '18:21:30', 320, 10348, '', 'accident sur a 13  CAEN paris- pk 76  pas de blessé -  \n1 seul véhicule immobilisé BAU \n', 'Il s\'agit d\'un accident matériel de la circulation, impliquant un véhicule et 3 personnes à bord. Le conducteur percute la glissière centrale avant de s\'immobiliser dans la glissière de droite.\nPas de blessés.\nLe conducteur nous déclare s\'être endormi.\nDépistages stupéfiants/alcoolémie négatifs.\nLe véhicule ainsi que les trois personnes ont été pris en charge par le dépanneur LOUVIERS DÉPANNAGE.\nAucun gêne à la circulation à notre départ.', '85667bb2823da91ba5d27be694a64a74dbeb97b0', 0, 1),
 (56, '2025-05-04', '18:27:06', 314, 10470, 'BP MESNILS-SUR-ITON DIR 3302 - 105.111', 'Signale 5 jeunes qui se devant chez lui et qui cherchent des histoires - Histoires avec les belle fille.', 'Il s\'agit d\'une dispute entre le groupe de 05 jeunes et le beau-père de l\'amie d\'un des 05 jeunes. \nAvons invités les parties à quitter les lieux. Il s\'agissait d\'un désaccord à propos d\'une phot du véhicule des jeunes. \nAucune violences, aucun débordement.', 'c4e1547b271ac90cf76ea2e44e30186c722aff5e', 0, 1),
@@ -39768,13 +39812,13 @@ INSERT INTO `evenements` (`id`, `date`, `heure`, `categorie_id`, `commune_id`, `
 (63, '2025-05-04', '19:45:06', 310, 10112, '', 'chien découvert sur la route de couleur gris bleu  - pas de collier ', 'mise en relation avec la 2eme adjointe de la mairie ', '1a7e7014639f343e2741894752cc82eb878d3a92', 0, 1),
 (64, '2025-05-04', '19:53:45', 314, 21342, 'PAM2 BEAUMONT-LE-ROGER - 124.122', 'Signale que son beau-fils a tapé son fils de 13 ans Owen BARRETTE et sa fille de 5 ans Laurine BARRETTE. Le couple est en cours de divorce, (monsieur habite chez ses parents) à cause du beau fils, la mère est sur place mais ne veut rien faire. Apparemment le jeune de 13 ans s\'est fait attrapé par le cou, la fille de 5 ans aurait été frappée également par Nolan SELLE. Mère sur place : Shirley BARRETTE 06-32-32-79-20. Le père veut déposer plainte pour les violences commises par le beau-fils. ', 'Le fils de 17 ans, absent, retrouve sa chambre en désordre. Sa demi sieur a jeté des objets par terre et des granulés. Le frère de 17 ans la prend par la main et la met hors de sa chambre. Le demi frère et frère de la petite insulte l\'ado de 17 ans qui le plaque contre le mur en lui disant d\'arrêter de le traiter de bâtard sachant qu\'il n\'a pas de père connu. Pas de trace de violence ni de rougeur. La mère en a marre de cette situation de séparation et dénonce une manipulation de ses enfants sur leur demi frère. Rendez vous JAF dans 10 jours. Situation calme à notre arrivée et départ. ', 'fd18a7a1c1036ec8a5a9d320f53c2e0bbaff9811', 0, 1),
 (65, '2025-05-04', '20:32:36', 327, 10461, '628 (27) - BTA LES-ANDELYS - 143.101', 'Signale une personne qui passe au ralenti en trottinette en regardant insistamment l\'habitation - Est passé il y a 05 minutes\nEtait passé pour la première fois vers 14h00 puis trois autres fois dans l\'après-midi\nPropriétaire absent depuis le 01/05/25 et jusqu\'au 10/05/25\nL\'a vu sur les caméra de sont domicile', 'individu simplement à la recherche de son chat, un sacré de birmanie, un chat qui coûte assez cher, perdu depuis hier ', 'b9481e118b40eb44147b2dcab20d368fdc2bf554', 0, 1),
-(66, '2025-05-04', '20:35:07', 197, 10097, '', 'Signale la fugue d\'un jeune âgé de  17 ans , dont elle a la garde car placé chez elle - \nS\'est aperçue de la fugue du jeune il y a une heure. Certainement dans l\'après midi après le repas du midi - ', 'Information communiquée aux pam - \nrequérante invitée a se déplacer à la brigade en cas de non retour du mineur demain matin - \ncadre ase informée par la requérante', '3c83f2d569bdd8db8cddfca008934f3420c2ca39', 0, 1),
+(66, '2025-05-04', '20:35:07', 197, 10097, '', 'Signale la fugue d\'un jeune âgé de  17 ans , dont elle a la garde car placé chez elle - \r\nS\'est aperçue de la fugue du jeune il y a une heure. Certainement dans l\'après midi après le repas du midi -', 'Information communiquée aux pam - \r\nrequérante invitée a se déplacer à la brigade en cas de non retour du mineur demain matin - \r\ncadre ase informée par la requérante', '3c83f2d569bdd8db8cddfca008934f3420c2ca39', 0, 0),
 (67, '2025-05-04', '20:38:22', 356, 10262, 'VERNEUIL PAM 1 - 106.102', 'Signale une maison abandonné avec une maison dans la cour - Deux individus sont entrés dans la propriété en escaladant le mur', 'ASL : aucun véhicule et individus à notre arrivée, constatons une maison abandonnée avec le toit qui est tombé à l\'intérieur. patrouillons sur le secteur RAS. ', 'b894b8ff46f45cb0b3ea94c47e0b6177c5f72b36', 0, 1),
 (68, '2025-05-04', '20:56:02', 357, 21262, 'PAM BTA LOUVIERS - 153.102, BGE BTA PONT-DE-L-ARCHE DIR 3290 - 156.101', 'Incendie de VL en cours, intentionnel, petite citadine.', 'BGE PDA // À notre arrivée sur les lieux, les pompiers quittent la zone après extinction d’un feu de véhicule. Aucun témoin sur les lieux. Sur place, nous constatons la présence d’une Peugeot 206 complètement calcinée, sans plaques d’immatriculation apparentes. Le véhicule repose sur un chemin en forêt, sans gêner la circulation. Nous tentons sans succès de localiser le numéro de série sur la carcasse, encore chaude et fumante au moment de notre intervention. Véhicule et constatations approfondies seront faites par les pam.\n', 'd885d24c476ed070f4375cc5bea0ad27ba6679d6', 0, 1),
 (69, '2025-05-04', '20:58:47', 311, 21313, 'PAM2 BEAUMONT-LE-ROGER - 124.122', 'Nous signale qu\'il était chez sa copine pendant une semaine, il s\'est fait saccager son appartement par ZANETTI Enzo, un de ses potes, avec un dénommé Thibaut BIGAUT. L\'appartement est le domicile de son père ', 'La victime prête son appartement situé au dessus de la mairie de GISAY LA COUDRE  à son fils. Ce dernier s\'est absenté plus d\'une semaine. Le ou les auteurs ont forcé la porte d\'entrée afin de pénétrer dans l\'appartement et de briser une fenêtre et une télévision. Une enceinte (JBL) ainsi qu\'une console de jeu (XBOX ONE S) ont été dérobées. La boîte aux lettre a également été dégradée. Le ou les auteurs semblent s\'être rasés les poils pubiens dans le lavabo de la salle de bain. CR GELAC BERNAY et CCIE. OPJ sur place. 1 prélèvement bio réalisé et saisie de 02 scellés (rasoir et poils). ', '4b75f1cfa1e939cf92fdf3b36914618daf254766', 0, 1),
 (70, '2025-05-04', '21:11:13', 313, 10271, 'BP PONT-AUDEMER - 163.102', 'Femme environ 70 ans en ACR sur la VP - SP sur place - SMUR sur place', 'A notre ASL, la victime se trouve en réanimation dans le véhicule des pompiers avec présence d\'un équipage du SMUR. Elle a été transporté rapidement au CH PONT-AUDEMER où elle été déclarée décédée peu après, sans OML. Le service du CH se charge d\'aviser la famille.\nGP avisé', 'f8c1427aaaa3ea9c49809926cd85ab9988598349', 0, 1),
 (71, '2025-05-04', '21:12:46', 292, 10433, 'BP PONT-AUDEMER - 163.102', 'son ex conjoint vient de lui déposer les enfants - \nil s\'en est suivi une altercation entre les deux partie et il cherche a entrer en dans le domicile - ', 'A notre ASL, le conjoint de madame discute dehors avec monsieur. Situation calme et réglée entre les parties. Aucune violence. ', 'ab3878a7950b79c3f54a0431dafd5b0c808767d1', 0, 1),
-(72, '2025-05-04', '21:16:31', 322, 39289, '', 'CIC POLICE ROUEN, automobiliste sur A13 qui a l\'impression d\'être suivi, la communication coupe ', 'Automobiliste était suivi par un autre véhicule qui a fini par quitter l\'axe - Plus rien à signaler', '58debc877f4c9dee3666ee6e41a0f706a8453503', 0, 1),
+(72, '2025-05-04', '21:16:31', 322, 39289, '', 'CIC POLICE ROUEN, automobiliste sur A13 qui a l\'impression d\'être suivi, la communication coupe', 'Automobiliste était suivi par un autre véhicule qui a fini par quitter l\'axe - Plus rien à signaler', '58debc877f4c9dee3666ee6e41a0f706a8453503', 1, 0),
 (73, '2025-05-04', '21:21:42', 341, 10455, 'BP MESNILS-SUR-ITON DIR 3302 - 105.111', 'Signale qu\'elle était malade, elle n\'est pas allée travailler, son collègue de travail est venu chez elle, ils sont allés manger ensemble, ensuite ils sont allés faire un tour en vélo et trottinette. A leur retour la conjointe de son collègue de travail était sur place en train de filmer, elle l\'a attrapé et lui a mis des coups de poings. Violences réciproques, plusieurs mains courantes ont déjà été établies ', 'A notre ASL l\'homme et l\'autre femme ont quittés les lieux.\nMadame BENATTIA Louisa née le 09/05/1991 à Montpellier, résidant 4 clos de la vallée à Les Ventes -27-, joignable au 06.16.28.82.73 nous indique que son ami, monsieur AKHARAZ Brahim est venu lui rendre visite lorsqu\'il a appris qu\'elle était en arrêt maladie. Ils ont passé la journée ensemble. Au cours de la soirée, la future ex-femme (instance de divorce depuis 01 an) de monsieur AKHARAZ, madame AKHARAZ Yousria s\'est présenté devant le domicile de madame BENATTIA est s\'en est pris a elle et monsieur AKHARAM. \nLa requérante est rentré dans son domicile mais madame AKHARAM est venu toquer à la porte. Madame BENATTIA a tenté de se justifier, en vain, madame AKHARAM l\'a attrapé par les cheveux et les deux femmes se sont battues.\nSéparé par monsieur AKHARAM, madame BENATTIA a fait appel à nos service pendant que les deux autres individus ont quittés les lieux.\nMadame BENATTIA ne présente aucune trace de coups apparente. Prise en charge par les SP, elle n\'est pas transporté au CH.\nL\'invitons à consulter un médecin des urgences et à se présenter dès le lendemain afin de recceuillir sa plainte.\nMadame AKHARAM contacté par Tph indique se rendre immédiatement au CIAT Elbeuf pour un dépot de plainte\nMaire de la commune présent sur les lieux car réside dans la rue', 'c735857809182166b1fc268cf6cdcc49a8be51bb', 0, 1),
 (74, '2025-05-04', '21:31:02', 197, 10366, '', 'Signale que sa fille de 16 ans est parti avec son petit copain ce matin 11h30 et de donne plus de nouvelle depuis\nDispute hier au soir - N\'a rien dit ce matin avant de partir\nSerait aller chez un copine Naomi à SAINT GEORGES du VIEVRE\nPetit copain vit au domicile depuis 02 mois', 'Prise de contact avec la mineur et son petit ami\nPlainte en cours entre la mineure et sa mère à la COB SAINT GEORGES DU VIEVRE\nEn accord avec les militaires et le père de la mineure, le jeune couple va passer la nuit chez la mère du petit ami\nRequérante recontactée - Prendra attache avec la COB SAINT GEORGES DU VIEVRE demain', '79644577a6038ce75fc903be7ac8abd1e9517850', 0, 1),
 (75, '2025-05-04', '21:49:53', 314, 10189, '', 'Requérant signale le comportement violent au téléphone avec son ami homme. Alors que l\'individu parle avec lui concernant l\'achat d\'un VL l\'homme s\'emporte violemment au téléphone contre son ami qui a insulté le requérant. TPH de l\'homme au téléphone : 07-58-71-13-68 monsieur SAKO Boubakar, couple d\'homme en cours de séparation, le plus virulent alcoolisé. Ils habitent au MARAIS VERNIER ', 'réquisition BOUYGUES TÉLÉCOM : ne peut pas nous donner l\'adresse et LYCAMOBILE ne répond pas de nuit, dernière localisation connue : le 04/05/2025 à 22h04 AVENVUE GEORGES BRASSENS ZA 33 PEUJARD', 'a84b90be4d98916f958d878b836a9418c4a409d4', 0, 1),
@@ -40450,39 +40494,26 @@ INSERT INTO `memos` (`id`, `permanent`, `memo`, `alarm`, `alarmTriggered`, `date
 DROP TABLE IF EXISTS `pages`;
 CREATE TABLE `pages` (
   `id` int NOT NULL,
-  `parent_id` int DEFAULT NULL,
-  `slug` varchar(100) NOT NULL,
-  `label` varchar(255) NOT NULL,
-  `template` varchar(255) NOT NULL,
-  `php_file` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `ordre` int DEFAULT '0',
-  `droits` varchar(255) DEFAULT NULL,
-  `actif` tinyint(1) DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `slug` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Identifiant logique (ex: PAGE_SHOW_TIMELINE)',
+  `php_file` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Fichier PHP à exécuter, si applicable',
+  `twig_header_file` text COLLATE utf8mb4_unicode_ci COMMENT 'Si vide, ne charge pas de header',
+  `twig_content_file` text COLLATE utf8mb4_unicode_ci COMMENT 'Obligatoire pour chargement du cœur',
+  `twig_footer_file` text COLLATE utf8mb4_unicode_ci COMMENT 'Si vide, pas de footer',
+  `js` text COLLATE utf8mb4_unicode_ci COMMENT 'Liste des fichiers JS séparés par [NL]',
+  `css` text COLLATE utf8mb4_unicode_ci COMMENT 'Liste des fichiers CSS idem',
+  `ordre` tinyint DEFAULT '0' COMMENT 'Pour trier ou ordonner les éléments dans les menus',
+  `droits` smallint DEFAULT NULL COMMENT 'Niveau d''accès minimal requis (ex: 1 = lecture, 3 = admin…)',
+  `actif` tinyint(1) DEFAULT '1' COMMENT 'Permet d''activer/désactiver dynamiquement une page'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `pages`
 --
 
-INSERT INTO `pages` (`id`, `parent_id`, `slug`, `label`, `template`, `php_file`, `ordre`, `droits`, `actif`) VALUES
-(19, NULL, 'accueil', 'Accueil', 'index/index.twig', 'index/fonctions/indexFcts.php', 0, NULL, 1),
-(20, NULL, 'maj', 'Mises à jour', 'maj/maj.twig', NULL, 1, NULL, 1),
-(21, NULL, 'permanences', 'Permanences', 'show/permanences.twig', 'show/permanences.php', 2, NULL, 1),
-(22, NULL, 'timeline', 'Timeline', 'show/timeline.twig', 'show/timeline.php', 3, NULL, 1),
-(23, NULL, 'timeline_grid', 'Timeline (Grid)', 'show/timeline2.twig', 'show/timeline.php', 4, NULL, 1),
-(24, 1, 'import', 'Import', 'main/subpages/import.twig', 'main/subpages/import/listFiles.php', 0, NULL, 1),
-(25, 1, 'update', 'Mise à jour', 'main/subpages/update.twig', 'main/subpages/update/includes.php', 1, NULL, 1),
-(26, 1, 'sites', 'Sites', 'main/subpages/sites.twig', 'main/subpages/sites/main.php', 2, NULL, 1),
-(27, 1, 'cies', 'Compagnies', 'main/subpages/cies.twig', 'main/subpages/cies/main.php', 3, NULL, 1),
-(28, 1, 'services', 'Services', 'main/subpages/services.twig', 'main/subpages/services/main.php', 4, NULL, 1),
-(29, 1, 'rights', 'Droits', 'main/subpages/rights.twig', 'main/subpages/rights/main.php', 5, NULL, 1),
-(30, 1, 'unites', 'Unités', 'main/subpages/unites_ldap.twig', 'main/subpages/unites_ldap/main.php', 6, NULL, 1),
-(31, 1, 'unites_ldap', 'Unités LDAP', 'main/subpages/unites_ldap.twig', 'main/subpages/unites_ldap/main.php', 7, NULL, 1),
-(32, 1, 'unites_manuel', 'Unités manuelles', 'main/subpages/unites_manuelles.twig', 'main/subpages/unites_manuelles/main.php', 8, NULL, 1),
-(33, 1, 'synthese', 'Synthèse', 'main/subpages/synthese.twig', 'main/subpages/synthese/main.php', 9, NULL, 1),
-(34, 1, 'categories', 'Catégories', 'main/subpages/categories.twig', 'main/subpages/categories/main.php', 10, NULL, 1),
-(35, 1, 'cities', 'Villes', 'main/subpages/cities.twig', 'main/subpages/cities/main.php', 11, NULL, 1),
-(36, 1, 'mairies', 'Mairies', 'main/subpages/mairies.twig', 'main/subpages/mairies/main.php', 12, NULL, 1);
+INSERT INTO `pages` (`id`, `slug`, `php_file`, `twig_header_file`, `twig_content_file`, `twig_footer_file`, `js`, `css`, `ordre`, `droits`, `actif`) VALUES
+(1, 'main', 'main/main.php', '', 'main/main.twig', '', '', '', 1, NULL, 1),
+(2, 'show_timeline', 'show/timeline.php', '', 'show/timeline.twig', '', '', '', 2, NULL, 1),
+(3, 'show_permanences', 'show/permanences.php', '', 'show/permanences.twig', '', '', '', 3, NULL, 1);
 
 -- --------------------------------------------------------
 
@@ -42344,8 +42375,6 @@ CREATE TABLE `sites` (
 INSERT INTO `sites` (`id`, `nom`, `url`, `color`) VALUES
 (1, 'vigilance Orages', 'https://vigilance.meteofrance.fr/fr/orages', '#3AAFB9'),
 (2, 'météo agricole', 'https://www.lameteoagricole.net/meteo-heure-par-heure/Evreux-27000.html', '#DB5461'),
-(6, 'Judiciaire', 'http://intra-judiciaire.sso.gendarmerie.fr/', '#8DFF36'),
-(7, 'Annuaire Gie', 'http://annuaire.gendarmerie.fr/', '#C53DFF'),
 (11, 'Configuration', 'http://amoco27.local.gendarmerie.fr/amoco/bo/#/', '#3BB7CB'),
 (12, 'Site Gpt', 'http://ggd27.local.gendarmerie.fr/index/', '#4731AE'),
 (13, 'Site CORG', 'http://ggd27.local.gendarmerie.fr/corg/', '#4DF4E1'),
@@ -43707,6 +43736,13 @@ ALTER TABLE `compagnies`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Index pour la table `configuration`
+--
+ALTER TABLE `configuration`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `key_UNIQUE` (`var`);
+
+--
 -- Index pour la table `evenements`
 --
 ALTER TABLE `evenements`
@@ -43733,7 +43769,7 @@ ALTER TABLE `memos`
 --
 ALTER TABLE `pages`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `slug` (`slug`);
+  ADD UNIQUE KEY `slug_UNIQUE` (`slug`);
 
 --
 -- Index pour la table `permanences`
@@ -43808,6 +43844,12 @@ ALTER TABLE `compagnies`
   MODIFY `id` bigint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
+-- AUTO_INCREMENT pour la table `configuration`
+--
+ALTER TABLE `configuration`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
 -- AUTO_INCREMENT pour la table `evenements`
 --
 ALTER TABLE `evenements`
@@ -43829,7 +43871,7 @@ ALTER TABLE `memos`
 -- AUTO_INCREMENT pour la table `pages`
 --
 ALTER TABLE `pages`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT pour la table `permanences`
