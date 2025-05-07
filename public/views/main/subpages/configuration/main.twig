@@ -1,0 +1,113 @@
+<div class="flex-h w-available">
+    <div class="block" id="configuration">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des variables de configuration
+                <a onclick="table.addRow([],'start')">
+                    <i class="fa fa-circle-plus"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="configurationTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide>Id</th>
+                        <th id="var" th-edit>Variable</th>
+                        <th id="value" th-edit >Valeur</th>
+                        <th id="description" th-edit>Description</th>
+                        <th id="twig" th-choice>Twig</th>
+                        <th  th-actions="delete,save">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in configuration_tbl %}
+                        <tr id="{{c.id}}" name="{{ c.id }}">
+                            <td id="id_{{ c.id }}" name="id_{{ c.id }}">{{ c.id }}</td>
+                            <td id="var_{{ c.id }}" name="var_{{ c.id}}">{{ c.var }}</td>
+                            <td id="value_{{ c.id }}" name="value_{{ c.id}}">{{ c.value }}</td>
+                            <td id="description_{{ c.id }}" name="description_{{ c.id}}">{{ c.description }}</td>
+                            <td id="twig_{{ c.id }}" name="twig_{{ c.id }}">{{ c.twig }}</td>
+                            <td id="actions_{{ c.id }}" name="actions_{{ c.id }}"></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    window.table = new TableFlow({
+        tableId: 'configurationTbl',
+        debug: true,
+        plugins: {
+            names: ['Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
+            choice: {
+                columns: {
+                    'twig': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: green">Non Ajoutée</span>' },
+                            { value: '1', label: '<span style="color: red">Ajoutée</span>' }
+                        ]
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: false,
+                actions: {
+                    delete: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "sites", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.removeRow(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
+                    },
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            const data = {
+                                ...context.data,
+                                table: 'configurationTbl',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "configuration", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

@@ -822,3 +822,124 @@ JOIN categories      ON evenements.categorie_id = cate' at line 8" at /var/www/h
 [[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
 [[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
 [[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception PDOException: "SQLSTATE[HY000] [1045] Access denied for user 'buse'@'localhost' (using password: YES)" at /var/www/html/buse/public/pages/commun/Database/SqlManager.php line 61
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception PDOException: "SQLSTATE[HY000] [1045] Access denied for user 'buse'@'localhost' (using password: YES)" at /var/www/html/buse/public/pages/commun/Database/SqlManager.php line 61
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception TypeError: "Commun\Ldap\BaseDNConfig::__construct(): Argument #1 ($lists) must be of type string, null given, called in /var/www/html/buse/public/pages/commun/init.php on line 83" at /var/www/html/buse/public/pages/commun/Ldap/LdapManager.php line 9
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: require_once(/var/www/html/buse/public/assets/libs/updateFlow/src/php/Managers/VersionManager.php): Failed to open stream: No such file or directory
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception Error: "Failed opening required '/var/www/html/buse/public/assets/libs/updateFlow/src/php/Managers/VersionManager.php' (include_path='.:/usr/share/php')" at /var/www/html/buse/index.php line 19
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: require_once(/var/www/html/buse/public/assets/libs/updateFlow/src/php/Managers/VersionManager.php): Failed to open stream: No such file or directory
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception Error: "Failed opening required '/var/www/html/buse/public/assets/libs/updateFlow/src/php/Managers/VersionManager.php' (include_path='.:/usr/share/php')" at /var/www/html/buse/index.php line 19
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL INSERT
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL INSERT
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL UPDATE
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur de connexion LDAP
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL INSERT
+[[BUSE]]{macro: autolabel} ERROR: Erreur SQL INSERT

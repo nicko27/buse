@@ -77,23 +77,47 @@ $twig->addExtension(new \Twig\Extension\DebugExtension());
 $twig->addExtension(new TwigExtensions());
 
 try {
-    $baseDN = new BaseDNConfig(
-        lists: $config->get("LDAP_BASE_DN_LISTS"),
-        services: $config->get("LDAP_BASE_DN_SERVICES"),
-        persons: $config->get("LDAP_BASE_DN_PERSONS")
-    );
+    // Essayez d'abord de récupérer les valeurs de configuration
+    $ldapBaseDNLists    = $config->get("LDAP_BASE_DN_LISTS");
+    $ldapBaseDNServices = $config->get("LDAP_BASE_DN_SERVICES");
+    $ldapBaseDNPersons  = $config->get("LDAP_BASE_DN_PERSONS");
+    $ldapHost           = $config->get("LDAP_HOST");
+    $ldapPort           = $config->get("LDAP_PORT");
+    $ldapUseLdaps       = $config->get("LDAP_USE_LDAPS");
 
-    $ldapConfig = new LdapConfig(
-        host: $config->get("LDAP_HOST"),
-        port: $config->get("LDAP_PORT"),
-        useLdaps: $config->get("LDAP_USE_LDAPS"),
-        baseDN: $baseDN
-    );
+    // Créez les objets seulement si les valeurs nécessaires sont disponibles
+    if ($ldapBaseDNLists !== null && $ldapBaseDNServices !== null && $ldapBaseDNPersons !== null) {
+        $baseDN = new BaseDNConfig(
+            lists: $ldapBaseDNLists,
+            services: $ldapBaseDNServices,
+            persons: $ldapBaseDNPersons
+        );
 
-    LdapManager::initialize($ldapConfig);
-} catch (\Exception $e) {
-    $logger->error("Erreur de connexion ldap", [
+        if ($ldapHost !== null && $ldapPort !== null && $ldapUseLdaps !== null) {
+            $ldapConfig = new LdapConfig(
+                host: $ldapHost,
+                port: $ldapPort,
+                useLdaps: $ldapUseLdaps,
+                baseDN: $baseDN
+            );
+
+            LdapManager::initialize($ldapConfig);
+        } else {
+            throw new \Exception("Configuration LDAP incomplète : host, port ou useLdaps manquant");
+        }
+    } else {
+        throw new \Exception("Configuration LDAP incomplète : BaseDN manquant");
+    }
+} catch (\Throwable $e) {
+    // Attrape TOUTES les exceptions et erreurs, y compris TypeError
+    $logger->error("Erreur de connexion LDAP", [
         'error' => $e->getMessage(),
         'code'  => $e->getCode(),
+        'file'  => $e->getFile(),
+        'line'  => $e->getLine(),
     ]);
+
+    // Vous pouvez ajouter ici un code pour gérer l'absence de LDAP
+    // Par exemple, définir une variable pour indiquer que LDAP n'est pas disponible
+    $ldapAvailable = false;
 }

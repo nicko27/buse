@@ -16,6 +16,8 @@
     gap: 8px;
     position: relative;
     overflow: hidden;
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 /* Glass button with enhanced effects */

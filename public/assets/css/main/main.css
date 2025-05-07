@@ -489,6 +489,10 @@ body {
     background: #683566;
 }
 
+#configuration .block__title {
+    background: #255aa3;
+}
+
 #synthese .block__title {
     background: #685435;
 }
@@ -532,6 +536,10 @@ a#unites:hover {
 
 a#cities:hover {
     background: linear-gradient(to right, #356835, 80%, #EEE);
+}
+
+a#configuration:hover {
+    background: linear-gradient(to right, #255aa3, 80%, #EEE);
 }
 
 a#categories:hover {
