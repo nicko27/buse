@@ -1,0 +1,25 @@
+Date: Tue, 6 May 2025 15:18:22 +0200
+From: nicolas.voirin@me.com
+Message-ID: <VIsw97K5wdrfrRDp4mqJxQ7KNkaxkldfp8BdPr8Whg@localhost>
+X-Mailer: PHPMailer 6.10.0 (https://github.com/PHPMailer/PHPMailer)
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="b1=_VIsw97K5wdrfrRDp4mqJxQ7KNkaxkldfp8BdPr8Whg"
+Content-Transfer-Encoding: 8bit
+To: nicolas.voirin@gendarmerie.interieur.gouv.fr
+Subject: =?UTF-8?Q?Ev=C3=A8nement(s)_sur_la_commune?=
+
+--b1=_VIsw97K5wdrfrRDp4mqJxQ7KNkaxkldfp8BdPr8Whg
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Bonjour Bob, voici un email généré depuis PHP.
+
+--b1=_VIsw97K5wdrfrRDp4mqJxQ7KNkaxkldfp8BdPr8Whg
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<h1>Bonjour Nicolas</h1><p>Voici un email <b>généré</b> depuis PHP.</p>
+
+
+--b1=_VIsw97K5wdrfrRDp4mqJxQ7KNkaxkldfp8BdPr8Whg--

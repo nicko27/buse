@@ -1,0 +1,141 @@
+<div class="flex-h w-available">
+    <div class="block" id="cities">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des communes
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="citiesTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide>Id</th>
+                        <th id="insee" th-edit>Insee</th>
+                        <th id="name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Nom</th>
+                        <th id="old_name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Ancien Nom</th>
+                        <th id="code_postal" th-edit>Code Postal</th>
+                        <th th-actions="save">Actions</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cities_tbl %}
+                        <tr id="{{c.id}}" name="{{ c.id }}">
+                            <td id="id_{{ c.id }}" name="id_{{ c.id}}">{{ c.id }}</td>
+                            <td id="insee_{{ c.id }}" name="insee_{{ c.id}}">{{ c.insee }}</td>
+                            <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
+                            <td id="old_name_{{ c.id }}" name="old_name_{{ c.id}}">{{ c.old_name }}</td>
+                            <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
+                            <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+             <div class="block__buttons">
+                <div class="block__search">
+                    <div class="filter-group">
+                        <span>Rechercher dans le tableau</span>
+                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    const citiesTable = new TableFlow({
+        tableId: 'citiesTbl',
+        debug: true,
+        plugins: {
+            names: ['FilterAndPaginate', 'Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
+            filterandpaginate: {
+                enableFilter: true,
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                icons: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    prev: '<i class="fas fa-chevron-left"></i>',
+                    next: '<i class="fas fa-chevron-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                columns: {
+                    'brigade': {
+                        type: 'searchable',
+                        values: [
+                            { value: '0', label: 'Non Renseigné', readOnly: false },
+                            {% for unit in unites_ldap_tbl %}
+                                {
+                                    value: '{{ unit.id }}',
+                                    label: '{{ unit.newName }}'
+                                },
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            minWidth: '250px',
+                            placeholder: 'Rechercher une unité...',
+                            noResultsText: 'Aucune unité trouvée'
+                        }
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: false,
+                actions: {
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            const data = {
+                                ...context.data,
+                                table: 'citiesTbl',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "cities", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

@@ -1,0 +1,198 @@
+<div class="flex-h w-available">
+    <div class="block" id="unites-ldap">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Gestion des unités LDAP
+            </div>
+            <div class="block__title-center">
+                <div id="maj__text-update" class="hidden progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+            <div class="block__title-right">
+                <button class="btn btn-glass" onclick="getUnits()" tf-tooltip="Télécharger la base des unités du département">
+                    <i id="maj__text-normal" class="fa fa-file-arrow-down"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+
+            </div>
+            <table id="unitesLdapTbl">
+                <thead>
+                    <tr>
+                        <th id="id" th-hide th-text-default="0">id</th>
+                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
+                        <th id="cu" th-readonly>code Unité</th>
+                        <th id="cuCob" th-choice>Nom de la COB</th>
+                        <th id="isCob" th-choice>Unité d'une COB</th>
+                        <th id="parentCu" th-hide>Cu parent</th>
+                        <th th-choice th-sort id="isCie">Est une Compagnie</th>
+                        <th th-choice id="invisible">Unité Visible</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for unites in unites_ldap_tbl %}
+                        <tr id="{{unites.id}}" name="{{ unites.id }}">
+                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
+                            <td id="newName_{{ unites.id }}" name="newName_{{ unites.id }}">{{ unites.newName }}</td>
+                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                            <td id="cuCob_{{ unites.id }}" name="cuCob_{{ unites.id }}" >{{unites.cuCob}}</td>
+                            <td id="isCob_{{ unites.id }}" name="isCob_{{ unites.id }}" >{{unites.isCob}}</td>
+                            <td id="parentCu_{{ unites.id }}" name="parentCu_{{ unites.id }}">{{unites.parentCu}}</td>
+                            <td id="isCie_{{ unites.id }}" name="isCie_{{ unites.id }}">{{unites.isCie}}</td>
+                            <td id="invisible_{{ unites.id }}" name="invisible_{{ unites.id }}">{{ unites.invisible }}</td>
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+             <div class="block__buttons">
+                <div class="block__search">
+                    <div class="filter-group">
+                        <span>Rechercher dans le tableau</span>
+                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="{{WEB_ASSETS}}/js/main/subpages/unites_ldap/main.js"></script>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    const unitesLdapTable = new TableFlow({
+        tableId: 'unitesLdapTbl',
+        debug: true,
+        plugins: {
+            names: ['FilterAndPaginate', 'Edit', 'Hide', 'Sort', 'Actions', 'Choice'],
+            filterandpaginate: {
+                enableFilter: true,
+                globalFilter: '#search',
+                debounceTime: 300,
+                pageSize: 10,
+                showPageSizes: true,
+                showInfo: false,
+                containerClass: 'pagination-container',
+                paginationClass: 'pagination',
+                selectClass: 'btn btn-glass btn-glass-green',
+                btnClass: 'pagination-btn btn btn-glass btn-glass-blue',
+                icons: {
+                    first: '<i class="fas fa-angle-double-left"></i>',
+                    prev: '<i class="fas fa-chevron-left"></i>',
+                    next: '<i class="fas fa-chevron-right"></i>',
+                    last: '<i class="fas fa-angle-double-right"></i>'
+                }
+            },
+            sort: {
+                sortableAttribute: 'th-sort',
+                showIcons: true,
+                ignoreCase: true,
+                icons: {
+                    asc: '<i class="fa fa-sort-asc"></i>',
+                    desc: '<i class="fa fa-sort-desc"></i>',
+                    none: '<i class="fa fa-sort"></i>'
+                }
+            },
+            choice: {
+                columns: {
+                    'mergedWithCu': {
+                        type: 'searchable',
+                        values: [
+                            { value: '0', label: '-', readOnly: true, readOnlyClass: 'readonly-default' },
+                            {% for cob in unites_ldap_tbl %}
+                                {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu != cob.cuCob and cob.isCob == 1 %}
+                                    {
+                                        value: '{{ cob.cu }}',
+                                        label: '{{ cob.newName }}'
+                                    },
+                                {% endif %}
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            minWidth: '250px',
+                            placeholder: 'Rechercher une unité...',
+                            noResultsText: 'Aucune unité trouvée'
+                        }
+                    },
+                    'cuCob': {
+                        type: 'searchable',
+                        values: [
+                            { value: '0', label: '-', readOnly: false },
+                            {% for cob in unites_ldap_tbl %}
+                                {% if cob.cu > 0 and cob.cuCob > 0 and cob.cu == cob.cuCob and cob.isCob == 1 %}
+                                    {
+                                        value: '{{ cob.cu }}',
+                                        label: '{{ cob.newName }}'
+                                    },
+                                {% endif %}
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            minWidth: '250px',
+                            placeholder: 'Rechercher une COB...',
+                            noResultsText: 'Aucune COB trouvée'
+                        }
+                    },
+                    'invisible': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: green">Visible</span>' },
+                            { value: '1', label: '<span style="color: red">Masquée</span>' }
+                        ]
+                    },
+                    'isCie': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: red">Non</span>', readOnly: false, readOnlyClass: 'readonly-locked' },
+                            { value: '1', label: '<span style="color: green">Oui</span>', readOnly: false, readOnlyClass: 'readonly-locked' }
+                        ]
+                    },
+                    'isCob': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: '<span style="color: red">Non</span>', readOnly: false, readOnlyClass: 'readonly-locked' },
+                            { value: '1', label: '<span style="color: green">Oui</span>', readOnly: false, readOnlyClass: 'readonly-locked' }
+                        ]
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: true,
+                actions: {
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            const data = {
+                                ...context.data,
+                                table: 'unites_ldap',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "unites_ldap", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

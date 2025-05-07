@@ -1,0 +1,52 @@
+<div class="flex-h w-available">
+    <div class="block" id="synthese">
+        <div class="block__title glass">
+            <div class="block__title-left">
+                Mails par mairies
+            </div>
+        </div>
+        <div class="block__content flex-h">
+            <div class="block__buttons">
+            </div>
+            <table id="mailsTbl">
+                <thead>
+                    <tr>
+                        <th id="commune">Commune concernée</th>
+                        <th id="mail" th-choice th-linetoggle>Mail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set pos=0 %}
+                    {% for m in mails_tbl %}
+                        <tr>
+                            {% set pos=pos+1 %}
+                            <td id="commune_{{ m.id }}" name="commune_{{ m.id}}">
+                                {% if m.old_name|length >0 %}
+                                    {{ m.old_name }}
+                                {% else %}
+                                    {{ m.name }}
+                                {% endif %}
+                            </td>
+                            <td id="mail_{{ m.id }}">
+                                <a onclick="downloadMail({{ m.id }})" class="btn btn-glass btn-glass-blue mail__btn" >
+                                    <i class="fa fa-at"></i>
+                                    <span>Télécharger</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="{{WEB_ASSETS}}/js/main/subpages/synthese_mail/main.js"></script>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    // Initialisation avec débogage détaillé
+    console.log('Initialisation de TableFlow...');
+    const evenementsTable = new TableFlow({
+        tableId: 'mailsTbl',
+    });
+</script>

@@ -133,9 +133,9 @@ OR
     )
   )
 )
-AND insee REGEXP :dpt;";
+AND insee LIKE :dpt;";
     $stmt = $sqlManager->prepare($sql);
-    $dpt  = sprintf("^%s[0-9]{3}$", $config->get("CITY_DEPARTMENT"));
+    $dpt  = sprintf("%s___", $config->get("CITY_DEPARTMENT"));
     $stmt->execute([':commune' => $commune, ':dpt' => $dpt]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (count($results) > 0) {

@@ -22,7 +22,7 @@ function initVars($get = [])
     $vars['PAGE_MAJ']                 = $config->get('PAGE_MAJ');
     $vars['INDEX']                    = $config->get('INDEX');
     $vars['page']                     = $config->get('PAGE_INDEX');
-    $vars['VIEWS']                    = $config->get('VIEWS');
+    $vars['VIEWS_DIR']                = $config->get('VIEWS_DIR');
     $vars['WEB_PAGES']                = $config->get('WEB_PAGES');
     $vars['SITE']                     = $config->get('SITE');
     $vars['SUBTITLE']                 = $config->get('SUBTITLE');
@@ -37,10 +37,11 @@ function initVars($get = [])
     $vars['SUBPAGE_UNITES']           = $config->get('SUBPAGE_UNITES');
     $vars['SUBPAGE_UNITES_MANUELLES'] = $config->get('SUBPAGE_UNITES_MANUELLES');
     $vars['SUBPAGE_UNITES_LDAP']      = $config->get('SUBPAGE_UNITES_LDAP');
-    $vars['SUBPAGE_SYNTHESE']         = $config->get('SUBPAGE_SYNTHESE');
+    $vars['SUBPAGE_PREPARE_SYNTHESE'] = $config->get('SUBPAGE_PREPARE_SYNTHESE');
     $vars['SUBPAGE_CATEGORIES']       = $config->get('SUBPAGE_CATEGORIES');
     $vars['SUBPAGE_CITIES']           = $config->get('SUBPAGE_CITIES');
     $vars['SUBPAGE_MAIRIES']          = $config->get('SUBPAGE_MAIRIES');
+    $vars['SUBPAGE_MAIL_SYNTHESE']    = $config->get('SUBPAGE_MAIL_SYNTHESE');
     $vars['WEB_PUBLIC']               = $config->get('WEB_PUBLIC');
     $vars['WEB_SERVER']               = $config->get('WEB_SERVER');
     $vars['PAGES_DIR']                = $config->get('PAGES_DIR');
@@ -63,9 +64,10 @@ function getPagesVars($page, $vars, $get)
     $subpage           = (isset($_GET['subpage'])) ? $_GET['subpage'] : 0;
     $vars['PAGE_NAME'] = $config->get('PAGES_LIST')[$vars['page']];
     if ($page == $config->get('PAGE_INDEX')) {
-        $vars['SUBPAGE']      = sprintf("%s/%s.twig", $config->get('MAIN_SUBPAGES'), $config->get('SUBPAGES_MAIN_LIST')[$subpage]);
+        $views                = sprintf("%s/%s/main.twig", $config->get('MAIN_SUBPAGES'), $config->get('SUBPAGES_MAIN_LIST')[$subpage]);
+        $vars['SUBPAGE']      = $views;
         $vars['SUBPAGE_NAME'] = $config->get('SUBPAGES_MAIN_LIST')[$subpage];
-        $vars['SUBJS']        = sprintf("%s/js/%s/%s.js", $config->get('ASSETS_DIR'), $config->get('MAIN_SUBPAGES'), $config->get('SUBPAGES_MAIN_LIST')[$subpage]);
+        $vars['SUBJS']        = sprintf("%s/js/%s/%s/main.js", $config->get('ASSETS_DIR'), $config->get('MAIN_SUBPAGES'), $config->get('SUBPAGES_MAIN_LIST')[$subpage]);
     }
     return $vars;
 }

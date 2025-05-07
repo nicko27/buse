@@ -12,7 +12,12 @@ $logger     = Logger::getInstance()->getLogger();
 $sqlManager = SqlManager::getInstance();
 
 // Récupération de la sous-page
-$subpage  = $get["subpage"];
+if (isset($get['subpage'])) {
+    $subpage = $get["subpage"];
+} else {
+    $subpage = 0;
+}
+
 $php_file = sprintf("%s/main/subpages/%s/main.php", $config->get('PAGES_DIR'), SUBPAGES_MAIN_LIST[$subpage]);
 
 try {

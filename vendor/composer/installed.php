@@ -1,22 +1,22 @@
 <?php return array(
     'root' => array(
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
+        'pretty_version' => 'dev-master',
+        'version' => 'dev-master',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => NULL,
+        'reference' => 'a7c4fb4f12446e4455700cf247ac23a00a6ffcdd',
         'name' => '__root__',
         'dev' => true,
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => NULL,
+            'reference' => 'a7c4fb4f12446e4455700cf247ac23a00a6ffcdd',
             'dev_requirement' => false,
         ),
         'composer/pcre' => array(
@@ -80,6 +80,15 @@
             'install_path' => __DIR__ . '/../monolog/monolog',
             'aliases' => array(),
             'reference' => '10d85740180ecba7896c87e06a166e0c95a0e3b6',
+            'dev_requirement' => false,
+        ),
+        'phpmailer/phpmailer' => array(
+            'pretty_version' => 'v6.10.0',
+            'version' => '6.10.0.0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpmailer/phpmailer',
+            'aliases' => array(),
+            'reference' => 'bf74d75a1fde6beaa34a0ddae2ec5fce0f72a144',
             'dev_requirement' => false,
         ),
         'phpoffice/phpspreadsheet' => array(

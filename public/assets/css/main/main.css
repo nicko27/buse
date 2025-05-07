@@ -311,7 +311,7 @@ body {
     border-radius: 16px;
     padding: 24px 40px;
     margin: 20px auto;
-    max-width: 1356px;
+    max-width: 1400px;
     position: relative;
     overflow: hidden;
     box-shadow:
@@ -1191,4 +1191,14 @@ td input {
     100% {
         left: 100%;
     }
+}
+
+.mail__btn {
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+}
+
+.mail__btn i {
+    font-size: 3em;
 }

@@ -17,6 +17,7 @@ require_once __DIR__ . "/Ldap/LdapManager.php";
 require_once __DIR__ . "/Database/SqlManager.php";
 require_once __DIR__ . "/Template/TwigExtensions.php";
 require_once __DIR__ . "/Security/CsrfManager.php";
+require_once __DIR__ . "/EMLGenerator/EMLGenerator.php";
 
 use Commun\Database\SqlManager;
 use Commun\Ldap\BaseDNConfig;
@@ -65,7 +66,7 @@ foreach ($directories as $dir) {
 }
 
 // Configurer Twig
-$loader = new \Twig\Loader\FilesystemLoader($config->get('VIEWS'));
+$loader = new \Twig\Loader\FilesystemLoader($config->get('VIEWS_DIR'));
 $twig   = new \Twig\Environment($loader, [
     'cache' => false,
     'debug' => true,

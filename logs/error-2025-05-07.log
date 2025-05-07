@@ -1,0 +1,142 @@
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception Twig\Error\LoaderError: "Unable to find template "main/subpages/main.twig" (looked into: /var/www/html/buse/public/views) in "main/main.twig" at line 30." at /var/www/html/buse/vendor/twig/twig/src/Loader/FilesystemLoader.php line 234
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined array key ""
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception Twig\Error\LoaderError: "Unable to find template "main/subpages/main.twig" (looked into: /var/www/html/buse/public/views) in "main/main.twig" at line 30." at /var/www/html/buse/vendor/twig/twig/src/Loader/FilesystemLoader.php line 234
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Error loading main data
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception PDOException: "SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'niveau,categorie,name,old_name from evenements,categories,cities where cities.id' at line 1" at /var/www/html/buse/public/pages/main/subpages/synthese_prepare/main.php line 7
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Error loading main data
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception PDOException: "SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'niveau,categorie,name,old_name from evenements,categories,cities where cities.id' at line 1" at /var/www/html/buse/public/pages/main/subpages/synthese_prepare/main.php line 7
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getTimelineBlocks: Erreur dans le traitement des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: 'null'
+[[BUSE]]{macro: autolabel} ERROR: Trace: #0 /var/www/html/buse/public/pages/show/blocks/getTimelineBlocks.php(39): PDOStatement->execute()
+#1 {main}
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Error loading main data
+[[BUSE]]{macro: autolabel} ERROR: Uncaught Exception PDOException: "SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'niveau,categorie,name,old_name from evenements,categories,cities where cities.id' at line 1" at /var/www/html/buse/public/pages/main/subpages/synthese_prepare/main.php line 7
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} ERROR: Error retrieving cie
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getPAM: Erreur lors de la récupération des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: '-0001-11-30'
+[[BUSE]]{macro: autolabel} ERROR: getTimelineBlocks: Erreur dans le traitement des données
+[[BUSE]]{macro: autolabel} ERROR: Message d'erreur: SQLSTATE[HY000]: General error: 1525 Incorrect DATE value: 'null'
+[[BUSE]]{macro: autolabel} ERROR: Trace: #0 /var/www/html/buse/public/pages/show/blocks/getTimelineBlocks.php(39): PDOStatement->execute()
+#1 {main}
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
+[[BUSE]]{macro: autolabel} WARNING: E_WARNING: Undefined variable $e
+[[BUSE]]{macro: autolabel} DEBUG: Current version: 1.0
