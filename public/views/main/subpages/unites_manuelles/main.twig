@@ -1,41 +1,38 @@
-<div class="flex-h w-available">
-    <div class="block" id="unites-manual">
-        <div class="block__title glass">
-            <div class="block__title-left">
-                Gestion des unités ajoutées manuellement
-                <a onclick="unitesManualTable.addRow([],'start')">
-                    <i class="fa fa-circle-plus"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="block__content flex-h">
-            <table id="unitesManualTbl">
-                <thead>
-                    <tr>
-                        <th id="id" th-hide th-text-default="0">id</th>
-                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="name">Unité</th>
-                        <th id="cu" th-edit data-tooltip="Mettre un numéro distinct pour chaque unité et supérieur à 99900">code Unité <i class="fa fa-info-circle"></i></th>
-                        <th th-choice id="cieCu" th-sort>Compagnie</th>
-                        <th th-actions="delete,save">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for unites in unites_manuelles_tbl %}
-                        <tr id="{{unites.id}}" name="{{ unites.id }}">
-                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
-                            <td id="name_{{ unites.id }}" name="name_{{ unites.id }}">{{ unites.name }}</td>
-                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
-                            <td id="cieCu_{{ unites.id }}" name="cieCu_{{ unites.id }}">{{unites.cieCu}}</td>
-                            <td id="actions_{{ unites.id }}" name="actions_{{  unites.id }}"></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="block" id="unites-manual">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Gestion des unités ajoutées manuellement
+            <a onclick="unitesManualTable.addRow([],'start')">
+                <i class="fa fa-circle-plus"></i>
+            </a>
         </div>
     </div>
-</div>
 
+    <div class="block__content flex-h">
+        <table id="unitesManualTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide th-text-default="0">id</th>
+                    <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="name">Unité</th>
+                    <th id="cu" th-edit data-tooltip="Mettre un numéro distinct pour chaque unité et supérieur à 99900">code Unité <i class="fa fa-info-circle"></i></th>
+                    <th th-choice id="cieCu" th-sort>Compagnie</th>
+                    <th th-actions="delete,save">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unites in unites_manuelles_tbl %}
+                    <tr id="{{unites.id}}" name="{{ unites.id }}">
+                        <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
+                        <td id="name_{{ unites.id }}" name="name_{{ unites.id }}">{{ unites.name }}</td>
+                        <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                        <td id="cieCu_{{ unites.id }}" name="cieCu_{{ unites.id }}">{{unites.cieCu}}</td>
+                        <td id="actions_{{ unites.id }}" name="actions_{{  unites.id }}"></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 <script type="module">
     import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
     const unitesManualTable = new TableFlow({

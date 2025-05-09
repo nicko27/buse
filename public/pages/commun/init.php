@@ -52,7 +52,6 @@ SqlManager::initWithParams(
 );
 
 $sqlManager = SqlManager::getInstance();
-
 // Créer les répertoires nécessaires
 $directories = [
     $config->get('LOG_DIR'),

@@ -1,0 +1,207 @@
+<div class="block" id="rights">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Gestion des droits
+            <a onclick="table.addRow([],'start')">
+                <i class="fa fa-circle-plus"></i>
+            </a>
+        </div>
+    </div>
+
+    <div class="block__content flex-h">
+        <div class="block__buttons">
+
+        </div>
+        <table id="rightsTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide>Id</th>
+                    <th id="u_ou_g" th-hide>Utilisateur ou Groupe</th>
+                    <th id="name" th-choice th-sort th-filter>Nom</th>
+                    <th id="read" th-choice >Lecture</th>
+                    <th id="manage" th-choice>Gestion</th>
+                    <th id="admin" th-choice>Administration</th>
+                    <th id="super_admin" th-choice>Super Administration</th>
+                    <th  th-actions="delete,save">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rights_tbl %}
+                    <tr id="{{r.id}}" name="{{ r.id }}">
+                        <td id="id_{{ r.id }}" name="id_{{ r.id }}">{{ r.id }}</td>
+                        <td id="u_ou_g_{{ r.id }}" name="u_ou_g_{{ r.id }}">{{ r.u_ou_g }}</td>
+                        <td id="name_{{ r.id }}" name="name_{{ r.id}}">{{ r.name }}</td>
+                        <td id="read_{{ r.id }}" name="read_{{ r.id}}">{{ r.read }}</td>
+                        <td id="manage_{{ r.id }}" name="manage_{{ r.id}}">{{ r.manage }}</td>
+                        <td id="admin_{{ r.id }}" name="admin_{{ r.id }}">{{ r.admin }}</td>
+                        <td id="super_admin_{{ r.id }}" name="super_admin_{{ r.super_admin }}">{{ r.super_admin }}</td>
+                        <td id="actions_{{ r.id }}" name="actions_{{ r.id }}"></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script type="module">
+    import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
+
+    window.table = new TableFlow({
+        tableId: 'rightsTbl',
+        debug: true,
+        plugins: {
+            names: ['Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
+            choice: {
+                columns: {
+                    'name': {
+                        type: 'searchable', // Type avec recherche et autocomplétion
+                        values: [], // Laisser vide car les valeurs seront chargées via AJAX
+                        searchable: {
+                            minWidth: '250px', // Largeur minimale du dropdown
+                            placeholder: 'Rechercher un utilisateur ou un groupe...', // Texte du placeholder
+                            noResultsText: 'Aucun résultat trouvé', // Texte quand aucun résultat
+                            loadingText: 'Chargement en cours...' // Texte pendant le chargement
+                        },
+                        ajax: {
+                            enabled: true, // Activer AJAX
+                            url: "{{WEB_PAGES}}/main/subpages/rights/actions.php", // URL de l'API de recherche
+                            method: 'GET', // Méthode HTTP
+                            minChars: 2, // Nombre minimum de caractères pour déclencher la recherche
+                            debounceTime: 300, // Délai avant d'envoyer la requête (ms)
+                            paramName: 'name', // Nom du paramètre de recherche (ex: /api/users/search?q=...)
+                            extraParams: { // Paramètres supplémentaires
+                                status: 'active',
+                                limit: 20
+                            },
+                            loadOnFocus: true, // Charger des options initiales au focus
+                            // Fonction pour parser la réponse du serveur
+                            responseParser: function(data) {
+                                // Supposons que le serveur renvoie un objet { users: [...] }
+                                if (data.users && Array.isArray(data.users)) {
+                                    // Transformer en format attendu par Choice
+                                    return data.users.map(user => ({
+                                        id: user.id, // Valeur à stocker
+                                        label: `${user.firstName} ${user.lastName}`, // Texte à afficher
+                                        // Données additionnelles pour l'auto-remplissage
+                                        name: user.name,
+                                        u_ou_g: user.u_ou_g,
+                                        read:0,
+                                        manage:0,
+                                        admin:0,
+                                        super_admin:0
+
+                                    }));
+                                }
+                                return [];
+                            }
+                        },
+                        // Configuration pour auto-remplir d'autres cellules avec les données associées
+                        autoFill: {
+                            enabled: true,
+                            mappings: {
+                                'id': 'user_id', // Remplir la colonne 'user_id' avec la valeur 'id'
+                                'u_ou_g': 'u_ou_g', // Remplir la colonne 'email' avec la valeur 'email'
+                                'name': 'name', // Remplir la colonne 'phone' avec la valeur 'phone'
+                                'read': 'read',
+                                'manage':'manage',
+                                'admin':'admin',
+                                'super_admin':'super_admin'
+                            }
+                        }
+                    },
+                    'read': {
+                        type: 'toggle',
+                        values: [
+                            { value: '1', label: '<span style="color: green">Oui</span>' },
+                            { value: '0', label: '<span style="color: red">Non</span>' }
+                        ],
+                        isReadOnly: (value, rowData) => {
+                            return rowData.super_admin === 1 || rowData.super_admin === '1';
+                        }
+                    },
+                    'manage': {
+                        type: 'toggle',
+                        values: [
+                            { value: '1', label: '<span style="color: green">Oui</span>' },
+                            { value: '0', label: '<span style="color: red">Non</span>' }
+                        ],
+                        isReadOnly: (value, rowData) => {
+                            return rowData.super_admin === 1 || rowData.super_admin === '1';
+                        }
+                    },
+                    'admin': {
+                        type: 'toggle',
+                        values: [
+                            { value: '1', label: '<span style="color: green">Oui</span>' },
+                            { value: '0', label: '<span style="color: red">Non</span>' }
+                        ],
+                        isReadOnly: (value, rowData) => {
+                            return rowData.super_admin === 1 || rowData.super_admin === '1';
+                        }
+                    },
+                    'super_admin':{
+                        type: 'toggle',
+                        values: [
+                            { value: '1', label: '<span style="color: gray"><b>Oui</b></span>', readOnly:true },
+                            { value: '0', label: '<span style="color: gray">Non</span>', readOnly:true  }
+                        ]
+                    }
+                }
+            },
+            actions: {
+                actionAttribute: 'th-actions',
+                cellClass: 'td-actions',
+                useIcons: true,
+                debug: true,
+                autoSave: false,
+                actions: {
+                    delete: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            actionRow(url, context.data, "sites", "delete").then(result => {
+                                if (result) {
+                                    successNotice('Ligne supprimée avec succès');
+                                    context.tableHandler.removeRow(context.row);
+                                } else {
+                                    errorNotice('Erreur lors de la suppression de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la suppression de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>',
+                        isDisabled: (data, row) => {
+                            return data.super_admin === 1 || data.super_admin === '1';
+                        }
+                    },
+                    save: {
+                        handler: function(context) {
+                            const url = "/main/actions.php";
+                            const data = {
+                                ...context.data,
+                                table: 'configurationTbl',
+                                action: 'addUpdate'
+                            };
+                            actionRow(url, data, "configuration", "addUpdate").then(result => {
+                                if (result) {
+                                    successNotice('Ligne mise à jour avec succès');
+                                    context.tableHandler.markRowAsSaved(context.row, 'save');
+                                } else {
+                                    errorNotice('Erreur lors de la mise à jour de la ligne');
+                                }
+                            }).catch(error => {
+                                errorNotice('Erreur lors de la mise à jour de la ligne');
+                                console.error('Error:', error);
+                            });
+                        },
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>',
+                        isDisabled: (data, row) => {
+                            return data.super_admin === 1 || data.super_admin === '1';
+                        }
+                    }
+                }
+            }
+        },
+        pluginsPath: '../plugins'
+    });
+</script>

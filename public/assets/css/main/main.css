@@ -387,6 +387,8 @@ body {
     box-shadow: 0 1px 5px #333333;
     margin-bottom: 20px;
     padding-bottom: 20px;
+    margin-left: 30px;
+    margin-right: 30px;
 }
 
 .block__title {
@@ -497,6 +499,14 @@ body {
     background: #685435;
 }
 
+#rights .block__title {
+    background: #154742;
+}
+
+#pages .block__title {
+    background: #22d3ee;
+}
+
 
 
 a.menu__elt:hover {
@@ -548,6 +558,14 @@ a#categories:hover {
 
 a#synthese:hover {
     background: linear-gradient(to right, #685435, 80%, #EEE);
+}
+
+a#rights:hover {
+    background: linear-gradient(to right, #154742, 80%, #EEE);
+}
+
+a#pages:hover {
+    background: linear-gradient(to right, #22d3ee, 80%, #EEE);
 }
 
 

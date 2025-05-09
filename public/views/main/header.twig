@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ CSRF_TOKEN }}" />
+    {% if page == PAGE_SHOW_TIMELINE %}
+      {% if debug == 0 %}
+        <meta http-equiv="refresh" content="600" />
+      {% endif %}
+    {% endif %}
+    <script>
+      window.WEB_PAGES = "{{ WEB_PAGES }}";
+      window.WEB_ASSETS = "{{ WEB_ASSETS }}";
+      window.WEB_PUBLIC = "{{ WEB_PUBLIC }}";
+    </script>
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/dropzone/dropzone.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/commun/base.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/commun/buttons.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/commun/switches.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/modalFlow/src/modalFlow.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/colorFlow/src/colorFlow.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/dateFlow/src/dateFlow.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/notifyFlow/src/notifyFlow.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/libs/tooltipFlow/src/tooltipFlow.css">
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/index/index.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/theme/light.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/{{ page_root }}.css" />
+    <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/show/modal.css">
+    <script src="{{ WEB_ASSETS }}/libs/notifyFlow/src/notifyFlow.js"></script>
+    <script src="{{ WEB_ASSETS }}/libs/updateFlow/src/updateFlow.js"></script>
+    <script src="{{ WEB_ASSETS }}/libs/modalFlow/src/modalFlow.js"></script>
+    <script src="{{ WEB_ASSETS }}/js/{{ page_root }}.js"></script>
+    <script src="{{ WEB_ASSETS }}/libs/colorFlow/src/colorFlow.js"></script>
+    <script src="{{ WEB_ASSETS }}/libs/dateFlow/src/dateFlow.js"></script>
+    <!--    <script src="{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js"></script> !-->
+    <script src="{{ WEB_ASSETS }}/libs/tooltipFlow/src/tooltipFlow.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation de tooltipFlow
+            window.tooltipFlow = TooltipFlow.init({
+                debug: {{ debug }}, // Utilise la variable debug de Twig
+                defaultPosition: 'bottom', // Position par défaut en bas pour les tooltips de timeline
+                margin: 10,
+                showDelay: 100,
+                hideDelay: 100,
+                interactive: true // Important pour les tooltips de la timeline
+            });
+
+            // Initialisation de NotifyFlow
+            window.notifyFlow = new NotifyFlow({
+                position: 'top-right',
+                theme: 'light',
+                maxNotifications: 5,
+                defaultDuration: 5000,
+                containerClass: 'notify-flow',
+                animations: {
+                    in: 'slide-in',
+                    out: 'fade-out'
+                }
+            });
+
+            // Initialisation de modalFlow
+            window.modalFlow = new ModalFlow({
+                defaultOptions: {
+                    width: '700px',
+                    height: 'auto',
+                    closeOnOverlayClick: true,
+                    showCloseButton: true,
+                    animation: 'slide-down'
+                }
+            });
+
+        });
+    </script>
+    <script src="{{ WEB_ASSETS }}/js/base_fcts.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="{{ WEB_ASSETS }}/img/index/{{SHORTCUT_ICON}}" />
+    <title> {{ SITE_FIRST_MAJ}} v{{ version }}</title>
+  </head>

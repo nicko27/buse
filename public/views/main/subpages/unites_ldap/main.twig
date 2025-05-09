@@ -1,60 +1,58 @@
-<div class="flex-h w-available">
-    <div class="block" id="unites-ldap">
-        <div class="block__title glass">
-            <div class="block__title-left">
-                Gestion des unités LDAP
-            </div>
-            <div class="block__title-center">
-                <div id="maj__text-update" class="hidden progress-container">
-                    <div class="progress-bar"></div>
-                </div>
-            </div>
-            <div class="block__title-right">
-                <button class="btn btn-glass" onclick="getUnits()" tf-tooltip="Télécharger la base des unités du département">
-                    <i id="maj__text-normal" class="fa fa-file-arrow-down"></i>
-                </button>
+<div class="block" id="unites-ldap">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Gestion des unités LDAP
+        </div>
+        <div class="block__title-center">
+            <div id="maj__text-update" class="hidden progress-container">
+                <div class="progress-bar"></div>
             </div>
         </div>
+        <div class="block__title-right">
+            <button class="btn btn-glass" onclick="getUnits()" tf-tooltip="Télécharger la base des unités du département">
+                <i id="maj__text-normal" class="fa fa-file-arrow-down"></i>
+            </button>
+        </div>
+    </div>
 
-        <div class="block__content flex-h">
-            <div class="block__buttons">
+    <div class="block__content flex-h">
+        <div class="block__buttons">
 
-            </div>
-            <table id="unitesLdapTbl">
-                <thead>
-                    <tr>
-                        <th id="id" th-hide th-text-default="0">id</th>
-                        <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
-                        <th id="cu" th-readonly>code Unité</th>
-                        <th id="cuCob" th-choice>Nom de la COB</th>
-                        <th id="isCob" th-choice>Unité d'une COB</th>
-                        <th id="parentCu" th-hide>Cu parent</th>
-                        <th th-choice th-sort id="isCie">Est une Compagnie</th>
-                        <th th-choice id="invisible">Unité Visible</th>
+        </div>
+        <table id="unitesLdapTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide th-text-default="0">id</th>
+                    <th th-edit='{"required": true}' th-sort th-class="small-caps-under" id="newName">Nom Affiché</th>
+                    <th id="cu" th-readonly>code Unité</th>
+                    <th id="cuCob" th-choice>Nom de la COB</th>
+                    <th id="isCob" th-choice>Unité d'une COB</th>
+                    <th id="parentCu" th-hide>Cu parent</th>
+                    <th th-choice th-sort id="isCie">Est une Compagnie</th>
+                    <th th-choice id="invisible">Unité Visible</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unites in unites_ldap_tbl %}
+                    <tr id="{{unites.id}}" name="{{ unites.id }}">
+                        <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
+                        <td id="newName_{{ unites.id }}" name="newName_{{ unites.id }}">{{ unites.newName }}</td>
+                        <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
+                        <td id="cuCob_{{ unites.id }}" name="cuCob_{{ unites.id }}" >{{unites.cuCob}}</td>
+                        <td id="isCob_{{ unites.id }}" name="isCob_{{ unites.id }}" >{{unites.isCob}}</td>
+                        <td id="parentCu_{{ unites.id }}" name="parentCu_{{ unites.id }}">{{unites.parentCu}}</td>
+                        <td id="isCie_{{ unites.id }}" name="isCie_{{ unites.id }}">{{unites.isCie}}</td>
+                        <td id="invisible_{{ unites.id }}" name="invisible_{{ unites.id }}">{{ unites.invisible }}</td>
+
                     </tr>
-                </thead>
-                <tbody>
-                    {% for unites in unites_ldap_tbl %}
-                        <tr id="{{unites.id}}" name="{{ unites.id }}">
-                            <td id="id_{{ unites.id }}" name="id_{{  unites.id }}">{{ unites.id }}</td>
-                            <td id="newName_{{ unites.id }}" name="newName_{{ unites.id }}">{{ unites.newName }}</td>
-                            <td id="cu_{{ unites.id }}" name="cu_{{ unites.id }}" >{{unites.cu}}</td>
-                            <td id="cuCob_{{ unites.id }}" name="cuCob_{{ unites.id }}" >{{unites.cuCob}}</td>
-                            <td id="isCob_{{ unites.id }}" name="isCob_{{ unites.id }}" >{{unites.isCob}}</td>
-                            <td id="parentCu_{{ unites.id }}" name="parentCu_{{ unites.id }}">{{unites.parentCu}}</td>
-                            <td id="isCie_{{ unites.id }}" name="isCie_{{ unites.id }}">{{unites.isCie}}</td>
-                            <td id="invisible_{{ unites.id }}" name="invisible_{{ unites.id }}">{{ unites.invisible }}</td>
-
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-             <div class="block__buttons">
-                <div class="block__search">
-                    <div class="filter-group">
-                        <span>Rechercher dans le tableau</span>
-                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
-                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+            <div class="block__buttons">
+            <div class="block__search">
+                <div class="filter-group">
+                    <span>Rechercher dans le tableau</span>
+                    <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
                 </div>
             </div>
         </div>

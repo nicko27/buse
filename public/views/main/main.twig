@@ -1,4 +1,4 @@
-<div id="main">
+
   <div class="title">
     <div class="banner-content">
       <h1>{{ SITE_LONG_NAME }}</h1>
@@ -8,7 +8,7 @@
       <img src="{{ WEB_ASSETS }}/img/index/bused.png" alt="Logo"/>
     </div>
   </div>
-  <div class="field">
+  <div class="flex-v">
     <div class="menu">
       <div class="menu__block glass">
         <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_IMPORT }}" id="import" class="menu__elt">Imports et mises à jour</a>
@@ -23,12 +23,12 @@
         <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_CATEGORIES }}" id="categories" class="menu__elt">Catégories d'évènements</a>
         <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_PREPARE_SYNTHESE }}" id="synthese" class="menu__elt">Synthèse des Evenements</a>
         <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_CONFIGURATION }}" id="configuration" class="menu__elt">Gestion des variables de configuration</a>
+        <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_PAGES }}" id="pages" class="menu__elt">Gestion des pages du site</a>
+        <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_RIGHTS }}" id="rights" class="menu__elt">Gestion des droits</a>
        <!-- <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_SYNTHESE }}" id="synthese" class="menu__elt">Gestion de la synthèse</a> -->
         <!--        <a href="index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_RIGHTS }}" id="rights" class="menu__elt">Gestion des droits</a> -->
       </div>
     </div>
-    <div class="content">
       {% include SUBPAGE %}
     </div>
   </div>
-</div>

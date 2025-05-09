@@ -16,22 +16,32 @@
             <thead>
                 <tr>
                     <th id="id" th-hide>Id</th>
-                    <th id="var" th-edit th-sort th-filter>Variable</th>
-                    <th id="value" th-edit >Valeur</th>
-                    <th id="description" th-textarea th-edit>Description</th>
-                    <th id="twig" th-choice>Twig</th>
+                    <th id="slug" th-hide>identifiant_logique</th>
+                    <th id="php_file" th-choice th-sort th-filter tf-tooltip="Nom et chemin du fichier php en fonction de public/pages">Fichier php</th>
+                    <th id="pages_twig_header" th-choice >Twig Header </th>
+                    <th id="pages_twig_content" th-choice >Twig Content</th>
+                    <th id="pages_twig_footer" th-choice >Twig Footer</th>
+                    <th id="pages_js_header" th-choice >Js Header</th>
+                    <th id="pages_js_footer" th-choice >Js Footer</th>
+                    <th id="pages_css" th-choice >Css</th>
+                    <th id="pages_font" th-choice >Polices de caractères</th>
                     <th  th-actions="delete,save">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for c in configuration_tbl %}
-                    <tr id="{{c.id}}" name="{{ c.id }}">
-                        <td id="id_{{ c.id }}" name="id_{{ c.id }}">{{ c.id }}</td>
-                        <td id="var_{{ c.id }}" name="var_{{ c.id}}">{{ c.var }}</td>
-                        <td id="value_{{ c.id }}" name="value_{{ c.id}}">{{ c.value }}</td>
-                        <td id="description_{{ c.id }}" name="description_{{ c.id}}">{{ c.description }}</td>
-                        <td id="twig_{{ c.id }}" name="twig_{{ c.id }}">{{ c.twig }}</td>
-                        <td id="actions_{{ c.id }}" name="actions_{{ c.id }}"></td>
+                {% for p in pages_tbl %}
+                    <tr id="{{r.id}}" name="{{ r.id }}">
+                        <td id="id_{{ p.id }}" name="id_{{ p.id }}">{{ p.id }}</td>
+                        <td id="slug_{{ p.id }}" name="slug_{{ p.id }}">{{ p.slug }}</td>
+                        <td id="php_file_{{ p.id }}" name="php_file_{{ p.id }}">{{ p.php_file }}</td>
+                        <td id="pages_twig_header_{{ p.id }}" name="pages_twig_header_{{ p.id }}">{{ p.pages_twig_header }}</td>
+                        <td id="pages_twig_content_{{ p.id }}" name="pages_twig_content_{{ p.id }}">{{ p.pages_twig_content }}</td>
+                        <td id="pages_twig_footer_{{ p.id }}" name="pages_twig_footer_{{ p.id }}">{{ p.pages_twig_footer }}</td>
+                        <td id="pages_js_header_{{ p.id }}" name="pages_js_header_{{ p.id }}">{{ p.pages_js_header }}</td>
+                        <td id="pages_js_footer_{{ p.id }}" name="pages_js_footer_{{ p.id }}">{{ p.pages_js_footer }}</td>
+                        <td id="pages_css_{{ p.id }}" name="pages_css_{{ p.id }}">{{ p.pages_css }}</td>
+                        <td id="pages_font_{{ p.id }}" name="pages_font_{{ p.id }}">{{ p.pages_font }}</td>
+                        <td id="actions_{{ p.id }}" name="actions_{{ p.id }}"></td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -48,12 +58,22 @@
             names: ['Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
             choice: {
                 columns: {
-                    'twig': {
-                        type: 'toggle',
-                        values: [
-                            { value: '0', label: '<span style="color: green">Non Ajoutée</span>' },
-                            { value: '1', label: '<span style="color: red">Ajoutée</span>' }
+                    pages_twig_header:{
+                        type: 'multiple',
+                        values:[
+                            {% for p in pages_twig_header_tbl %}
+                                { value: {{ p.id }}, label: {{ p.name }}}
+                            {% endfor %}
                         ]
+                    },
+                    searchable: {
+                        enabled: true,
+                        placeholder: 'Rechercher ou ajouter une permission...'
+                    },
+                    multiple: {
+                        allowCustomValues: true,
+                        separator: ',',
+                        maxTags: 10
                     }
                 }
             },
@@ -79,7 +99,10 @@
                                 console.error('Error:', error);
                             });
                         },
-                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>'
+                        icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>',
+                        isDisabled: (data, row) => {
+                            return data.super_admin === 1 || data.super_admin === '1';
+                        }
                     },
                     save: {
                         handler: function(context) {
@@ -101,7 +124,10 @@
                                 console.error('Error:', error);
                             });
                         },
-                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>'
+                        icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>',
+                        isDisabled: (data, row) => {
+                            return data.super_admin === 1 || data.super_admin === '1';
+                        }
                     }
                 }
             }

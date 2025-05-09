@@ -1,7 +1,7 @@
 <?php
-
 namespace Commun\Template;
 
+use Commun\Utils\StringUtils;
 use Commun\Utils\TphUtils;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -30,6 +30,6 @@ class TwigExtensions extends AbstractExtension
 
     public function truncateMiddle($string, $length)
     {
-        return TphUtils::truncateMiddle($string, $length);
+        return StringUtils::truncateMiddle($string, $length);
     }
 }

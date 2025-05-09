@@ -46,6 +46,8 @@ function initVars($get = [])
     $vars['WEB_SERVER']               = $config->get('WEB_SERVER');
     $vars['PAGES_DIR']                = $config->get('PAGES_DIR');
     $vars['SUBPAGE_CONFIGURATION']    = $config->get('SUBPAGE_CONFIGURATION');
+    $vars['SUBPAGE_PAGES']            = $config->get('SUBPAGE_PAGES');
+    $vars['SUBPAGE_RIGHTS']           = $config->get('SUBPAGE_RIGHTS');
 
     return $vars;
 }

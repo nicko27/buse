@@ -1,0 +1,33 @@
+{% try %}
+    {% include header ~ '.twig' %}
+{% catch %}
+    {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+{% endtry %}
+  <body>
+    {% try %}
+        {% include title ~ '.twig' %}
+    {% catch %}
+        {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+    {% endtry %}
+
+    <div class="field">
+        {% include menu ~ '.twig' %}
+        {% try %}
+            {% include menu ~ '.twig' %}
+        {% catch %}
+            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+        {% endtry %}
+
+        {% try %}
+            {% include content ~ '.twig' %}
+        {% catch %}
+            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+        {% endtry %}
+    </div>
+    </body>
+</html>
+{% try %}
+    {% include footer ~ '.twig' %}
+{% catch %}
+    {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+{% endtry %}

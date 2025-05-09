@@ -1,47 +1,46 @@
-<div class="flex-h w-available">
-    <div class="block" id="cities">
-        <div class="block__title glass">
-            <div class="block__title-left">
-                Gestion des communes
-            </div>
+
+<div class="block" id="cities">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Gestion des communes
         </div>
+    </div>
 
-        <div class="block__content flex-h">
-            <div class="block__buttons">
+    <div class="block__content flex-h">
+        <div class="block__buttons">
 
-            </div>
-            <table id="citiesTbl">
-                <thead>
-                    <tr>
-                        <th id="id" th-hide>Id</th>
-                        <th id="insee" th-edit>Insee</th>
-                        <th id="name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Nom</th>
-                        <th id="old_name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Ancien Nom</th>
-                        <th id="code_postal" th-edit>Code Postal</th>
-                        <th th-actions="save">Actions</th>
+        </div>
+        <table id="citiesTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide>Id</th>
+                    <th id="insee" th-edit>Insee</th>
+                    <th id="name" th-edit th-sort th-class="small-caps-under">Nom</th>
+                    <th id="old_name" th-edit th-filterAndPaginate th-sort th-class="small-caps-under">Ancien Nom</th>
+                    <th id="code_postal" th-edit>Code Postal</th>
+                    <th th-actions="save">Actions</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cities_tbl %}
+                    <tr id="{{c.id}}" name="{{ c.id }}">
+                        <td id="id_{{ c.id }}" name="id_{{ c.id}}">{{ c.id }}</td>
+                        <td id="insee_{{ c.id }}" name="insee_{{ c.id}}">{{ c.insee }}</td>
+                        <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
+                        <td id="old_name_{{ c.id }}" name="old_name_{{ c.id}}">{{ c.old_name }}</td>
+                        <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
+                        <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
 
                     </tr>
-                </thead>
-                <tbody>
-                    {% for c in cities_tbl %}
-                        <tr id="{{c.id}}" name="{{ c.id }}">
-                            <td id="id_{{ c.id }}" name="id_{{ c.id}}">{{ c.id }}</td>
-                            <td id="insee_{{ c.id }}" name="insee_{{ c.id}}">{{ c.insee }}</td>
-                            <td id="name_{{ c.id }}" name="name_{{ c.id}}">{{ c.name }}</td>
-                            <td id="old_name_{{ c.id }}" name="old_name_{{ c.id}}">{{ c.old_name }}</td>
-                            <td id="cp_{{ c.id }}" name="id_{{ c.id }}">{{ c.code_postal }}</td>
-                            <td id="actions_{{ c.id }}" name="actions_{{ c.code_postal }}"></td>
-
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-             <div class="block__buttons">
-                <div class="block__search">
-                    <div class="filter-group">
-                        <span>Rechercher dans le tableau</span>
-                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
-                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+            <div class="block__buttons">
+            <div class="block__search">
+                <div class="filter-group">
+                    <span>Rechercher dans le tableau</span>
+                    <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
                 </div>
             </div>
         </div>

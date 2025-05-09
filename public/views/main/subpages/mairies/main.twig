@@ -1,51 +1,49 @@
-<div class="flex-h w-available">
-    <div class="block" id="cities">
-        <div class="block__title glass">
-            <div class="block__title-left">
-                Gestion des mairies et des brigades territorialement compétentes
-            </div>
+<div class="block" id="mairies">
+    <div class="block__title glass">
+        <div class="block__title-left">
+            Gestion des mairies et des brigades territorialement compétentes
         </div>
+    </div>
 
-        <div class="block__content flex-h">
-            <div class="block__buttons">
+    <div class="block__content flex-h">
+        <div class="block__buttons">
 
-            </div>
-            <table id="mairiesTbl">
-                <thead>
-                    <tr>
-                        <th id="id" th-hide>Id</th>
-                        <th id="name" th-filterAndPaginate th-sort th-sql-exclude th-class="small-caps-under">Nom</th>
-                        <th id="old_name" th-filterAndPaginate  th-sql-exclude th-sort th-class="small-caps-under">Ancien Nom</th>
-                        <th id="code_postal" th-sql-exclude th-edit>Code Postal</th>
-                        <th id="unit_id" th-choice>Brigade Territorialement Compétente</th>
-                        <th id="maire" th-edit>Nom du maire</th>
-                        <th id="mail" th-edit>Adresse mail</th>
-                        <th th-actions="save">Actions</th>
+        </div>
+        <table id="mairiesTbl">
+            <thead>
+                <tr>
+                    <th id="id" th-hide>Id</th>
+                    <th id="name" th-filterAndPaginate th-sort th-sql-exclude th-class="small-caps-under">Nom</th>
+                    <th id="old_name" th-filterAndPaginate  th-sql-exclude th-sort th-class="small-caps-under">Ancien Nom</th>
+                    <th id="code_postal" th-sql-exclude th-edit>Code Postal</th>
+                    <th id="unit_id" th-choice>Brigade Territorialement Compétente</th>
+                    <th id="maire" th-edit>Nom du maire</th>
+                    <th id="mail" th-edit>Adresse mail</th>
+                    <th th-actions="save">Actions</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in mairies_tbl %}
+                    <tr id="{{m.id}}" name="{{ m.id }}">
+                        <td id="id_{{ m.id }}" name="id_{{ m.id }}">{{ m.id }}</td>
+                        <td id="name_{{ m.id }}" name="name_{{ m.id}}">{{ m.name }}</td>
+                        <td id="old_name_{{ m.id }}" name="old_name_{{ m.id}}">{{ m.old_name }}</td>
+                        <td id="cp_{{ m.id }}" name="id_{{ m.id }}">{{ m.code_postal }}</td>
+                        <td id="unit_id_{{ m.id }}" name="unit_id_{{ m.id }}">{{ m.unit_id }}</td>
+                        <td id="maire_{{ m.id }}" name="maire_{{ m.id }}">{{ m.maire }}</td>
+                        <td id="mail_{{ m.id }}" name="mail_{{ m.id }}">{{ m.mail }}</td>
+                        <td id="actions_{{ m.id }}" name="actions_{{ m.code_postal }}"></td>
 
                     </tr>
-                </thead>
-                <tbody>
-                    {% for m in mairies_tbl %}
-                        <tr id="{{m.id}}" name="{{ m.id }}">
-                            <td id="id_{{ m.id }}" name="id_{{ m.id }}">{{ m.id }}</td>
-                            <td id="name_{{ m.id }}" name="name_{{ m.id}}">{{ m.name }}</td>
-                            <td id="old_name_{{ m.id }}" name="old_name_{{ m.id}}">{{ m.old_name }}</td>
-                            <td id="cp_{{ m.id }}" name="id_{{ m.id }}">{{ m.code_postal }}</td>
-                            <td id="unit_id_{{ m.id }}" name="unit_id_{{ m.id }}">{{ m.unit_id }}</td>
-                            <td id="maire_{{ m.id }}" name="maire_{{ m.id }}">{{ m.maire }}</td>
-                            <td id="mail_{{ m.id }}" name="mail_{{ m.id }}">{{ m.mail }}</td>
-                            <td id="actions_{{ m.id }}" name="actions_{{ m.code_postal }}"></td>
-
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-             <div class="block__buttons">
-                <div class="block__search">
-                    <div class="filter-group">
-                        <span>Rechercher dans le tableau</span>
-                        <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
-                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+            <div class="block__buttons">
+            <div class="block__search">
+                <div class="filter-group">
+                    <span>Rechercher dans le tableau</span>
+                    <input type="text" id="search" class="filter-input" placeholder="Texte à Rechercher" autocomplete="off">
                 </div>
             </div>
         </div>
