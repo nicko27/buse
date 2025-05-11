@@ -7,6 +7,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 # --- Variables globales par défaut ---
@@ -38,11 +39,53 @@ log_info()    { echo -e "$1"; }
 log_error()   { echo -e "${RED}❌ Erreur: $1${NC}" >&2; }
 log_warn()    { echo -e "${YELLOW}⚠️  $1${NC}" >&2; }
 log_success() { echo -e "${GREEN}✅ $1${NC}"; }
-log_debug()   { [[ "$DEBUG_MODE" == "true" ]] && echo -e "${CYAN}[DEBUG]${NC} $1"; }
+log_debug()   { 
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        local timestamp=$(date '+%H:%M:%S')
+        local caller_info=$(caller 0)
+        local line_number=${caller_info%% *}
+        local function_name=${caller_info#* }
+        echo -e "${BLUE}[DEBUG ${timestamp}]${NC} ${CYAN}${function_name}:${line_number}${NC} $1"
+    fi
+}
+
+# --- Fonctions de debug ---
+debug_show_vars() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        log_debug "Variables de configuration :"
+        log_debug "  DEFAULT_BRANCH: $DEFAULT_BRANCH"
+        log_debug "  DEFAULT_REMOTE: $DEFAULT_REMOTE"
+        log_debug "  CONFLICT_CHECK: $CONFLICT_CHECK"
+        log_debug "  BRANCH_CHECK: $BRANCH_CHECK"
+        log_debug "  REMOTE_CHECK: $REMOTE_CHECK"
+        log_debug "  CONFIG_FILE: $CONFIG_FILE"
+        log_debug "  GIT_TOPLEVEL: $GIT_TOPLEVEL"
+        log_debug "Variables d'état :"
+        log_debug "  PUSH_ALL: $PUSH_ALL"
+        log_debug "  PUSH_MAIN: $PUSH_MAIN"
+        log_debug "  PUSH_SUBMODULES: $PUSH_SUBMODULES"
+        log_debug "  NO_CONFIRM: $NO_CONFIRM"
+        log_debug "  SPECIFIED_BRANCH: $SPECIFIED_BRANCH"
+        log_debug "  SPECIFIED_REMOTE: $SPECIFIED_REMOTE"
+    fi
+}
+
+debug_show_git_status() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        log_debug "État Git :"
+        log_debug "  Branche actuelle: $(git rev-parse --abbrev-ref HEAD)"
+        log_debug "  Remotes: $(git remote | tr '\n' ' ')"
+        log_debug "  Modifications:"
+        git status --porcelain | while read -r line; do
+            log_debug "    $line"
+        done
+    fi
+}
 
 # --- Nettoyage ---
 cleanup_and_exit() {
     [[ -f "$LOCK_FILE" && "$(cat "$LOCK_FILE" 2>/dev/null)" == "$$" ]] && rm -f "$LOCK_FILE"
+    log_debug "Nettoyage effectué"
     exit "$1"
 }
 
@@ -97,6 +140,7 @@ done
 
 # --- Fonctions système ---
 check_prerequisites() {
+    log_debug "Vérification des prérequis"
     if ! command -v git >/dev/null; then
         log_error "Git non trouvé."
         exit 1
@@ -105,19 +149,25 @@ check_prerequisites() {
         log_error "Pas un dépôt git."
         exit 1
     fi
+    log_debug "Prérequis vérifiés"
 }
 
 set_git_toplevel() {
+    log_debug "Configuration du répertoire Git"
     GIT_TOPLEVEL="$(git rev-parse --show-toplevel)"
     CONFIG_FILE="$GIT_TOPLEVEL/$CONFIG_FILE"
     cd "$GIT_TOPLEVEL"
+    log_debug "Répertoire Git configuré: $GIT_TOPLEVEL"
 }
 
 check_timeout_cmd() {
+    log_debug "Vérification de la commande timeout"
     command -v timeout >/dev/null && TIMEOUT_CMD="timeout" || TIMEOUT_CMD=""
+    log_debug "Commande timeout: $TIMEOUT_CMD"
 }
 
 load_config() {
+    log_debug "Chargement de la configuration"
     [[ -f "$1" ]] && source "$1" || log_debug "Aucun fichier de config trouvé, valeurs par défaut utilisées."
 }
 
@@ -225,15 +275,21 @@ check_timeout_cmd
 [[ "$SHOW_CONFIG" == true ]] && show_current_config
 load_config "$CONFIG_FILE"
 
+# Afficher les informations de debug
+debug_show_vars
+debug_show_git_status
+
 # Vérifier le lock file
 if [[ -f "$LOCK_FILE" ]]; then
     LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+    log_debug "Vérification du lock file (PID: $LOCK_PID)"
     if ps -p "$LOCK_PID" >/dev/null 2>&1; then
         log_error "Une autre instance du script est en cours d'exécution (PID: $LOCK_PID)"
         cleanup_and_exit 1
     fi
 fi
 echo "$$" > "$LOCK_FILE"
+log_debug "Lock file créé (PID: $$)"
 
 # --- Traitement du projet principal ---
 if [[ "$PUSH_ALL" == true || "$PUSH_MAIN" == true ]]; then
