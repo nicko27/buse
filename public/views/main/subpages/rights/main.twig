@@ -15,8 +15,8 @@
         <table id="rightsTbl">
             <thead>
                 <tr>
-                    <th id="id" th-hide>Id</th>
-                    <th id="u_ou_g" th-hide>Utilisateur ou Groupe</th>
+                    <th id="id">Id</th>
+                    <th id="u_ou_g">Utilisateur ou Groupe</th>
                     <th id="name" th-choice th-sort th-filter>Nom</th>
                     <th id="read" th-choice >Lecture</th>
                     <th id="manage" th-choice>Gestion</th>
@@ -53,59 +53,37 @@
             choice: {
                 columns: {
                     'name': {
-                        type: 'searchable', // Type avec recherche et autocomplétion
-                        values: [], // Laisser vide car les valeurs seront chargées via AJAX
-                        searchable: {
-                            minWidth: '250px', // Largeur minimale du dropdown
-                            placeholder: 'Rechercher un utilisateur ou un groupe...', // Texte du placeholder
-                            noResultsText: 'Aucun résultat trouvé', // Texte quand aucun résultat
-                            loadingText: 'Chargement en cours...' // Texte pendant le chargement
-                        },
+                        type: 'searchable',
+                        // ... autres options ...
                         ajax: {
-                            enabled: true, // Activer AJAX
-                            url: "{{WEB_PAGES}}/main/subpages/rights/actions.php", // URL de l'API de recherche
-                            method: 'GET', // Méthode HTTP
-                            minChars: 2, // Nombre minimum de caractères pour déclencher la recherche
-                            debounceTime: 300, // Délai avant d'envoyer la requête (ms)
-                            paramName: 'name', // Nom du paramètre de recherche (ex: /api/users/search?q=...)
-                            extraParams: { // Paramètres supplémentaires
-                                status: 'active',
-                                limit: 20
-                            },
-                            loadOnFocus: true, // Charger des options initiales au focus
-                            // Fonction pour parser la réponse du serveur
+                            enabled: true,
+                            url: "{{WEB_PAGES}}/main/subpages/rights/actions.php",
+                            // ... autres options AJAX ...
                             responseParser: function(data) {
-                                // Supposons que le serveur renvoie un objet { users: [...] }
                                 if (data.users && Array.isArray(data.users)) {
-                                    // Transformer en format attendu par Choice
                                     return data.users.map(user => ({
-                                        id: user.id, // Valeur à stocker
-                                        label: `${user.firstName} ${user.lastName}`, // Texte à afficher
-                                        // Données additionnelles pour l'auto-remplissage
-                                        name: user.name,
+                                        value: user.id.toString(), // Important : convertir en chaîne
+                                        label: user.firstName ? `${user.firstName} ${user.lastName}` : user.name,
+                                        // Toutes les données additionnelles
+                                        id: user.id,
                                         u_ou_g: user.u_ou_g,
-                                        read:0,
-                                        manage:0,
-                                        admin:0,
-                                        super_admin:0
-
+                                        name: user.name,
+                                        read: 0,
+                                        manage: 0,
+                                        admin: 0,
+                                        super_admin: 0
                                     }));
                                 }
                                 return [];
                             }
                         },
-                        // Configuration pour auto-remplir d'autres cellules avec les données associées
+                        // Configuration simplifiée pour l'auto-remplissage
                         autoFill: {
                             enabled: true,
-                            mappings: {
-                                'id': 'user_id', // Remplir la colonne 'user_id' avec la valeur 'id'
-                                'u_ou_g': 'u_ou_g', // Remplir la colonne 'email' avec la valeur 'email'
-                                'name': 'name', // Remplir la colonne 'phone' avec la valeur 'phone'
-                                'read': 'read',
-                                'manage':'manage',
-                                'admin':'admin',
-                                'super_admin':'super_admin'
-                            }
+                            // Auto-détection des cellules cibles
+                            autoDetect: true,
+                            // Format d'ID pour les cellules (format par défaut)
+                            cellIdFormat: '{column}_{rowId}'
                         }
                     },
                     'read': {

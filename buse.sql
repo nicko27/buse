@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1deb5ubuntu1
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Hôte : localhost:3306
--- Généré le : ven. 09 mai 2025 à 17:39
--- Version du serveur : 8.0.42-0ubuntu0.22.04.1
--- Version de PHP : 8.1.2-1ubuntu2.21
+-- Hôte : localhost:8889
+-- Généré le : dim. 11 mai 2025 à 14:27
+-- Version du serveur : 8.0.40
+-- Version de PHP : 8.3.14
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;

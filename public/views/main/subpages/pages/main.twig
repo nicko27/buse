@@ -1,7 +1,7 @@
 <div class="block" id="configuration">
     <div class="block__title glass">
         <div class="block__title-left">
-            Gestion des variables de configuration
+            Gestion des Pages pour l'ordonnancement
             <a onclick="table.addRow([],'start')">
                 <i class="fa fa-circle-plus"></i>
             </a>
@@ -16,15 +16,12 @@
             <thead>
                 <tr>
                     <th id="id" th-hide>Id</th>
-                    <th id="slug" th-hide>identifiant_logique</th>
-                    <th id="php_file" th-choice th-sort th-filter tf-tooltip="Nom et chemin du fichier php en fonction de public/pages">Fichier php</th>
-                    <th id="pages_twig_header" th-choice >Twig Header </th>
-                    <th id="pages_twig_content" th-choice >Twig Content</th>
-                    <th id="pages_twig_footer" th-choice >Twig Footer</th>
-                    <th id="pages_js_header" th-choice >Js Header</th>
-                    <th id="pages_js_footer" th-choice >Js Footer</th>
-                    <th id="pages_css" th-choice >Css</th>
-                    <th id="pages_font" th-choice >Polices de caractères</th>
+                    <th id="slug" th-edit>identifiant_logique</th>
+                    <th id="php" th-choice th-sort th-filter tf-tooltip="Nom et chemin du fichier php en fonction de public/pages">Fichiers php</th>
+                    <th id="twig" th-choice >Fichiers Twig </th>
+                    <th id -"css" th-choice>Fichiers CSS</th>
+                    <th id="js_header" th-edit>Fichiers JS Header</th>
+                    <th id="js_footer" th-edit>Fichiers JS Footer</th>
                     <th  th-actions="delete,save">Actions</th>
                 </tr>
             </thead>
@@ -33,15 +30,12 @@
                     <tr id="{{r.id}}" name="{{ r.id }}">
                         <td id="id_{{ p.id }}" name="id_{{ p.id }}">{{ p.id }}</td>
                         <td id="slug_{{ p.id }}" name="slug_{{ p.id }}">{{ p.slug }}</td>
-                        <td id="php_file_{{ p.id }}" name="php_file_{{ p.id }}">{{ p.php_file }}</td>
-                        <td id="pages_twig_header_{{ p.id }}" name="pages_twig_header_{{ p.id }}">{{ p.pages_twig_header }}</td>
-                        <td id="pages_twig_content_{{ p.id }}" name="pages_twig_content_{{ p.id }}">{{ p.pages_twig_content }}</td>
-                        <td id="pages_twig_footer_{{ p.id }}" name="pages_twig_footer_{{ p.id }}">{{ p.pages_twig_footer }}</td>
-                        <td id="pages_js_header_{{ p.id }}" name="pages_js_header_{{ p.id }}">{{ p.pages_js_header }}</td>
-                        <td id="pages_js_footer_{{ p.id }}" name="pages_js_footer_{{ p.id }}">{{ p.pages_js_footer }}</td>
-                        <td id="pages_css_{{ p.id }}" name="pages_css_{{ p.id }}">{{ p.pages_css }}</td>
-                        <td id="pages_font_{{ p.id }}" name="pages_font_{{ p.id }}">{{ p.pages_font }}</td>
-                        <td id="actions_{{ p.id }}" name="actions_{{ p.id }}"></td>
+                        <td id="php_{{ p.id }}" name="php_{{ p.id }}">{{ p.php }}</td>
+                        <td id="twig_{{ p.id }}" name="twig_{{ p.id }}">{{ p.twig }}</td>
+                        <td id="css_{{ p.id }}" name="css_{{ p.id }}">{{ p.css }}</td>
+                        <td id="js_header_{{ p.id }}" name="js_header_{{ p.id }}">{{ p.js_header }}</td>
+                        <td id="js_footer_{{ p.id }}" name="js_footer_{{ p.id }}">{{ p.js_footer }}</td>
+                        <td class="td-actions"></td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -50,7 +44,7 @@
 </div>
 <script type="module">
     import TableFlow from './{{ WEB_ASSETS }}/libs/tableFlow/src/tableFlow.js';
-
+    
     window.table = new TableFlow({
         tableId: 'configurationTbl',
         debug: true,
@@ -58,22 +52,47 @@
             names: ['Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
             choice: {
                 columns: {
-                    pages_twig_header:{
+                    php:{
                         type: 'multiple',
                         values:[
-                            {% for p in pages_twig_header_tbl %}
-                                { value: {{ p.id }}, label: {{ p.name }}}
+                            {% for p in php_tbl %}
+                                { value: "{{ p.id }}", label: "{{ p.name }}" },
                             {% endfor %}
-                        ]
+                        ],
+                        searchable: {
+                            enabled: true,
+                            placeholder: 'Rechercher une page'
+                        },
+                        multiple: {
+                            allowCustomValues: true,
+                            separator: '|',
+                            maxTags: 10,
+                            showOrder: true,
+                            orderPrefix: '',
+                            orderSuffix: '-',
+                            upDownButtons: true
+                        }
                     },
-                    searchable: {
-                        enabled: true,
-                        placeholder: 'Rechercher ou ajouter une permission...'
-                    },
-                    multiple: {
-                        allowCustomValues: true,
-                        separator: ',',
-                        maxTags: 10
+                    twig:{
+                        type: 'multiple',
+                        values:[
+                            {% for p in twig_tbl %}
+                                { value: "{{ p.id }}", label: "{{ p.name }}" },
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            enabled: true,
+                            placeholder: 'Rechercher une page'
+                        },
+                        multiple: {
+                            allowCustomValues: true,
+                            separator: '|',
+                            maxTags: 10,
+                            showOrder: true,
+                            orderPrefix: '',
+                            orderSuffix: '-',
+                            upDownButtons: true
+                        }
                     }
                 }
             },
