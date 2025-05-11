@@ -340,6 +340,18 @@ if [[ "$PUSH_ALL" == true || "$PUSH_SUBMODULES" == true ]]; then
         name=$(basename "$sm_path")
         echo -e "\n🔁 Sous-module: $name ($sm_path)"
 
+        # Correction HEAD détaché
+        branch_to_checkout="${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}"
+        current_branch=$(git rev-parse --abbrev-ref HEAD)
+        if [[ "$current_branch" == "HEAD" ]]; then
+            echo "${YELLOW}⚠️  HEAD détaché détecté, tentative de checkout sur $branch_to_checkout...${NC}"
+            git fetch origin "$branch_to_checkout"
+            git checkout "$branch_to_checkout" || {
+                echo "${RED}❌ Impossible de checkout la branche $branch_to_checkout dans $name${NC}";
+                exit 1;
+            }
+        fi
+
         if git status --porcelain | grep -q .; then
             if [[ "$NO_CONFIRM" != true ]]; then
                 read -p "Pousser $name ? (o/n) " answer
