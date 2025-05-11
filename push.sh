@@ -308,14 +308,26 @@ if [[ "$PUSH_ALL" == true || "$PUSH_MAIN" == true ]]; then
     if git status --porcelain | grep -q .; then
         if [[ "$NO_CONFIRM" != true ]]; then
             read -p "Confirmer commit & push du projet principal ? (o/n) " confirm
-            [[ "$confirm" != [oOyY]* ]] && log_info "Annulé." && cleanup_and_exit 0
+            if [[ "$confirm" != [oOyY]* ]]; then
+                log_info "Annulé pour le projet principal."
+                # Si on a utilisé -a, on continue avec les sous-modules
+                if [[ "$PUSH_ALL" == true ]]; then
+                    log_info "Continuing avec les sous-modules..."
+                else
+                    cleanup_and_exit 0
+                fi
+            else
+                git add .
+                git commit -m "Auto commit - $(date '+%F %T')" || log_info "Rien à commit."
+                git push "${SPECIFIED_REMOTE:-$DEFAULT_REMOTE}" "${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}" || { log_error "Échec du push."; cleanup_and_exit 1; }
+                log_success "Push principal effectué avec succès."
+            fi
+        else
+            git add .
+            git commit -m "Auto commit - $(date '+%F %T')" || log_info "Rien à commit."
+            git push "${SPECIFIED_REMOTE:-$DEFAULT_REMOTE}" "${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}" || { log_error "Échec du push."; cleanup_and_exit 1; }
+            log_success "Push principal effectué avec succès."
         fi
-
-        git add .
-        git commit -m "Auto commit - $(date '+%F %T')" || log_info "Rien à commit."
-        git push "${SPECIFIED_REMOTE:-$DEFAULT_REMOTE}" "${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}" || { log_error "Échec du push."; cleanup_and_exit 1; }
-
-        log_success "Push principal effectué avec succès."
     else
         log_info "Aucun changement à pousser dans le projet principal."
     fi
@@ -335,7 +347,7 @@ if [[ "$PUSH_ALL" == true || "$PUSH_SUBMODULES" == true ]]; then
             fi
 
             git add .
-            if ! git commit -m "Auto commit $name - $(date '+%F %T')"; then
+            if ! git commit -m "Auto commit $name - $(date "+%F %T")"; then
                 [[ $? -eq 1 ]] && echo "Rien à commit." || { 
                     echo "❌ Erreur de commit dans $name"
                     exit 1

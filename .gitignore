@@ -1,3 +1,6 @@
 log/*
 files/*
 backups/*
+# Backup files
+*.tgz
+git/backups/
