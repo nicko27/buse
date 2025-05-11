@@ -177,14 +177,6 @@ configure_interactive() {
     
     # Charger la configuration existante si elle existe
     if [[ -f "$CONFIG_FILE" ]]; then
-        # Supprimer les anciennes références aux backups
-        if [[ "$(uname)" == "Darwin" ]]; then
-            # macOS
-            sed -i '' '/DEFAULT_BACKUP_DIR/d;/DEFAULT_MAX_BACKUPS/d' "$CONFIG_FILE" 2>/dev/null || true
-        else
-            # Linux
-            sed -i '/DEFAULT_BACKUP_DIR/d;/DEFAULT_MAX_BACKUPS/d' "$CONFIG_FILE" 2>/dev/null || true
-        fi
         source "$CONFIG_FILE"
     fi
     
