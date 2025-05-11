@@ -338,7 +338,7 @@ if [[ "$PUSH_ALL" == true || "$PUSH_SUBMODULES" == true ]]; then
     export NO_CONFIRM GIT_TOPLEVEL DEFAULT_BRANCH SPECIFIED_BRANCH
     git submodule foreach --quiet '
         name=$(basename "$sm_path")
-        echo -e "\n🔁 Sous-module: $name ($sm_path)"
+        echo  "\n🔁 Sous-module: $name ($sm_path)"
 
         # Correction HEAD détaché
         branch_to_checkout="${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}"
