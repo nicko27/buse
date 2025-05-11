@@ -127,6 +127,14 @@ configure_interactive() {
     
     # Charger la configuration existante si elle existe
     if [[ -f "$CONFIG_FILE" ]]; then
+        # Supprimer les anciennes références aux backups
+        if [[ "$(uname)" == "Darwin" ]]; then
+            # macOS
+            sed -i '' '/DEFAULT_BACKUP_DIR/d;/DEFAULT_MAX_BACKUPS/d' "$CONFIG_FILE" 2>/dev/null || true
+        else
+            # Linux
+            sed -i '/DEFAULT_BACKUP_DIR/d;/DEFAULT_MAX_BACKUPS/d' "$CONFIG_FILE" 2>/dev/null || true
+        fi
         source "$CONFIG_FILE"
     fi
     
@@ -219,9 +227,9 @@ load_config "$CONFIG_FILE"
 
 # Vérifier le lock file
 if [[ -f "$LOCK_FILE" ]]; then
-    local pid=$(cat "$LOCK_FILE" 2>/dev/null)
-    if ps -p "$pid" >/dev/null 2>&1; then
-        log_error "Une autre instance du script est en cours d'exécution (PID: $pid)"
+    LOCK_PID=$(cat "$LOCK_FILE" 2>/dev/null)
+    if ps -p "$LOCK_PID" >/dev/null 2>&1; then
+        log_error "Une autre instance du script est en cours d'exécution (PID: $LOCK_PID)"
         cleanup_and_exit 1
     fi
 fi
