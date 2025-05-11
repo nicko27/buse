@@ -30,8 +30,8 @@
                     <th id="categorie" th-sql-exclude>Nature</th>
                     <th id="commune" th-sql-exclude>Commune concernée</th>
                     <th id="unite" th-sql-exclude>Unité engagée</th>
-                    <th id="premiers_elt" th-edit>Premiers Elements</th>
-                    <th id="cro" th-edit>CRO</th>
+                    <th id="premiers_elt" th-textarea th-edit>Premiers Elements</th>
+                    <th id="cro" th-textarea th-edit>CRO</th>
                     <th id="sent" th-choice>Déja envoyé</th>
                     {% if enable_mail==1 %}
                         <th id="need_to_send" th-choice th-linetoggle>A envoyer</th>
