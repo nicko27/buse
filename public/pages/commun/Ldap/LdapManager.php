@@ -12,14 +12,6 @@ class BaseDNConfig
         public readonly string $persons
     ) {}
 
-    public static function createDefault(): self
-    {
-        return new self(
-            lists: "dmdName=listes,dc=gendarmerie,dc=defense,dc=gouv,dc=fr",
-            services: "dmdName=Services,dc=gendarmerie,dc=defense,dc=gouv,dc=fr",
-            persons: "dmdName=Personnes,dc=gendarmerie,dc=defense,dc=gouv,dc=fr"
-        );
-    }
 }
 
 class LdapConfig
@@ -59,7 +51,7 @@ class LdapConfig
 
     public function getBaseDN(): BaseDNConfig
     {
-        return $this->baseDN ?? BaseDNConfig::createDefault();
+        return $this->baseDN ;
     }
 }
 

@@ -7,7 +7,7 @@ use Commun\Logger\Logger;
 
 $logger = Logger::getInstance()->getLogger();
 
-function initVars($get = [])
+function initVars()
 {
     $config                           = Config::getInstance();
     $vars                             = [];
@@ -29,6 +29,7 @@ function initVars($get = [])
     $vars['SITE_FIRST_MAJ']           = ucfirst(strtolower($config->get('SITE')));
     $vars['SITE_LONG_NAME']           = $config->get('SITE_LONG_NAME');
     $vars['debug']                    = isset($_GET['debug']) ? $_GET['debug'] : 0;
+    $vars['SUBPAGE_DEFAULT']          = $config->get('SUBPAGE_DEFAULT');
     $vars['SUBPAGE_IMPORT']           = $config->get('SUBPAGE_IMPORT');
     $vars['SUBPAGE_UPDATE']           = $config->get('SUBPAGE_UPDATE');
     $vars['SUBPAGE_SITES']            = $config->get('SUBPAGE_SITES');
@@ -48,12 +49,18 @@ function initVars($get = [])
     $vars['SUBPAGE_CONFIGURATION']    = $config->get('SUBPAGE_CONFIGURATION');
     $vars['SUBPAGE_PAGES']            = $config->get('SUBPAGE_PAGES');
     $vars['SUBPAGE_RIGHTS']           = $config->get('SUBPAGE_RIGHTS');
+    $vars['SUBPAGE_MAILSYNTHESIS']    = $config->get('SUBPAGE_MAILSYNTHESIS');
+    $vars['SUBPAGE_DEFAULT']          = $config->get('SUBPAGE_DEFAULT');
+    #if ($config->get('ENV')) {
+    #$vars['ENV'] = "Sans SSO: " . $rightsManager->getUserName();
+    #}
 
     return $vars;
 }
 
 function getPagesVars($page, $vars, $get)
 {
+
     $config            = Config::getInstance();
     $vars['page']      = $page;
     $vars['page_root'] = $config->get('PAGES_LIST')[$vars['page']];

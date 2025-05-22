@@ -1,0 +1,57 @@
+From: {{ from }}
+{% if replyTo is defined and replyTo %}Reply-To: {{ replyTo }}{% endif %}
+To: {{ to|join(', ') }}
+{% if cc is defined and cc|length > 0 %}Cc: {{ cc|join(', ') }}{% endif %}
+{% if bcc is defined and bcc|length > 0 %}Bcc: {{ bcc|join(', ') }}{% endif %}
+Subject: {{ subject }}
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="{{ main_boundary }}"
+X-Unsent: 1
+User-Agent: Mozilla Thunderbird
+X-Mozilla-Status: 0000
+X-Mozilla-Status2: 00000000
+Content-Language: fr
+{% if headers is defined %}
+{% for name, value in headers %}
+{{ name }}: {{ value }}
+{% endfor %}
+{% endif %}
+
+This is a multi-part message in MIME format.
+--{{ main_boundary }}
+Content-Type: multipart/alternative; boundary="{{ alt_boundary }}"
+
+--{{ alt_boundary }}
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: quoted-printable
+
+{{ textContent|raw }}
+
+--{{ alt_boundary }}
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+{{ htmlContent|raw }}
+
+--{{ alt_boundary }}--
+
+{% for attachment in emlAttachments %}
+--{{ main_boundary }}
+Content-Type: message/rfc822; name="{{ attachment.name }}"
+Content-Disposition: attachment; filename="{{ attachment.name }}"
+Content-Transfer-Encoding: 8bit
+
+{{ attachment.content|raw }}
+
+{% endfor %}
+
+{% for attachment in otherAttachments %}
+--{{ main_boundary }}
+Content-Type: {{ attachment.type }}; name="{{ attachment.name }}"
+Content-Disposition: attachment; filename="{{ attachment.name }}"
+Content-Transfer-Encoding: base64
+
+{{ attachment.content|raw }}
+
+{% endfor %}
+--{{ main_boundary }}--

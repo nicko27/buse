@@ -196,36 +196,6 @@ function fileUpload(destUrl, inputFile, destDir = "", fileType, keepFileName = 0
     });
 }
 
-// Fonction pour effectuer une requête Ajax
-function ajaxFct(formdata, destUrl) {
-    return fetch(destUrl, {
-        method: "POST",
-        body: formdata,
-        credentials: "include"
-    })
-        .then(response => {
-            // Vérifie que la réponse est correcte
-            return response.text().then(rawText => {
-                try {
-                    const jsonResponse = JSON.parse(rawText);
-
-                    // Vérifie si le serveur retourne une erreur
-                    if (jsonResponse.error === 1) {
-                        console.error("Erreur du serveur :", jsonResponse.msgError);
-                    }
-
-                    return jsonResponse; // Retourne la réponse JSON si tout va bien
-                } catch (error) {
-                    console.error("Erreur de parsing JSON :", error.message, "- Réponse brute :", rawText);
-                }
-            });
-        })
-        .catch(error => {
-            console.error("AJAX Error:", error);
-            throw error; // Relance l'erreur pour la gérer au niveau supérieur
-        });
-}
-
 // Fonction pour mettre à jour un paramètre dans une URL
 function updateQueryParam(url, key, value) {
     const urlObj = new URL(url);
@@ -249,9 +219,11 @@ function successNotice(title = "", msg = "", duration = 5000, customClass = "not
         customClass: customClass,
         progress: true,
         icon: '<i class="fa fa-check-circle"></i>',
-        dismissible: false
+        dismissible: false,
+        html: true
     });
 }
+
 
 function errorNotice(title = "", msg = "", duration = 5000, customClass = "notice__error") {
     notifyFlow.error(msg, title, {
@@ -259,9 +231,12 @@ function errorNotice(title = "", msg = "", duration = 5000, customClass = "notic
         customClass: customClass,
         progress: true,
         icon: '<i class="fa fa-xmark"></i>',
-        dismissible: false
+        dismissible: false,
+        html: true
     });
 }
+
+
 
 function infoNotice(title = "", msg = "", duration = 5000, customClass = "notice__info") {
     notifyFlow.info(msg, title, {
@@ -269,8 +244,146 @@ function infoNotice(title = "", msg = "", duration = 5000, customClass = "notice
         customClass: customClass,
         progress: true,
         icon: '<i class="fa fa-circle-info"></i>',
-        dismissible: false
+        dismissible: false,
+        html: true
     });
+}
+
+/**
+ * Affiche une notification d'information avec barre de progression indéterminée et support d'annulation
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {Function} onCancel - Fonction à exécuter en cas d'annulation via la croix (X)
+ */
+function infoProgressIndeterminateNotice(taskId, title = "", msg = "", onCancel = null) {
+    notifyFlow.indeterminateProgress({
+        id: taskId,
+        title: title,
+        message: msg,
+        type: 'info',
+        dismissible: true,
+        onCancel: onCancel
+    });
+}
+
+/**
+ * Termine une notification de progression indéterminée avec succès
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {number} duration - Durée d'affichage en ms
+ */
+function successProgressIndeterminateNotice(taskId, title = "", msg = "", duration = 5000) {
+    notifyFlow.completeIndeterminateProgress(taskId, {
+        title: title,
+        message: msg,
+        type: 'success',
+        duration: duration
+    });
+}
+
+/**
+ * Termine une notification de progression indéterminée avec erreur
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {number} duration - Durée d'affichage en ms
+ */
+function errorProgressIndeterminateNotice(taskId, title = "", msg = "", duration = 5000) {
+    notifyFlow.completeIndeterminateProgress(taskId, {
+        title: title,
+        message: msg,
+        type: 'error',
+        duration: duration
+    });
+}
+
+/**
+ * Crée une notification de progression déterminée (avec pourcentage)
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {number} percent - Pourcentage de progression (0-100)
+ * @param {Function} onCancel - Fonction à exécuter en cas d'annulation via la croix (X)
+ * @param {Object} options - Options supplémentaires
+ * @returns {HTMLElement} L'élément de notification créé
+ */
+function infoProgressNotice(taskId, title = "", msg = "", percent = 0, onCancel = null, options = {}) {
+    return notifyFlow.progress({
+        id: taskId,
+        title: title,
+        message: msg,
+        percent: percent,
+        type: 'info',
+        showPercentage: true,
+        dismissible: true,
+        onCancel: onCancel,
+        ...options
+    });
+}
+
+/**
+ * Met à jour une notification de progression existante
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification (optionnel)
+ * @param {string} msg - Message de la notification (optionnel)
+ * @param {number} percent - Pourcentage de progression (0-100)
+ * @param {string} type - Type de notification ('info', 'success', 'warning', 'error')
+ * @returns {HTMLElement} L'élément de notification mis à jour
+ */
+function updateProgressNotice(taskId, title, msg, percent, type = 'info') {
+    return notifyFlow.updateProgress(taskId, {
+        title: title,
+        message: msg,
+        percent: percent,
+        type: type
+    });
+}
+
+/**
+ * Termine une notification de progression avec succès
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {number} duration - Durée d'affichage en ms
+ * @returns {HTMLElement} L'élément de notification mis à jour
+ */
+function successProgressNotice(taskId, title = "Succès", msg = "Opération terminée avec succès", duration = 3000) {
+    return notifyFlow.updateProgress(taskId, {
+        title: title,
+        message: msg,
+        percent: 100,
+        type: 'success',
+        completeDuration: duration
+    });
+}
+
+/**
+ * Termine une notification de progression avec erreur
+ * @param {string} taskId - Identifiant unique de la tâche
+ * @param {string} title - Titre de la notification
+ * @param {string} msg - Message de la notification
+ * @param {number} percent - Pourcentage atteint avant l'erreur
+ * @param {number} duration - Durée d'affichage en ms
+ * @returns {HTMLElement} L'élément de notification mis à jour
+ */
+function errorProgressNotice(taskId, title = "Erreur", msg = "Une erreur est survenue", percent = 0, duration = 3000) {
+    return notifyFlow.updateProgress(taskId, {
+        title: title,
+        message: msg,
+        percent: percent,
+        type: 'error',
+        completeDuration: duration
+    });
+}
+
+/**
+ * Supprime manuellement une notification par son ID
+ * @param {string} taskId - Identifiant unique de la notification
+ */
+function removeNotice(taskId) {
+    notifyFlow.removeById(taskId);
 }
 
 /**
@@ -291,4 +404,172 @@ function loadScriptIfExists(src) {
                 });
             }
         });
+}
+
+
+/**
+ * Fonction pour effectuer une requête Ajax avec support de progression
+ * @param {FormData|Object} formdata - Les données à envoyer
+ * @param {string} destUrl - L'URL de destination
+ * @param {Object} options - Options supplémentaires (optionnel)
+ * @param {function} options.onUploadProgress - Callback pour la progression de l'upload (reçoit un objet event)
+ * @param {function} options.onDownloadProgress - Callback pour la progression du téléchargement (reçoit un objet event)
+ * @param {Object} options.headers - En-têtes HTTP supplémentaires
+ * @param {number} options.timeout - Délai d'expiration en ms (par défaut: 30000)
+ * @returns {Promise} Une promesse qui résout avec la réponse JSON
+ */
+function ajaxFct(formdata, destUrl, options = {}) {
+    // Valeurs par défaut des options
+    const {
+        onUploadProgress,
+        onDownloadProgress,
+        headers = {},
+        timeout = 30000,
+        withCredentials = true  // Nouvelle option avec true par défaut
+    } = options;
+
+    // Si aucun callback de progression n'est fourni, utiliser fetch pour compatibilité
+    if (!onUploadProgress && !onDownloadProgress) {
+        return fetch(destUrl, {
+            method: "POST",
+            body: formdata,
+            credentials: withCredentials ? "include" : "same-origin", // Contrôle dynamique des credentials
+            headers: headers
+        })
+            .then(response => {
+                // Vérifie que la réponse est correcte
+                if (!response.ok) {
+                    // Gestion spécifique des erreurs CORS et d'authentification
+                    if (response.status === 0) {
+                        throw new Error("Erreur CORS ou réseau - Vérifiez que le serveur autorise les credentials");
+                    } else if (response.status === 401 || response.status === 403) {
+                        throw new Error(`Erreur d'authentification (${response.status}): Problème de session ou de credentials`);
+                    }
+                    throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return response.text().then(rawText => {
+                    try {
+                        // Vérifier si la réponse est vide
+                        if (!rawText.trim()) {
+                            console.warn("Réponse vide du serveur");
+                            return { success: false, message: "Réponse vide du serveur" };
+                        }
+
+                        const jsonResponse = JSON.parse(rawText);
+                        // Vérifie si le serveur retourne une erreur
+                        if (jsonResponse.error === 1) {
+                            console.error("Erreur du serveur :", jsonResponse.msgError);
+                        }
+                        return jsonResponse; // Retourne la réponse JSON si tout va bien
+                    } catch (error) {
+                        console.error("Erreur de parsing JSON :", error.message, "- Réponse brute :", rawText);
+                        throw new Error("Erreur de parsing JSON");
+                    }
+                });
+            })
+            .catch(error => {
+                // Journalisation détaillée des erreurs
+                console.error("AJAX Error:", error);
+                // Ajouter des détails spécifiques aux problèmes de session si nécessaire
+                if (error.message.includes("authentication") || error.message.includes("CORS")) {
+                    console.error("Possible problème de session ou de CORS. Assurez-vous que le serveur accepte les credentials.");
+                }
+                throw error; // Relance l'erreur pour la gérer au niveau supérieur
+            });
+    }
+
+    // Si des callbacks de progression sont fournis, utiliser XMLHttpRequest
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        // Configuration du timeout
+        xhr.timeout = timeout;
+
+        // Événements de progression
+        if (onUploadProgress) {
+            xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    onUploadProgress({
+                        loaded: event.loaded,
+                        total: event.total,
+                        percent: percentComplete
+                    });
+                }
+            });
+        }
+
+        if (onDownloadProgress) {
+            xhr.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    onDownloadProgress({
+                        loaded: event.loaded,
+                        total: event.total,
+                        percent: percentComplete
+                    });
+                }
+            });
+        }
+
+        // Événement de fin de chargement
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                // Vérifier si la réponse est vide
+                if (!xhr.responseText.trim()) {
+                    console.warn("Réponse vide du serveur");
+                    resolve({ success: false, message: "Réponse vide du serveur" });
+                    return;
+                }
+
+                let jsonResponse;
+                try {
+                    jsonResponse = JSON.parse(xhr.responseText);
+                    if (jsonResponse.error === 1) {
+                        console.error("Erreur du serveur :", jsonResponse.msgError);
+                    }
+                    resolve(jsonResponse);
+                } catch (error) {
+                    console.error("Erreur de parsing JSON :", error.message, "- Réponse brute :", xhr.responseText);
+                    reject(new Error("Erreur de parsing JSON"));
+                }
+            } else if (xhr.status === 0) {
+                // Erreur spécifique liée aux CORS ou au réseau
+                console.error("Erreur CORS ou réseau - Vérifiez que le serveur autorise les credentials");
+                reject(new Error("Erreur CORS ou réseau - Vérifiez que le serveur autorise les credentials"));
+            } else if (xhr.status === 401 || xhr.status === 403) {
+                // Erreur d'authentification
+                console.error(`Erreur d'authentification (${xhr.status}): Problème de session ou de credentials`);
+                reject(new Error(`Erreur d'authentification (${xhr.status}): Problème de session ou de credentials`));
+            } else {
+                reject(new Error(`Erreur HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+        });
+
+        // Gestion des erreurs
+        xhr.addEventListener('error', () => {
+            console.error("AJAX Error: Une erreur réseau s'est produite. Vérifiez les règles CORS et les credentials.");
+            reject(new Error("Erreur réseau - Possible problème de CORS ou de credentials"));
+        });
+
+        xhr.addEventListener('timeout', () => {
+            console.error("AJAX Error: Timeout dépassé");
+            reject(new Error("Timeout dépassé"));
+        });
+
+        // Ouverture et envoi de la requête
+        xhr.open('POST', destUrl, true);
+
+        // Configuration des credentials AVANT l'envoi
+        xhr.withCredentials = withCredentials;
+
+        // Ajout des en-têtes personnalisés
+        Object.keys(headers).forEach(key => {
+            xhr.setRequestHeader(key, headers[key]);
+        });
+
+        // Envoi des données
+        xhr.send(formdata);
+    });
 }

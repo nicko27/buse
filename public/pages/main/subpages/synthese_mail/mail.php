@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__, 3) . "/commun/init.php";
-use Commun\EMLGenerator\EMLGenerator;
+use Commun\Mail\EMLGenerator;
 $id  = $_POST['id'];
 $sql = "SELECT
 evenements.*,
@@ -23,14 +23,15 @@ $varsMail              = [];
 $varsMail["mails_tbl"] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $html                  = $twig->render('/main/subpages/synthese_mail/template_html.twig', $varsMail);
 $raw                   = $twig->render('/main/subpages/synthese_mail/template_raw.twig', $varsMail);
-$from                  = "nicolas.voirin@me.com";
+$from                  = $rightsManager->getUserMail();
 $to                    = $varsMail["mails_tbl"][0]['mail'];
 $eml                   = new EMLGenerator();
 $eml->setFrom($from);
 $eml->setTo($to);
 $eml->setSubject("Evènement(s) ayant eu lieu sur votre commune");
 $eml->setBody($html, $raw);
-$file = sprintf("%s/mail_%s.eml", $config->get("MAILS_DIR"), $id);
+$now  = new \DateTime();
+$file = sprintf("%s/mail_%s-%s.eml", $config->get("MAILS_DIR"), $id, $now->format('Y-m-d'));
 $eml->generateEML($file);
 // Forcer le téléchargement
 header('Content-Description: File Transfer');

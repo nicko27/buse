@@ -39,7 +39,7 @@ log_info()    { echo -e "$1"; }
 log_error()   { echo -e "${RED}❌ Erreur: $1${NC}" >&2; }
 log_warn()    { echo -e "${YELLOW}⚠️  $1${NC}" >&2; }
 log_success() { echo -e "${GREEN}✅ $1${NC}"; }
-log_debug()   { 
+log_debug()   {
     if [[ "$DEBUG_MODE" == "true" ]]; then
         local timestamp=$(date '+%H:%M:%S')
         local caller_info=$(caller 0)
@@ -123,7 +123,7 @@ for arg in "$@"; do
         --interactive) INTERACTIVE_MODE=true ;;
         -S|--show-config) SHOW_CONFIG=true ;;
         -h|--help) SHOW_HELP=true ;;
-        --submodule=*) 
+        --submodule=*)
             val="${arg#*=}"
             path="${val%%:*}"
             name="${val#*:}"
@@ -174,12 +174,12 @@ load_config() {
 # --- Configuration interactive ---
 configure_interactive() {
     log_info "🛠️  Mode configuration interactive :"
-    
+
     # Charger la configuration existante si elle existe
     if [[ -f "$CONFIG_FILE" ]]; then
         source "$CONFIG_FILE"
     fi
-    
+
     # Fonction pour lire une valeur avec une valeur par défaut
     read_with_default() {
         local prompt="$1"
@@ -188,17 +188,17 @@ configure_interactive() {
         read -p "$prompt [$default] : " value
         echo "${value:-$default}"
     }
-    
+
     # Lire les valeurs avec les valeurs par défaut
     local input_branch=$(read_with_default "Branche par défaut" "$DEFAULT_BRANCH")
     local input_remote=$(read_with_default "Remote par défaut" "$DEFAULT_REMOTE")
     local input_conflicts=$(read_with_default "Activer vérification conflits (true/false)" "$CONFLICT_CHECK")
     local input_branch_check=$(read_with_default "Activer vérification branche (true/false)" "$BRANCH_CHECK")
     local input_remote_check=$(read_with_default "Activer vérification remote (true/false)" "$REMOTE_CHECK")
-    
+
     # Créer le répertoire de configuration s'il n'existe pas
     mkdir -p "$(dirname "$CONFIG_FILE")"
-    
+
     {
         echo "DEFAULT_BRANCH=\"$input_branch\""
         echo "DEFAULT_REMOTE=\"$input_remote\""
@@ -206,7 +206,7 @@ configure_interactive() {
         echo "BRANCH_CHECK=\"$input_branch_check\""
         echo "REMOTE_CHECK=\"$input_remote_check\""
     } > "$CONFIG_FILE"
-    
+
     log_success "Configuration sauvegardée dans $CONFIG_FILE"
     cleanup_and_exit 0
 }
@@ -223,30 +223,30 @@ show_current_config() {
 process_submodule() {
     local path="$1"
     local name="$2"
-    
+
     if [[ ! -d "$path" ]]; then
         log_error "Le sous-module $path n'existe pas"
         cleanup_and_exit 1
     fi
-    
+
     log_info "🔁 Traitement du sous-module: $name ($path)"
     cd "$path"
-    
+
     if git status --porcelain | grep -q .; then
         if [[ "$NO_CONFIRM" != true ]]; then
             read -p "Pousser $name ? (o/n) " answer
             [[ "$answer" != [oOyY]* ]] && log_info "Annulé." && cleanup_and_exit 0
         fi
-        
-        git add .
+
+        git add -Av
         if ! git commit -m "Auto commit $name - $(date '+%F %T')"; then
-            [[ $? -eq 1 ]] && log_info "Rien à commit." || { 
+            [[ $? -eq 1 ]] && log_info "Rien à commit." || {
                 log_error "Erreur de commit dans $name"
                 cleanup_and_exit 1
             }
         fi
-        
-        git push || { 
+
+        git push || {
             log_error "Échec du push de $name"
             cleanup_and_exit 1
         }
@@ -254,7 +254,7 @@ process_submodule() {
     else
         log_info "Aucun changement à pousser dans $name."
     fi
-    
+
     cd "$GIT_TOPLEVEL"
 }
 
@@ -317,13 +317,13 @@ if [[ "$PUSH_ALL" == true || "$PUSH_MAIN" == true ]]; then
                     cleanup_and_exit 0
                 fi
             else
-                git add .
+                git add -Av
                 git commit -m "Auto commit - $(date '+%F %T')" || log_info "Rien à commit."
                 git push "${SPECIFIED_REMOTE:-$DEFAULT_REMOTE}" "${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}" || { log_error "Échec du push."; cleanup_and_exit 1; }
                 log_success "Push principal effectué avec succès."
             fi
         else
-            git add .
+            git add -Av
             git commit -m "Auto commit - $(date '+%F %T')" || log_info "Rien à commit."
             git push "${SPECIFIED_REMOTE:-$DEFAULT_REMOTE}" "${SPECIFIED_BRANCH:-$DEFAULT_BRANCH}" || { log_error "Échec du push."; cleanup_and_exit 1; }
             log_success "Push principal effectué avec succès."
@@ -358,15 +358,15 @@ if [[ "$PUSH_ALL" == true || "$PUSH_SUBMODULES" == true ]]; then
                 [[ "$answer" != [oOyY]* ]] && echo "Annulé." && exit 0
             fi
 
-            git add .
+            git add -Av
             if ! git commit -m "Auto commit $name - $(date "+%F %T")"; then
-                [[ $? -eq 1 ]] && echo "Rien à commit." || { 
+                [[ $? -eq 1 ]] && echo "Rien à commit." || {
                     echo "❌ Erreur de commit dans $name"
                     exit 1
                 }
             fi
 
-            git push || { 
+            git push || {
                 echo "❌ Échec du push de $name"
                 exit 1
             }

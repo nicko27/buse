@@ -1,4 +1,4 @@
-<div class="block" id="rights">
+<div class="block w-available" id="rights">
     <div class="block__title glass">
         <div class="block__title-left">
             Gestion des droits
@@ -15,11 +15,12 @@
         <table id="rightsTbl">
             <thead>
                 <tr>
-                    <th id="id">Id</th>
-                    <th id="u_ou_g">Utilisateur ou Groupe</th>
+                    <th id="id" th-hide>Id</th>
+                    <th id="u_ou_g" th-hide>Utilisateur ou Groupe</th>
                     <th id="name" th-choice th-sort th-filter>Nom</th>
-                    <th id="read" th-choice >Lecture</th>
-                    <th id="manage" th-choice>Gestion</th>
+                    <th id="timeline" th-choice >Timeline</th>
+                    <th id="permanences" th-choice >Permanences</th>
+                    <th id="import_data" th-choice>Import</th>
                     <th id="admin" th-choice>Administration</th>
                     <th id="super_admin" th-choice>Super Administration</th>
                     <th  th-actions="delete,save">Actions</th>
@@ -28,13 +29,18 @@
             <tbody>
                 {% for r in rights_tbl %}
                     <tr id="{{r.id}}" name="{{ r.id }}">
+                        {% set readonly="" %}
+                        {% if user.superAdmin==0 and r.super_admin %}
+                            {% set readonly="class='readonly'" %}
+                        {% endif %}
                         <td id="id_{{ r.id }}" name="id_{{ r.id }}">{{ r.id }}</td>
-                        <td id="u_ou_g_{{ r.id }}" name="u_ou_g_{{ r.id }}">{{ r.u_ou_g }}</td>
-                        <td id="name_{{ r.id }}" name="name_{{ r.id}}">{{ r.name }}</td>
-                        <td id="read_{{ r.id }}" name="read_{{ r.id}}">{{ r.read }}</td>
-                        <td id="manage_{{ r.id }}" name="manage_{{ r.id}}">{{ r.manage }}</td>
-                        <td id="admin_{{ r.id }}" name="admin_{{ r.id }}">{{ r.admin }}</td>
-                        <td id="super_admin_{{ r.id }}" name="super_admin_{{ r.super_admin }}">{{ r.super_admin }}</td>
+                        <td id="u_ou_g_{{ r.id }}" name="u_ou_g_{{ r.id }}" >{{ r.u_ou_g }}</td>
+                        <td id="name_{{ r.id }}" name="name_{{ r.id}}" class="{{ r.readonly_name}}">{{ r.name }}</td>
+                        <td id="timeline_{{ r.id }}" name="timeline_{{ r.id}}" class="{{ r.readonly_timeline }}">{{ r.timeline }}</td>
+                        <td id="permanences_{{ r.id }}" name="permanences_{{ r.id}}" class="{{ r.readonly_permanences }}">{{ r.permanences }}</td>
+                        <td id="import_data_{{ r.id }}" name="import_data_{{ r.id}}" class="{{ r.readonly_import_data }}">{{ r.import_data }}</td>
+                        <td id="admin_{{ r.id }}" name="admin_{{ r.id }}" class="{{ r.readonly_admin }}">{{ r.admin }}</td>
+                        <td id="super_admin_{{ r.id }}" name="super_admin_{{ r.id }}" class="{{ r.readonly_super_admin }}">{{ r.super_admin }}</td>
                         <td id="actions_{{ r.id }}" name="actions_{{ r.id }}"></td>
                     </tr>
                 {% endfor %}
@@ -51,6 +57,7 @@
         plugins: {
             names: ['Edit', 'Sort', 'Actions', 'Choice', 'Hide'],
             choice: {
+            	cssPath: "./{{ WEB_ASSETS }}/libs/tableFlow/plugins/choice.css",
                 columns: {
                     'name': {
                         type: 'searchable',
@@ -63,65 +70,66 @@
                                 if (data.users && Array.isArray(data.users)) {
                                     return data.users.map(user => ({
                                         value: user.id.toString(), // Important : convertir en chaîne
-                                        label: user.firstName ? `${user.firstName} ${user.lastName}` : user.name,
+                                        label: user.displayName,
                                         // Toutes les données additionnelles
                                         id: user.id,
                                         u_ou_g: user.u_ou_g,
                                         name: user.name,
-                                        read: 0,
-                                        manage: 0,
+                                        import_data: 0,
                                         admin: 0,
-                                        super_admin: 0
+                                        super_admin: 0,
+                                        timeline: 0,
+                                        permanences: 0
                                     }));
                                 }
                                 return [];
                             }
                         },
-                        // Configuration simplifiée pour l'auto-remplissage
                         autoFill: {
                             enabled: true,
-                            // Auto-détection des cellules cibles
                             autoDetect: true,
-                            // Format d'ID pour les cellules (format par défaut)
-                            cellIdFormat: '{column}_{rowId}'
                         }
                     },
-                    'read': {
+                    'timeline': {
                         type: 'toggle',
                         values: [
                             { value: '1', label: '<span style="color: green">Oui</span>' },
                             { value: '0', label: '<span style="color: red">Non</span>' }
                         ],
-                        isReadOnly: (value, rowData) => {
-                            return rowData.super_admin === 1 || rowData.super_admin === '1';
-                        }
                     },
-                    'manage': {
+                    'permanences': {
                         type: 'toggle',
                         values: [
                             { value: '1', label: '<span style="color: green">Oui</span>' },
                             { value: '0', label: '<span style="color: red">Non</span>' }
                         ],
-                        isReadOnly: (value, rowData) => {
-                            return rowData.super_admin === 1 || rowData.super_admin === '1';
-                        }
+                    },
+                    'import_data': {
+                        type: 'toggle',
+                        values: [
+                            { value: '1', label: '<span style="color: green">Oui</span>' },
+                            { value: '0', label: '<span style="color: red">Non</span>' }
+                        ]
                     },
                     'admin': {
                         type: 'toggle',
                         values: [
                             { value: '1', label: '<span style="color: green">Oui</span>' },
                             { value: '0', label: '<span style="color: red">Non</span>' }
-                        ],
-                        isReadOnly: (value, rowData) => {
-                            return rowData.super_admin === 1 || rowData.super_admin === '1';
-                        }
+                        ]
                     },
                     'super_admin':{
                         type: 'toggle',
                         values: [
-                            { value: '1', label: '<span style="color: gray"><b>Oui</b></span>', readOnly:true },
-                            { value: '0', label: '<span style="color: gray">Non</span>', readOnly:true  }
-                        ]
+                            {% if user.superAdmin %}
+                                { value: '1', label: '<span style="color: green"><b>Oui</b></span>'},
+                                { value: '0', label: '<span style="color: red">Non</span>' }
+                            {% else %}
+                                { value: '1', label: '<span style="color: gray"><b>Oui</b></span>', readOnly:true },
+                                { value: '0', label: '<span style="color: gray">Non</span>', readOnly:true  }
+                            {% endif %}
+                        ],
+
                     }
                 }
             },
@@ -135,7 +143,7 @@
                     delete: {
                         handler: function(context) {
                             const url = "/main/actions.php";
-                            actionRow(url, context.data, "sites", "delete").then(result => {
+                            actionRow(url, context.data, "rights", "delete").then(result => {
                                 if (result) {
                                     successNotice('Ligne supprimée avec succès');
                                     context.tableHandler.removeRow(context.row);
@@ -149,7 +157,7 @@
                         },
                         icon: '<button class="btn btn-glass btn-glass-red" tf-tooltip="Supprimer la ligne"><i class="fa fa-trash"></i></button>',
                         isDisabled: (data, row) => {
-                            return data.super_admin === 1 || data.super_admin === '1';
+                            return data.super_admin === 1 || data.super_admin === '1' || ({% if user.id %} data.id === '{{ user.id }}' || parseInt(data.id) === {{ user.id }} {% else %} false {% endif %});
                         }
                     },
                     save: {
@@ -157,10 +165,10 @@
                             const url = "/main/actions.php";
                             const data = {
                                 ...context.data,
-                                table: 'configurationTbl',
+                                table: 'rightsTbl',
                                 action: 'addUpdate'
                             };
-                            actionRow(url, data, "configuration", "addUpdate").then(result => {
+                            actionRow(url, data, "rights", "addUpdate").then(result => {
                                 if (result) {
                                     successNotice('Ligne mise à jour avec succès');
                                     context.tableHandler.markRowAsSaved(context.row, 'save');
@@ -173,9 +181,6 @@
                             });
                         },
                         icon: '<button class="btn btn-glass btn-glass-green" tf-tooltip="Enregister les modifications"><i class="fa fa-save"></i></button>',
-                        isDisabled: (data, row) => {
-                            return data.super_admin === 1 || data.super_admin === '1';
-                        }
                     }
                 }
             }

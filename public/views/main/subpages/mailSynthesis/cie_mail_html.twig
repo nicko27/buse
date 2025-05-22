@@ -1,0 +1,142 @@
+<html>
+    <head>
+        <style>
+
+
+
+body{
+                font-family: Arial, sans-serif;
+                color:#2c3e50;
+            }
+            table{
+                width: 90%;
+                border-collapse: collapse;
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                margin-top:10px;
+                margin-bottom:50px;
+                margin-left:50px;
+            }
+            tr{
+                background-color: #f2f2f2;
+            }
+            th{
+                border: 1px solid #ccc;
+                padding: 8px; text-align: center;
+            }
+            td{
+                border: 1px solid #ccc;
+                padding: 8px;
+            }
+            .outro{
+                font-family: Arial, sans-serif;
+                color: #7f8c8d;
+                font-size: 12px;
+                margin-top: 20px;
+            }
+            .cobLabel{
+                display: flex;
+                flex-direction: column;
+            }
+            a,a:visited{
+                list-style: none;
+                text-decoration: none;
+                color: :#2c3e50;
+            }
+.emlName a,.emlName a:visited{
+    color:#2c3e50;
+    font-weight: bold;
+}
+.cityMail a,cityMail a:visited{
+    color: #2c3e50;
+    font-weight: bold;
+}
+.links a,links a:visited{
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.cobLabel,.links span{
+    font-weight: bold;
+}
+
+section{
+    margin-bottom:20px;
+}
+
+        </style>
+    </head>
+    <body>
+        <div class="intro">
+            Bonjour,<br>
+            Ceci est un mail automatisé envoyé par <a href="{{WEB_ADDR}}/{{ WEB_DIR }}">BUSES</a>.</br>
+            Ce projet, a été initié par le Groupement du 27 et actuellement en test sur la compagnie de Pont-Audemer.<br>
+            Il vise à faciliter l'information des élus en simplifiant l'envoi d'informations journalières aux mairies concernées.<br>
+            Merci de faire remonter toute remarque à l'adjudant VOIRIN.<br>
+            Dans la suite de ce message vous trouverez par COB/BTA et par commune les évènements qui se sont produits dans les dernières 24 heures.<br>
+            Merci de bien relire les informations données avant de les transmettre, pour ne pas révéler de noms ou de détails opérationnels.<br>
+            Vous avez 2 possibilités:<br>
+            <ul>
+                <li>Soit vous cliquez sur le lien par commune pour avoir un message thunderbird tout prêt à télécharger</li>
+                <li>Soit vous faites des copier/coller</li>
+            </ul>
+        </div>
+        <div class="links">
+            <span>Accès rapide</span>
+            <ul>
+                {% for link in links %}
+                    <li><a href="#link_{{ link.id }}" >{{ link.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="content">
+            {% for cob in cobs %}
+                <section id="link_{{ cob.id }}">
+                    <span class="cobLabel"> {{ cob.label }}</span>
+                    {% for city in cob.content.cities %}
+                        <ul>
+                            <li><span class="cityName"> Commune de {{ city.name }}<span>
+                                <ul>
+                                    <li><span class="cityMail"> Adresse mail: <a href="mailto:{{ city.mail }}">{{city.mail}}</a><span></li>
+                                    <li><span class="emlName"><a href="{{WEB_ADDR}}/{{ WEB_DIR }}/mails/{{ city.emlName }}">Lien vers le Message pré-rempli</a>
+                                </ul>
+                                <table >
+                                    <thead>
+                                        <tr>
+                                        <th>Date et heure</th>
+                                        <th>Commune</th>
+                                        <th>Catégorie / Nature</th>
+                                        <th>Premiers éléments</th>
+                                        <th>Compte-rendu</th>
+                                    </tr>
+                                    </thead>
+                                    {% for evt in city.events %}
+                                        <tbody>
+                                            <tr style="background-color: {{ loop.index is even ? '#ffffff' : '#f9f9f9' }};">
+                                                <td >{{ evt.date }} à {{ evt.heure }}</td>
+                                                <td >{{ evt.name }}</td>
+                                                <td >
+                                                    {% if evt.nature|length > 0 %}
+                                                    {{ evt.nature }}
+                                                    {% else %}
+                                                    {{ evt.categorie }}
+                                                    {% endif %}
+                                                </td>
+                                                <td >{{ evt.premiers_elt }}</td>
+                                                <td >{{ evt.cro }}</td>
+                                            </tr>
+                                        </tbody>
+                                    {% endfor %}
+                                </table>
+
+                            </li>
+                        </ul>
+                    {% endfor %}
+                </section>
+            {% endfor %}
+            <div class="outro">
+                Message généré automatiquement – ne pas répondre.
+            </div>
+        </div>
+    </body>
+</html>

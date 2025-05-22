@@ -1,6 +1,15 @@
 <?php
 
-$cu  = 14431;
+if ($rightsManager->getSynthesisViewLevel() != 1) {
+    exit(1);
+}
+$cu      = $rightsManager->getUserCu();
+$sql     = "select * from unites_ldap where cu=:cu and isCob=1";
+$results = $sqlManager->query($sql, ["cu" => $cu]);
+if ($results['rowCount'] == 1) {
+    $cu = $results["data"][0]["cuCob"];
+}
+
 $sql = "SELECT
     cities.id,
     cities.name,
@@ -16,9 +25,7 @@ WHERE unites_ldap.cu = :cu
   AND evenements.sent = 0
 GROUP BY cities.id, cities.name, cities.old_name
 ORDER BY cities.name;
-
 ";
 $stmt = $sqlManager->prepare($sql);
 $stmt->execute(["cu" => $cu]);
-
 $vars["mails_tbl"] = $stmt->fetchAll(PDO::FETCH_ASSOC);

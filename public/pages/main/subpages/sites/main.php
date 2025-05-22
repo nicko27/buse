@@ -1,5 +1,8 @@
 <?php
 
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 // Récupération des sites
 $sql  = "SELECT * FROM sites";
 $stmt = $sqlManager->prepare($sql);

@@ -4,6 +4,7 @@
 if (session_status() === PHP_SESSION_ACTIVE) {
     session_unset();
 }
+session_start();
 
 // Inclusion des fichiers nécessaires
 require_once "public/pages/commun/init.php";

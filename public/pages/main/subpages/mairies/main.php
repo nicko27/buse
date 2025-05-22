@@ -1,4 +1,8 @@
 <?php
+
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 require dirname(__DIR__) . "/unites_ldap/main.php";
 $sql = 'SELECT
     mairies.id,

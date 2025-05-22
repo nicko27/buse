@@ -1,4 +1,5 @@
-<div class="block" id="import">
+{% if user.import %}
+<div class="block w-available" id="import">
     <div class="block__title glass">
         <div class="block__title-left">
             Imports et mises à jour
@@ -130,3 +131,4 @@
     // Charger la liste des fichiers au démarrage
     fillFilesList();
 </script>
+{% endif %}

@@ -1,4 +1,7 @@
 <?php
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 // Récupération des compagnies
 $sql = "SELECT c.id, c.cu, ul.codeServiceRio, ul.newName, c.ordre, c.color
             FROM compagnies c

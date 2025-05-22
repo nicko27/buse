@@ -5,11 +5,16 @@ require_once dirname(__DIR__, 2) . "/pages/commun/init.php";
 use Commun\Config\Config;
 use Commun\Database\SqlManager;
 use Commun\Logger\Logger;
+use Commun\Security\RightsManager;
 
 // Initialisation
-$logger     = Logger::getInstance()->getLogger();
-$sqlManager = SqlManager::getInstance();
-$config     = Config::getInstance();
+$logger        = Logger::getInstance()->getLogger();
+$sqlManager    = SqlManager::getInstance();
+$config        = Config::getInstance();
+$rightsManager = RightsManager::getInstance();
+if (! $rightsManager->canReadPermanences()) {
+    exit(1);
+}
 
 $sql  = "select * from permanences where 1";
 $stmt = $sqlManager->prepare($sql);
@@ -20,7 +25,30 @@ $stmt                    = $sqlManager->prepare($sql);
 $stmt->execute();
 $vars['sites_tbl'] = $stmt->fetchAll((PDO::FETCH_ASSOC));
 date_default_timezone_set('Europe/Paris');
-$sql  = "SELECT * FROM memos WHERE invisible=0 and ((date_debut <= CURDATE() AND (date_fin >= CURDATE() OR date_fin = '') AND ((date_debut = CURDATE() AND debut <= CURTIME()) OR date_debut < CURDATE() OR date_debut = '') AND ((date_fin = CURDATE() AND fin >= CURTIME()) OR date_fin > CURDATE() OR date_fin = '')) OR permanent = 1)";
+$sql = "SELECT *
+FROM memos
+WHERE invisible = 0
+  AND (
+    (
+      date_debut <= CURDATE()
+      AND (
+        date_fin >= CURDATE()
+        OR date_fin IS NULL
+      )
+      AND (
+        (date_debut = CURDATE() AND debut <= CURTIME())
+        OR date_debut < CURDATE()
+        OR date_debut IS NULL
+      )
+      AND (
+        (date_fin = CURDATE() AND fin >= CURTIME())
+        OR date_fin > CURDATE()
+        OR date_fin IS NULL
+      )
+    )
+    OR permanent = 1
+  )
+LIMIT 0, 25";
 $stmt = $sqlManager->prepare($sql);
 $stmt->execute();
 $memos           = [];

@@ -1,4 +1,4 @@
-<div class="block" id="mairies">
+<div class="block w-available" id="mairies">
     <div class="block__title glass">
         <div class="block__title-left">
             Gestion des mairies et des brigades territorialement compétentes
@@ -19,7 +19,6 @@
                     <th id="unit_id" th-choice>Brigade Territorialement Compétente</th>
                     <th id="maire" th-edit>Nom du maire</th>
                     <th id="mail" th-edit>Adresse mail</th>
-                    <th th-actions="save">Actions</th>
 
                 </tr>
             </thead>
@@ -33,7 +32,6 @@
                         <td id="unit_id_{{ m.id }}" name="unit_id_{{ m.id }}">{{ m.unit_id }}</td>
                         <td id="maire_{{ m.id }}" name="maire_{{ m.id }}">{{ m.maire }}</td>
                         <td id="mail_{{ m.id }}" name="mail_{{ m.id }}">{{ m.mail }}</td>
-                        <td id="actions_{{ m.id }}" name="actions_{{ m.code_postal }}"></td>
 
                     </tr>
                 {% endfor %}
@@ -111,7 +109,7 @@
                 cellClass: 'td-actions',
                 useIcons: true,
                 debug: true,
-                autoSave: false,
+                autoSave: true,
                 actions: {
                     save: {
                         handler: function(context) {

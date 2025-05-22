@@ -29,6 +29,7 @@ class ComposerStaticInit9ce5288ddcf2fbd008d019424924497c
         'T' => 
         array (
             'Twig\\' => 5,
+            'TijsVerkoyen\\CssToInlineStyles\\' => 31,
         ),
         'S' => 
         array (
@@ -45,7 +46,6 @@ class ComposerStaticInit9ce5288ddcf2fbd008d019424924497c
             'Psr\\Http\\Client\\' => 16,
             'PhpOption\\' => 10,
             'PhpOffice\\PhpSpreadsheet\\' => 25,
-            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' => 
         array (
@@ -79,6 +79,10 @@ class ComposerStaticInit9ce5288ddcf2fbd008d019424924497c
         'Twig\\' => 
         array (
             0 => __DIR__ . '/..' . '/twig/twig/src',
+        ),
+        'TijsVerkoyen\\CssToInlineStyles\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/tijsverkoyen/css-to-inline-styles/src',
         ),
         'Symfony\\Polyfill\\Php80\\' => 
         array (
@@ -120,10 +124,6 @@ class ComposerStaticInit9ce5288ddcf2fbd008d019424924497c
         'PhpOffice\\PhpSpreadsheet\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
-        ),
-        'PHPMailer\\PHPMailer\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'Monolog\\' => 
         array (

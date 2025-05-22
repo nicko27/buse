@@ -4,3 +4,6 @@ backups/*
 # Backup files
 *.tgz
 git/backups/
+.DS_Store
+*.log
+mails/*.eml

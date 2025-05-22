@@ -1,6 +1,10 @@
 <?php
+
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 require dirname(__DIR__) . "/unites_ldap/main.php";
-                                              // Correction ici :
+// Correction ici :
 $dpt = $config->get("CITY_DEPARTMENT") . '%'; // Ajoute le % ici
 $sql = "SELECT * FROM cities WHERE insee REGEXP :dpt; ORDER BY cities.name ASC";
 

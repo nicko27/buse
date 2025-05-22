@@ -1,8 +1,8 @@
 
-<div class="block" id="categories">
+<div class="block w-available" id="categories">
     <div class="block__title glass">
         <div class="block__title-left">
-            Gestion des communes et des brigades territorialement compétentes
+            Gestion des catégories d'évènements
         </div>
     </div>
 
@@ -84,8 +84,8 @@
                     'send': {
                         type: 'toggle',
                         values: [
-                            { value: '0', label: '<span style="color: green">Transmis par mail</span>' },
-                            { value: '1', label: '<span style="color: red">Non transmis</span>' }
+                            { value: '1', label: '<span style="color: green">Transmis par mail</span>' },
+                            { value: '0', label: '<span style="color: red">Non transmis</span>' }
                         ]
                     }
                 }
@@ -102,7 +102,7 @@
                             const url = "/main/actions.php";
                             const data = {
                                 ...context.data,
-                                table: 'categories',
+                                table: 'categoriesTbl',
                                 action: 'addUpdate'
                             };
                             actionRow(url, data, "categories", "addUpdate").then(result => {

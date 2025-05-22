@@ -1,17 +1,24 @@
 <?php
+include_once dirname(__DIR__, 1) . "/commun/init.php";
 use Commun\Database\SqlManager;
 use Commun\Logger\Logger;
+use Commun\Security\RightsManager;
 use Commun\Utils\DateUtils;
 // Inclusion du fichier d'initialisation global
-include_once dirname(__DIR__, 1) . "/commun/init.php";
-$logger     = Logger::getInstance()->getLogger();
-$sqlManager = SqlManager::getInstance();
+
+$logger        = Logger::getInstance()->getLogger();
+$sqlManager    = SqlManager::getInstance();
+$rightsManager = RightsManager::getInstance();
+if (! $rightsManager->canReadTimeline()) {
+    exit(1);
+}
+
 // Inclusion des fonctions spécifiques à la timeline
 require_once "blocks/timelineFcts.php";
 
 // Initialisation des variables pour stocker les données de la timeline
 $cieList    = getCompagniesList(); // Récupère la liste des compagnies
-$cieContent = []; // Contient les unités de chaque compagnie
+$cieContent = [];                  // Contient les unités de chaque compagnie
 
 foreach ($cieList as $cie) {
     $cobUnits   = getCobUnits($cie['cu']);
@@ -52,5 +59,5 @@ $vars['end_minute'] = $returnValue['minutes'];
 $vars['cieContent']     = $cieContent;
 $vars['cieList']        = $cieList;
 $vars['NB_QUART_HEURE'] = $config->get('NB_QUART_HEURE'); // NB_QUART_HEURE;
-$vars['CASE_POS_NOW']   = $config->get('CASE_POS_NOW'); // CASE_POS_NOW;
-$vars['INTERVAL']       = $config->get('INTERVAL'); // INTERVAL;
+$vars['CASE_POS_NOW']   = $config->get('CASE_POS_NOW');   // CASE_POS_NOW;
+$vars['INTERVAL']       = $config->get('INTERVAL');       // INTERVAL;

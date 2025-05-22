@@ -1,4 +1,8 @@
 <?php
+
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 $sql = "SELECT c.id, c.cu, ul.codeServiceRio, ul.newName, c.ordre, c.color
             FROM compagnies c
             JOIN unites_ldap ul ON c.cu = ul.cu

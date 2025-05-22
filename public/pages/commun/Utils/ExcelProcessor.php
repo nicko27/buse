@@ -11,7 +11,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
- * Classe pour traiter et analyser des fichiers Excel XLSX
+ * Classe pour traiter et analyser des fichiers Excel (XLSX ou ODS)
  */
 class ExcelProcessor
 {
@@ -21,89 +21,69 @@ class ExcelProcessor
     private $worksheet   = null;
     private $filePath    = null;
 
-    /**
-     * Constructeur avec injection des dépendances
-     */
     public function __construct()
     {
         $this->logger = Logger::getInstance()->getLogger();
         $this->config = Config::getInstance();
     }
 
-    /**
-     * Parcourt tous les fichiers .xlsx dans un répertoire donné.
-     *
-     * @param string $directory Chemin absolu ou relatif vers le dossier à analyser.
-     * @return array Liste des chemins complets des fichiers .xlsx trouvés.
-     * @throws InvalidArgumentException Si le répertoire n'existe pas
-     */
-    public function getXlsxFilesInDirectory(string $directory): array
+    public function getSpreadsheetFilesInDirectory(string $directory): array
     {
-        $this->logger->info("Recherche des fichiers XLSX dans : {$directory}");
+        $this->logger->info("Recherche des fichiers XLSX ou ODS dans : {$directory}");
 
         if (! is_dir($directory)) {
             $this->logger->error("Répertoire inexistant : {$directory}");
             throw new InvalidArgumentException("Le dossier spécifié n'existe pas : {$directory}");
         }
 
-        $xlsxFiles = [];
-        $elements  = scandir($directory);
+        $spreadsheetFiles = [];
+        $elements         = scandir($directory);
 
         foreach ($elements as $element) {
             $fullPath = $directory . DIRECTORY_SEPARATOR . $element;
 
-            if (is_file($fullPath) && preg_match('/\.xlsx$/i', $element)) {
-                $xlsxFiles[] = $fullPath;
-                $this->logger->debug("Fichier XLSX trouvé : {$fullPath}");
+            if (is_file($fullPath) && preg_match('/\.(xlsx|ods)$/i', $element)) {
+                $spreadsheetFiles[] = $fullPath;
+                $this->logger->debug("Fichier tableur trouvé : {$fullPath}");
             }
         }
 
-        $this->logger->info("Nombre de fichiers XLSX trouvés : " . count($xlsxFiles));
-        return $xlsxFiles;
+        $this->logger->info("Nombre de fichiers tableur trouvés : " . count($spreadsheetFiles));
+        return $spreadsheetFiles;
     }
 
-    /**
-     * Calcule la cellule située juste en dessous d'une coordonnée donnée
-     *
-     * @param string $coordinate Coordonnée Excel (ex: "A1", "B3")
-     * @return string Coordonnée de la cellule en dessous (ex: "A2", "B4")
-     * @throws InvalidArgumentException Si la coordonnée est invalide
-     */
-    public function getCellBelow(string $coordinate): string
+    private function isOdsByExtension(string $filePath): bool
     {
-        if (! preg_match('/^([A-Z]+)(\d+)$/i', $coordinate, $matches)) {
-            $this->logger->error("Coordonnée Excel invalide : '{$coordinate}'");
-            throw new InvalidArgumentException("Coordonnée Excel invalide : '{$coordinate}'");
-        }
-
-        $column = strtoupper($matches[1]);
-        $row    = (int) $matches[2];
-        $newRow = $row + 1;
-
-        return $column . $newRow;
+        return strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'ods';
     }
 
-    /**
-     * Initialise l'accès à un fichier XLSX
-     *
-     * @param string $filePath Chemin vers le fichier XLSX
-     * @return bool True si l'initialisation est réussie, false sinon
-     * @throws Exception En cas d'erreur lors de l'initialisation
-     */
-    public function processXlsxFile(string $filePath): bool
+    private function isXlsxByExtension(string $filePath): bool
+    {
+        return strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'xlsx';
+    }
+
+    public function processSpreadsheetFile(string $filePath): bool
     {
         try {
             $this->logger->info("Initialisation de l'accès au fichier : {$filePath}");
 
-            $this->filePath    = $filePath;
-            $this->spreadsheet = IOFactory::load($filePath);
-            $this->worksheet   = $this->spreadsheet->getActiveSheet();
+            $this->filePath = $filePath;
+            if ($this->isOdsByExtension($filePath)) {
+                $reader            = new \PhpOffice\PhpSpreadsheet\Reader\Ods();
+                $this->spreadsheet = $reader->load($filePath);
+            } else {
+                $this->spreadsheet = IOFactory::load($filePath);
+            }
+
+            // Utiliser la méthode directe qui fonctionne mieux avec ODS
+
+            $this->worksheet = $this->spreadsheet->getSheet(0);
 
             $this->logger->info("Accès au fichier initialisé avec succès");
             return true;
 
         } catch (Exception $e) {
-            $this->logger->error("Erreur lors de l'initialisation du fichier XLSX", [
+            $this->logger->error("Erreur lors de l'initialisation du fichier", [
                 'file'  => $filePath,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -115,37 +95,22 @@ class ExcelProcessor
         }
     }
 
-    /**
-     * Récupère la feuille de calcul active
-     *
-     * @return Worksheet|null La feuille de calcul active ou null si non initialisé
-     */
     public function getWorksheet(): ?Worksheet
     {
         return $this->worksheet;
     }
 
-    /**
-     * Récupère le classeur complet
-     *
-     * @return Spreadsheet|null Le classeur ou null si non initialisé
-     */
     public function getSpreadsheet(): ?Spreadsheet
     {
         return $this->spreadsheet;
     }
 
-    /**
-     * Récupère le chemin du fichier actuel
-     *
-     * @return string|null Le chemin du fichier ou null si non initialisé
-     */
     public function getFilePath(): ?string
     {
         return $this->filePath;
     }
 
-    public function getColsCoordonates(array $columnList)
+    public function getColsCoordinates(array $columnList)
     {
         $worksheet = $this->getWorksheet();
 
@@ -156,54 +121,77 @@ class ExcelProcessor
 
         $filePath = $this->getFilePath();
         $this->logger->info("Détection de colonnes dans le fichier : {$filePath}");
-
+        // Convertir chaque entrée en expression régulière
+        $regexList = [];
+        foreach ($columnList as $key => $searchString) {
+            $regexList[$key] = $this->convertToRegex($searchString);
+        }
         $columnCount = 0;
+        $results     = [];
 
-        $results = [];
-
-        // Parcourir les lignes et les colonnes
         foreach ($worksheet->getRowIterator() as $row) {
             $cellIterator = $row->getCellIterator();
-            $cellIterator->setIterateOnlyExistingCells(false); // inclure les cellules vides
+            $cellIterator->setIterateOnlyExistingCells(false);
 
             foreach ($cellIterator as $cell) {
-                $cellValue = $cell->getValue();
+                $coord     = $cell->getCoordinate();
+                $cellValue = $cell->getCalculatedValue();
 
-                foreach ($columnList as $key => $column) {
-                    if (strcmp($cellValue, $column) == 0) {
-                        if ($column != null) {
-                            $coord         = $cell->getCoordinate();
-                            $results[$key] = ["excel" => $coord, "col" => $this->getColumnLetter($coord), "row" => $this->getNumRow($coord)];
+                if ($cellValue != null) {
+                    foreach ($regexList as $key => $regex) {
+                        if (preg_match($regex, $cellValue)) {
+
+                            $results[$key] = [
+                                "excel" => $coord,
+                                "col"   => $this->getColumnLetter($coord),
+                                "row"   => $this->getNumRow($coord),
+                            ];
                             $columnCount++;
+                            $this->logger->debug("Colonne trouvée avec alternative : {$columnList[$key]} à la position {$coord}");
                         }
-                    }
 
-                    $this->logger->debug("Colonne trouvée : {$column} à la position {$cell->getCoordinate()}");
+                    }
                 }
+
             }
-            // Si toutes les colonnes ont été trouvées, retourner les résultats
+
             if ($columnCount > 0) {
                 $this->logger->info("Colonnes trouvées : {$columnCount} sur " . count($columnList));
 
-                if ($columnCount == count($columnList)) {
+                if ($columnCount === count($columnList)) {
                     return $results;
                 } else {
                     $this->logger->warning("Nombre incorrect de colonnes trouvées");
                     return [];
                 }
             }
-
         }
         return [];
     }
 
     /**
-     * Récupère toutes les cellules d'une ligne donnée (indexée par lettres de colonnes)
+     * Convertit une chaîne de recherche avec alternatives en expression régulière
      *
-     * @param int $rowNumber Numéro de ligne Excel (1-indexé)
-     * @return array<string, mixed> Tableau associatif colonne => valeur
-     * @throws Exception Si la feuille de calcul n'est pas initialisée
+     * @param string $searchString Chaîne avec alternatives séparées par |
+     * @return string Expression régulière
      */
+    private function convertToRegex(string $searchString): string
+    {
+        // Échapper les caractères spéciaux regex, sauf le pipe (|)
+        $escapedString = str_replace(
+            ['\\', '.', '+', '*', '?', '[', '^', ']', '$', '(', ')', '{', '}', '=', '!', '<', '>', ':', '-'],
+            ['\\\\', '\\.', '\\+', '\\*', '\\?', '\\[', '\\^', '\\]', '\\$', '\\(', '\\)', '\\{', '\\}', '\\=', '\\!', '\\<', '\\>', '\\:', '\\-'],
+            $searchString
+        );
+
+        // Transformer les alternatives séparées par | en alternatives regex
+        $alternatives        = explode('|', $escapedString);
+        $escapedAlternatives = array_map('trim', $alternatives);
+
+        // Construire l'expression régulière finale (insensible à la casse)
+        return '/^(' . implode('|', $escapedAlternatives) . ')$/i';
+    }
+
     public function getRow(int $rowNumber): array
     {
         if (! $this->worksheet) {
@@ -211,8 +199,8 @@ class ExcelProcessor
             throw new Exception("Aucune feuille de calcul initialisée");
         }
 
-        $highestColumn      = $this->worksheet->getHighestColumn($rowNumber);    // ex: 'G'
-        $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn); // ex: 7
+        $highestColumn      = $this->worksheet->getHighestColumn($rowNumber);
+        $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
         $result             = [];
 
         for ($col = 1; $col <= $highestColumnIndex; $col++) {
@@ -227,17 +215,10 @@ class ExcelProcessor
 
     public function getCellByColumnAndRow(int $columnIndex, int $rowIndex): string
     {
-        $columnLetter = Coordinate::stringFromColumnIndex($columnIndex); // ex: 2 → B
+        $columnLetter = Coordinate::stringFromColumnIndex($columnIndex);
         return $columnLetter . $rowIndex;
-
     }
 
-    /**
-     * Retourne le nombre total de lignes contenant des données dans la feuille active
-     *
-     * @return int Numéro de la dernière ligne utilisée
-     * @throws Exception Si la feuille de calcul n'est pas initialisée
-     */
     public function getMaxRowCount(): int
     {
         if (! $this->worksheet) {
@@ -248,13 +229,6 @@ class ExcelProcessor
         return $this->worksheet->getHighestRow();
     }
 
-    /**
-     * Extrait le numéro de ligne d'une coordonnée Excel (ex: "B12" → 12)
-     *
-     * @param string $coord Coordonnée Excel
-     * @return int Numéro de ligne
-     * @throws InvalidArgumentException Si la coordonnée est invalide
-     */
     public function getNumRow(string $coord): int
     {
         if (! preg_match('/^[A-Z]+(\d+)$/i', $coord, $matches)) {
@@ -265,13 +239,6 @@ class ExcelProcessor
         return (int) $matches[1];
     }
 
-    /**
-     * Extrait la lettre de colonne d'une coordonnée Excel (ex: "B12" → "B")
-     *
-     * @param string $coord Coordonnée Excel
-     * @return string Lettre(s) de la colonne
-     * @throws InvalidArgumentException Si la coordonnée est invalide
-     */
     public function getColumnLetter(string $coord): string
     {
         if (! preg_match('/^([A-Z]+)\d+$/i', $coord, $matches)) {
@@ -281,5 +248,4 @@ class ExcelProcessor
 
         return strtoupper($matches[1]);
     }
-
 }

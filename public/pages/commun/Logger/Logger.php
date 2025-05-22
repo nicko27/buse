@@ -45,7 +45,7 @@ class Logger
         $this->logger = new MonologLogger($this->loggerName);
 
         // Configurer le format avec retour à la ligne
-        $output    = "[[%channel%]]{macro: autolabel} %level_name%: %message%\n";
+        $output    = "%datetime% - %level_name%: %message%\n";
         $formatter = new LineFormatter($output, "Y-m-d H:i:s", true, true);
         $formatter->ignoreEmptyContextAndExtra(true);
 

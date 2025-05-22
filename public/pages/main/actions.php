@@ -16,7 +16,11 @@ $sqlManager = SqlManager::getInstance();
 
 try {
     if ($_POST['action'] == "delete") {
-        $returnValue = $sqlManager->delete($table, "id=" . $id);
+        if ($id != null) {
+            $returnValue = $sqlManager->delete($table, "id=" . $id);
+        } else {
+            $returnValue = ['error' => 0];
+        }
         echo json_encode($returnValue);
         return;
     }

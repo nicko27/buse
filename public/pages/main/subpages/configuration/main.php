@@ -1,5 +1,8 @@
 <?php
 
+if (!$rightsManager->isAdmin()) {
+    exit(1);
+}
 $sql  = "SELECT * FROM configuration";
 $stmt = $sqlManager->prepare($sql);
 $stmt->execute();

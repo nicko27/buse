@@ -1,5 +1,4 @@
 <?php
-
 namespace Commun\Utils;
 
 class DateUtils
@@ -21,8 +20,8 @@ class DateUtils
     public static function getTimeSelectionDataFromTime(string $time): array
     {
         list($hour, $minute) = explode(':', $time);
-        $hour = (int)$hour;
-        $minute = (int)$minute;
+        $hour                = (int) $hour;
+        $minute              = (int) $minute;
 
         // Arrondir les minutes au quart d'heure le plus proche
         $minute = round($minute / 15) * 15;
@@ -31,28 +30,28 @@ class DateUtils
             $hour++;
         }
 
-        $hours = [];
+        $hours   = [];
         $minutes = [];
 
         // Générer les heures
         for ($i = 0; $i < 24; $i++) {
             $hours[] = [
-                'value' => sprintf('%02d', $i),
-                'selected' => ($i == $hour) ? 'selected' : ''
+                'value'    => sprintf('%02d', $i),
+                'selected' => ($i == $hour) ? 'selected' : '',
             ];
         }
 
         // Générer les minutes
         for ($i = 0; $i < 60; $i += 15) {
             $minutes[] = [
-                'value' => sprintf('%02d', $i),
-                'selected' => ($i == $minute) ? 'selected' : ''
+                'value'    => sprintf('%02d', $i),
+                'selected' => ($i == $minute) ? 'selected' : '',
             ];
         }
 
         return [
-            'hours' => $hours,
-            'minutes' => $minutes
+            'hours'   => $hours,
+            'minutes' => $minutes,
         ];
     }
 
@@ -68,4 +67,27 @@ class DateUtils
 
         return self::getTimeSelectionDataFromTime($now->format('H:i'));
     }
+
+    public static function parseDate(string $dateString): ?\DateTime
+    {
+        $formats = [
+            'd-M-y H:i:s', // 14-May-25 19:00:33
+            'd/m/Y H:i:s', // 14/05/2025 19:00:33
+            'Y-m-d H:i:s', // 2025-05-14 19:00:33
+            'd-m-Y H:i:s', // 14-05-2025 19:00:33
+            'd.m.Y H:i:s', // 14.05.2025 19:00:33
+            'd-M-Y H:i:s', // 14-May-2025 19:00:33
+                           // Ajouter d'autres formats au besoin
+        ];
+
+        foreach ($formats as $format) {
+            $date = \DateTime::createFromFormat($format, $dateString);
+            if ($date !== false) {
+                return $date;
+            }
+        }
+
+        return null;
+    }
+
 }

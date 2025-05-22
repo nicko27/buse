@@ -5,11 +5,17 @@ require_once dirname(__DIR__, 2) . "/pages/commun/init.php";
 use Commun\Config\Config;
 use Commun\Database\SqlManager;
 use Commun\Logger\Logger;
+use Commun\Security\RightsManager;
 
 // Initialisation
-$config     = Config::getInstance();
-$logger     = Logger::getInstance()->getLogger();
-$sqlManager = SqlManager::getInstance();
+$config        = Config::getInstance();
+$logger        = Logger::getInstance()->getLogger();
+$sqlManager    = SqlManager::getInstance();
+$rightsManager = RightsManager::getInstance();
+
+if ($rightsManager->isDebug()) {
+    $vars["debugMenu"] = sprintf("&debug=%s&nigend=%s", $config->get("DEBUG"), $rightsManager->getUserId());
+}
 
 // Récupération de la sous-page
 if (isset($get['subpage'])) {

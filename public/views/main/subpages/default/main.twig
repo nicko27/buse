@@ -1,0 +1,22 @@
+<div class="w-available" id="default">
+    <div class="flex-align-self-center">
+        {% if user.timeline %}
+            <button onclick="window.open('index.php?page={{PAGE_SHOW_TIMELINE}}{{ debugMenu }}')" class="btn btn-glass btn-glass-green">
+                <i class="fa fa-timeline"></i>
+                <span>Timeline</span>
+            </button>
+        {% endif %}
+        {% if user.permanences %}
+            <button onclick="window.open('index.php?page={{PAGE_SHOW_PERMANENCES}}{{ debugMenu }}')" class="btn btn-glass btn-glass-blue">
+                <i class="fa fa-bars-staggered"></i>
+                <span>Permanences</span>
+            </button>
+        {% endif %}
+        {% if user.synthesisLevel==12 %}
+            <button onclick="window.location.href='index.php?page={{ PAGE_ACCUEIL }}&subpage={{ SUBPAGE_PREPARE_SYNTHESE }}{{ debugMenu }}'" class="btn btn-glass btn-glass-red">
+                <i class="fa fa-list-check"></i>
+                <span>Synthèses</span>
+            </button>
+        {% endif %}
+    </div>
+</div>
