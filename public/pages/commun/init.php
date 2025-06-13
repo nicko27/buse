@@ -222,21 +222,6 @@ if (! $currentRoute) {
     die("Page non trouvée");
 }
 
-// ✅ ÉTAPE 12 : Vérifier les droits d'accès
-if (! $router->checkAccess($currentRoute)) {
-    $logger->warning("Accès refusé pour l'utilisateur", [
-        'user_id'         => $rightsManager->getUserId(),
-        'page'            => $currentRoute['page']['slug'],
-        'required_rights' => $currentRoute['rights'] ?? [],
-    ]);
-
-    // Rediriger vers la page d'accès refusé
-    $router->redirectToAccessDenied();
-}
-
-// Gérer les redirections
-$router->handleRedirect($currentRoute);
-
 // Construire le tableau des droits pour la session et Twig
 $rightsTbl = [
     'debug'          => $debug,
@@ -253,6 +238,23 @@ $rightsTbl = [
     'admin'          => $rightsManager->isAdmin(),
     'superAdmin'     => $rightsManager->isSuperAdmin(),
 ];
+
+$binaryRights = $rightsManager->getBinaryRights();
+
+// ✅ ÉTAPE 12 : Vérifier les droits d'accès
+if (! $router->checkAccess($currentRoute)) {
+    $logger->warning("Accès refusé pour l'utilisateur", [
+        'user_id'         => $rightsManager->getUserId(),
+        'page'            => $currentRoute['page']['slug'],
+        'required_rights' => $currentRoute['rights'] ?? [],
+    ]);
+
+    // Rediriger vers la page d'accès refusé
+    $router->redirectToAccessDenied();
+}
+
+// Gérer les redirections
+$router->handleRedirect($currentRoute);
 
 // ✅ ÉTAPE 11 : Ajouter les variables utilisateur à Twig
 $twig->addGlobal('user', $rightsTbl);

@@ -93,6 +93,41 @@ class RightsManager
         return self::$instance;
     }
 
+    public function getBinaryRights()
+    {
+        $timeline       = $this->canReadTimeline();
+        $permanences    = $this->canReadPermanences();
+        $synthesisLevel = $this->getSynthesisViewLevel(); // 2 bits max (0-3)
+        $admin          = $this->isAdmin();
+        $superAdmin     = $this->isSuperAdmin();
+
+        if ($superAdmin) {
+                                    // Tous les bits à 1 (6 bits)
+            $rights = (1 << 6) - 1; // 0b111111 = 63
+        } elseif ($admin) {
+            // admin à 1 → timeline, permanences et synthesisLevel à 1 max
+            // timeline = 1 << 0 = 1
+            // permanences = 1 << 1 = 2
+            // synthesisLevel max = 0b11 << 2 = 12
+            // admin = 1 << 4 = 16
+            // superAdmin = 0
+
+            $rights = (1 << 0) // timeline
+             | (1 << 1)        // permanences
+             | (0b11 << 2)     // synthesisLevel max (4 états, ici 3 donc 0b11)
+             | (1 << 4);       // admin
+        } else {
+            // Cas normal, on encode ce qu'on a
+            $rights = ($timeline << 0)
+             | ($permanences << 1)
+             | ($synthesisLevel << 2)
+             | ($admin << 4)
+             | ($superAdmin << 5);
+        }
+
+        return $rights;
+    }
+
     /**
      * Initialise l'utilisateur avec des données de test pour le mode debug
      *
