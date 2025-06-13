@@ -7,3 +7,4 @@ git/backups/
 .DS_Store
 *.log
 mails/*.eml
+.env
