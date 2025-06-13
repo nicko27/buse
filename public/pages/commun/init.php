@@ -7,6 +7,7 @@ use Commun\Ldap\BaseDNConfig;
 use Commun\Ldap\LdapConfig;
 use Commun\Ldap\LdapManager;
 use Commun\Logger\Logger;
+use Commun\Router\Router;
 use Commun\Security\CsrfManager;
 use Commun\Security\RightsManager;
 use Commun\Template\TwigExtensions;
@@ -18,6 +19,7 @@ require_once __DIR__ . "/Config/Config.php";
 require_once __DIR__ . "/Database/BDDManager.php";
 require_once __DIR__ . "/Database/SqlManager.php";
 require_once __DIR__ . "/Database/SqlAdapter.php";
+require_once __DIR__ . "/Router/Router.php";
 require_once __DIR__ . "/Logger/Logger.php";
 require_once __DIR__ . "/Utils/FileUtils.php";
 require_once __DIR__ . "/Utils/DateUtils.php";
@@ -51,9 +53,6 @@ try {
     // ✅ ÉTAPE 4 : Charger la configuration depuis la base de données
     $config->loadFromDatabase($sqlAdapter);
 
-    // Debug temporaire
-    $config->debugPagesConfig();
-
 } catch (\Exception $e) {
     error_log("Erreur d'initialisation de la base de données : " . $e->getMessage());
     // Continuer avec la config .env seulement si la BDD n'est pas accessible
@@ -66,7 +65,7 @@ Logger::initWithParams(
 );
 $logger = Logger::getInstance()->getLogger();
 
-// ✅ CORRECTION : Vérifier si une session est déjà active avant de la démarrer
+// ✅ Vérifier si une session est déjà active avant de la démarrer
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -86,19 +85,23 @@ foreach ($directories as $dir) {
     }
 }
 
-// ✅ CORRECTION : Construire le chemin des vues correctement
+// ✅ ÉTAPE 5 : Initialiser le routeur
+$router = Router::getInstance($sqlAdapter);
+$router->setWebDirectory($config->get('WEB_DIR', ''));
+$router->setDefaultRoute($config->get('DEFAULT_ROUTE', 'index'));
+$router->setAccessDeniedRoute($config->get('ACCESS_DENIED_ROUTE', 'login'));
+
+// ✅ ÉTAPE 6 : Construire le chemin des vues
 $viewsDir = $config->get('VIEWS_DIR');
 if (! $viewsDir) {
-    // Fallback si VIEWS_DIR n'est pas configuré
     $viewsDir = dirname(__DIR__, 2) . '/views';
 }
 
-// Vérifier que le dossier des vues existe
 if (! is_dir($viewsDir)) {
     throw new \Exception("Le dossier des vues n'existe pas : $viewsDir");
 }
 
-// Configurer Twig
+// ✅ ÉTAPE 7 : Configurer Twig
 $loader = new \Twig\Loader\FilesystemLoader($viewsDir);
 $twig   = new \Twig\Environment($loader, [
     'cache' => $config->get('TWIG_CACHE', false),
@@ -109,7 +112,7 @@ $twig   = new \Twig\Environment($loader, [
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 $twig->addExtension(new TwigExtensions());
 
-// Ajouter les variables de configuration à Twig
+// ✅ ÉTAPE 8 : Ajouter toutes les variables de configuration à Twig automatiquement
 foreach ($config->getTwigVars() as $key => $value) {
     $twig->addGlobal($key, $value);
 }
@@ -117,7 +120,6 @@ foreach ($config->getTwigVars() as $key => $value) {
 // Configuration LDAP
 $ldapAvailable = false;
 try {
-    // Essayez d'abord de récupérer les valeurs de configuration
     $ldapBaseDNLists    = $config->get("LDAP_BASE_DN_LISTS");
     $ldapBaseDNServices = $config->get("LDAP_BASE_DN_SERVICES");
     $ldapBaseDNPersons  = $config->get("LDAP_BASE_DN_PERSONS");
@@ -125,7 +127,6 @@ try {
     $ldapPort           = $config->get("LDAP_PORT");
     $ldapUseLdaps       = $config->get("LDAP_USE_LDAPS");
 
-    // Créez les objets seulement si les valeurs nécessaires sont disponibles
     if ($ldapBaseDNLists && $ldapBaseDNServices && $ldapBaseDNPersons) {
         $baseDN = new BaseDNConfig(
             lists: $ldapBaseDNLists,
@@ -150,19 +151,16 @@ try {
         throw new \Exception("Configuration LDAP incomplète : BaseDN manquant");
     }
 } catch (\Throwable $e) {
-    // Attrape TOUTES les exceptions et erreurs, y compris TypeError
     $logger->error("Erreur de connexion LDAP", [
         'error' => $e->getMessage(),
         'code'  => $e->getCode(),
         'file'  => $e->getFile(),
         'line'  => $e->getLine(),
     ]);
-
-    // LDAP non disponible mais l'application peut continuer
     $ldapAvailable = false;
 }
 
-// Initialiser le gestionnaire de droits
+// ✅ ÉTAPE 9 : Initialiser le gestionnaire de droits
 $rightsManager = RightsManager::getInstance();
 
 // Gestion du mode debug
@@ -212,8 +210,35 @@ if ($debug === $config->get("DEBUG")) {
 
 $logger->info("Utilisateur connecté - CU: " . $rightsManager->getUserCu());
 
-// Ajouter les variables utilisateur à Twig
-$twig->addGlobal('user', [
+// ✅ ÉTAPE 10 : Lier le gestionnaire de droits au routeur
+$router->setRightsManager($rightsManager);
+
+// ✅ ÉTAPE 11 : Router la requête actuelle
+$currentRoute = $router->matchFromUri();
+
+// Si aucune route trouvée, page 404
+if (! $currentRoute) {
+    http_response_code(404);
+    die("Page non trouvée");
+}
+
+// ✅ ÉTAPE 12 : Vérifier les droits d'accès
+if (! $router->checkAccess($currentRoute)) {
+    $logger->warning("Accès refusé pour l'utilisateur", [
+        'user_id'         => $rightsManager->getUserId(),
+        'page'            => $currentRoute['page']['slug'],
+        'required_rights' => $currentRoute['rights'] ?? [],
+    ]);
+
+    // Rediriger vers la page d'accès refusé
+    $router->redirectToAccessDenied();
+}
+
+// Gérer les redirections
+$router->handleRedirect($currentRoute);
+
+// Construire le tableau des droits pour la session et Twig
+$rightsTbl = [
     'debug'          => $debug,
     'authenticated'  => $rightsManager->isAuthenticated(),
     'id'             => $rightsManager->getUserId(),
@@ -227,8 +252,68 @@ $twig->addGlobal('user', [
     'synthesisLevel' => $rightsManager->getSynthesisViewLevel(),
     'admin'          => $rightsManager->isAdmin(),
     'superAdmin'     => $rightsManager->isSuperAdmin(),
-]);
+];
 
-// Variables globales supplémentaires
+// ✅ ÉTAPE 11 : Ajouter les variables utilisateur à Twig
+$twig->addGlobal('user', $rightsTbl);
+
+$currentRoute = $router->matchFromUri();
+
+// Si aucune route trouvée, page 404
+if (! $currentRoute) {
+    http_response_code(404);
+    die("Page non trouvée");
+}
+
+// Vérifier les droits d'accès
+if (! $router->checkAccess($currentRoute)) {
+    http_response_code(403);
+    die("Accès refusé");
+}
+
+// Gérer les redirections
+$router->handleRedirect($currentRoute);
+
+// ✅ ÉTAPE 12 : Ajouter les variables du routeur à Twig
+$twig->addGlobal('current_route', $currentRoute);
+$twig->addGlobal('router', $router);
 $twig->addGlobal('config', $config);
 $twig->addGlobal('ldap_available', $ldapAvailable);
+
+// ✅ ÉTAPE 13 : Charger et exécuter le fichier PHP de la page
+$page    = $currentRoute['page'];
+$phpFile = $page['php_file'];
+
+// Construire le chemin complet du fichier PHP
+$phpFilePath = $config->get('PAGES_DIR') . '/' . $phpFile;
+
+if (! file_exists($phpFilePath)) {
+    $logger->error("Fichier PHP de la page non trouvé", [
+        'file' => $phpFilePath,
+        'slug' => $page['slug'],
+    ]);
+    http_response_code(500);
+    die("Erreur interne du serveur");
+}
+
+// Inclure le fichier PHP de la page
+require_once $phpFilePath;
+
+// ✅ ÉTAPE 14 : Organiser les templates, JS et CSS par type/position/media
+$templatesByType = $router->getTemplatesByType($currentRoute);
+$jsByPosition    = $router->getJSAssetsByPosition($currentRoute);
+$cssByMedia      = $router->getCSSAssetsByMedia($currentRoute);
+
+// Ajouter les assets organisés à Twig
+$twig->addGlobal('page_templates', $templatesByType);
+$twig->addGlobal('page_js_assets', $jsByPosition);
+$twig->addGlobal('page_css_assets', $cssByMedia);
+
+// ✅ ÉTAPE 15 : Rendre le template principal (si défini)
+if (isset($templatesByType['content']) && ! empty($templatesByType['content'])) {
+    $mainTemplate = $templatesByType['content'][0]; // Premier template content
+    echo $twig->render($mainTemplate['twig_file']);
+} else {
+    // Fallback : afficher la structure de base
+    echo $twig->render('page.twig');
+}
