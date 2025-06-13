@@ -18,6 +18,7 @@
                     <th id="id" th-hide>Id</th>
                     <th id="var" th-edit th-sort th-filter>Variable</th>
                     <th id="value" th-edit >Valeur</th>
+                    <th id="configuration_type_id" th-choice>Type</th>
                     <th id="description" th-textarea th-edit>Description</th>
                     <th id="twig" th-choice>Twig</th>
                     <th  th-actions="delete,save">Actions</th>
@@ -29,6 +30,7 @@
                         <td id="id_{{ c.id }}" name="id_{{ c.id }}">{{ c.id }}</td>
                         <td id="var_{{ c.id }}" name="var_{{ c.id}}">{{ c.var }}</td>
                         <td id="value_{{ c.id }}" name="value_{{ c.id}}">{{ c.value }}</td>
+                        <td id="configuration_type_id_{{ c.id }}" name="configuration_type_id_{{ c.id}}">{{ c.configuration_type_id }}</td>
                         <td id="description_{{ c.id }}" name="description_{{ c.id}}">{{ c.description }}</td>
                         <td id="twig_{{ c.id }}" name="twig_{{ c.id }}">{{ c.twig }}</td>
                         <td id="actions_{{ c.id }}" name="actions_{{ c.id }}"></td>
@@ -54,6 +56,24 @@
                             { value: '0', label: '<span style="color: green">Non Ajoutée</span>' },
                             { value: '1', label: '<span style="color: red">Ajoutée</span>' }
                         ]
+                    },
+                    'configuration_type_id': {
+                        type: 'toggle',
+                        values: [
+                            { value: '0', label: 'Non Renseigné', readOnly: false },
+                            {% for cti in configuration_types_tbl %}
+                                {
+                                    value: '{{ cti.id }}',
+                                    label: {{ ('<span style="font-weight:bold;color:' ~ cti.hex ~ '">' ~ cti.description ~ '</span>')|json_encode|raw }}
+
+                                },
+                            {% endfor %}
+                        ],
+                        searchable: {
+                            minWidth: '250px',
+                            placeholder: 'Rechercher une unité...',
+                            noResultsText: 'Aucune unité trouvée'
+                        }
                     }
                 }
             },

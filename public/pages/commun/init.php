@@ -1,24 +1,7 @@
 <?php
 
 use Commun\Config\Config;
-require_once dirname(__DIR__, 3) . "/vendor/autoload.php";
-
-// Charger les classes
-require_once __DIR__ . "/Config/Config.php";
-require_once __DIR__ . "/Logger/Logger.php";
-require_once __DIR__ . "/Utils/FileUtils.php";
-require_once __DIR__ . "/Utils/DateUtils.php";
-require_once __DIR__ . "/Utils/StringUtils.php";
-require_once __DIR__ . "/Utils/ExcelProcessor.php";
-require_once __DIR__ . "/Utils/TphUtils.php";
-require_once __DIR__ . "/Utils/UploadManager.php";
-require_once __DIR__ . "/Utils/FileListUtils.php";
-require_once __DIR__ . "/Ldap/LdapManager.php";
-require_once __DIR__ . "/Database/SqlManager.php";
-require_once __DIR__ . "/Template/TwigExtensions.php";
-require_once __DIR__ . "/Security/CsrfManager.php";
-require_once __DIR__ . "/Mail/EMLGenerator.php";
-require_once __DIR__ . "/Security/RightsManager.php";
+use Commun\Database\SqlAdapter;
 use Commun\Database\SqlManager;
 use Commun\Ldap\BaseDNConfig;
 use Commun\Ldap\LdapConfig;
@@ -28,35 +11,73 @@ use Commun\Security\CsrfManager;
 use Commun\Security\RightsManager;
 use Commun\Template\TwigExtensions;
 
-// Initialiser la configuration
+require_once dirname(__DIR__, 3) . "/vendor/autoload.php";
+
+// Charger les classes
+require_once __DIR__ . "/Config/Config.php";
+require_once __DIR__ . "/Database/BDDManager.php";
+require_once __DIR__ . "/Database/SqlManager.php";
+require_once __DIR__ . "/Database/SqlAdapter.php";
+require_once __DIR__ . "/Logger/Logger.php";
+require_once __DIR__ . "/Utils/FileUtils.php";
+require_once __DIR__ . "/Utils/DateUtils.php";
+require_once __DIR__ . "/Utils/StringUtils.php";
+require_once __DIR__ . "/Utils/ExcelProcessor.php";
+require_once __DIR__ . "/Utils/TphUtils.php";
+require_once __DIR__ . "/Utils/UploadManager.php";
+require_once __DIR__ . "/Utils/FileListUtils.php";
+require_once __DIR__ . "/Ldap/LdapManager.php";
+require_once __DIR__ . "/Template/TwigExtensions.php";
+require_once __DIR__ . "/Security/CsrfManager.php";
+require_once __DIR__ . "/Mail/EMLGenerator.php";
+require_once __DIR__ . "/Security/RightsManager.php";
+
+// ✅ ÉTAPE 1 : Initialiser la configuration (lit le .env seulement)
 $config = Config::getInstance();
+
+// ✅ ÉTAPE 2 : Initialiser SqlManager avec les paramètres du .env
+try {
+    SqlManager::initWithParams(
+        $config->get('DB_HOST'),
+        $config->get('DB_NAME'),
+        $config->get('DB_USER'),
+        $config->get('DB_PASSWORD')
+    );
+
+    // ✅ ÉTAPE 3 : Créer l'adapter neutre et charger la config BDD
+    $sqlManager = SqlManager::getInitializedInstance();
+    $sqlAdapter = new SqlAdapter($sqlManager);
+
+    // ✅ ÉTAPE 4 : Charger la configuration depuis la base de données
+    $config->loadFromDatabase($sqlAdapter);
+
+    // Debug temporaire
+    $config->debugPagesConfig();
+
+} catch (\Exception $e) {
+    error_log("Erreur d'initialisation de la base de données : " . $e->getMessage());
+    // Continuer avec la config .env seulement si la BDD n'est pas accessible
+}
 
 // Initialiser le logger avec les paramètres de configuration
 Logger::initWithParams(
-    $config->get('LOGGER_NAME', $config->get('SITE')),
-    $config->get('LOG_DIR', $config->get('LOG_DIR'))
+    $config->get('LOGGER_NAME', $config->get('SITE', 'buse')),
+    $config->get('LOG_DIR', dirname(__DIR__, 3) . '/logs')
 );
 $logger = Logger::getInstance()->getLogger();
 
-// Initialiser la sécurité et la session
-session_start();
+// ✅ CORRECTION : Vérifier si une session est déjà active avant de la démarrer
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $csrfManager            = CsrfManager::getInstance();
 $_SESSION['CSRF_TOKEN'] = $csrfManager->getToken();
 
-// Initialize SqlManager
-SqlManager::initWithParams(
-    $config->get('DB_HOST'),
-    $config->get('DB_NAME'),
-    $config->get('DB_USER'),
-    $config->get('DB_PASSWORD')
-);
-
-$sqlManager = SqlManager::getInstance();
 // Créer les répertoires nécessaires
 $directories = [
-    $config->get('LOG_DIR'),
-    $config->get('UPLOAD_DIR'),
+    $config->get('LOG_DIR', dirname(__DIR__, 3) . '/logs'),
+    $config->get('UPLOAD_DIR', dirname(__DIR__, 3) . '/files'),
 ];
 
 foreach ($directories as $dir) {
@@ -65,17 +86,36 @@ foreach ($directories as $dir) {
     }
 }
 
+// ✅ CORRECTION : Construire le chemin des vues correctement
+$viewsDir = $config->get('VIEWS_DIR');
+if (! $viewsDir) {
+    // Fallback si VIEWS_DIR n'est pas configuré
+    $viewsDir = dirname(__DIR__, 2) . '/views';
+}
+
+// Vérifier que le dossier des vues existe
+if (! is_dir($viewsDir)) {
+    throw new \Exception("Le dossier des vues n'existe pas : $viewsDir");
+}
+
 // Configurer Twig
-$loader = new \Twig\Loader\FilesystemLoader($config->get('VIEWS_DIR'));
+$loader = new \Twig\Loader\FilesystemLoader($viewsDir);
 $twig   = new \Twig\Environment($loader, [
-    'cache' => false,
-    'debug' => true,
+    'cache' => $config->get('TWIG_CACHE', false),
+    'debug' => $config->get('TWIG_DEBUG', true),
 ]);
 
 // Ajouter les extensions Twig
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 $twig->addExtension(new TwigExtensions());
 
+// Ajouter les variables de configuration à Twig
+foreach ($config->getTwigVars() as $key => $value) {
+    $twig->addGlobal($key, $value);
+}
+
+// Configuration LDAP
+$ldapAvailable = false;
 try {
     // Essayez d'abord de récupérer les valeurs de configuration
     $ldapBaseDNLists    = $config->get("LDAP_BASE_DN_LISTS");
@@ -86,14 +126,14 @@ try {
     $ldapUseLdaps       = $config->get("LDAP_USE_LDAPS");
 
     // Créez les objets seulement si les valeurs nécessaires sont disponibles
-    if ($ldapBaseDNLists !== null && $ldapBaseDNServices !== null && $ldapBaseDNPersons !== null) {
+    if ($ldapBaseDNLists && $ldapBaseDNServices && $ldapBaseDNPersons) {
         $baseDN = new BaseDNConfig(
             lists: $ldapBaseDNLists,
             services: $ldapBaseDNServices,
             persons: $ldapBaseDNPersons
         );
 
-        if ($ldapHost !== null && $ldapPort !== null && $ldapUseLdaps !== null) {
+        if ($ldapHost && $ldapPort !== null && $ldapUseLdaps !== null) {
             $ldapConfig = new LdapConfig(
                 host: $ldapHost,
                 port: $ldapPort,
@@ -101,7 +141,8 @@ try {
                 baseDN: $baseDN
             );
 
-            $ldap = LdapManager::initialize($ldapConfig);
+            $ldap          = LdapManager::initialize($ldapConfig);
+            $ldapAvailable = true;
         } else {
             throw new \Exception("Configuration LDAP incomplète : host, port ou useLdaps manquant");
         }
@@ -117,50 +158,61 @@ try {
         'line'  => $e->getLine(),
     ]);
 
-    // Vous pouvez ajouter ici un code pour gérer l'absence de LDAP
-    // Par exemple, définir une variable pour indiquer que LDAP n'est pas disponible
+    // LDAP non disponible mais l'application peut continuer
     $ldapAvailable = false;
 }
 
+// Initialiser le gestionnaire de droits
 $rightsManager = RightsManager::getInstance();
-$debug         = (isset($_GET['debug'])) ? $_GET['debug'] : 0;
-$serverAddr    = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : '127.0.0.1';
-if ($serverAddr == "127.0.0.1") {
-    $debug = $config->get("DEBUG");
+
+// Gestion du mode debug
+$debug      = 0;
+$serverAddr = $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
+
+// Debug sur localhost ou environnement de développement
+if ($serverAddr === "127.0.0.1" || $config->get("ENV") === "dev") {
+    $debug = (int) $config->get("DEBUG", 0);
 }
 
-if (strcmp($config->get("ENV"), "dev") == 0) {
-    $debug = $config->get("DEBUG");
+// Override debug par paramètre GET
+if (isset($_GET['debug'])) {
+    $debug = (int) $_GET['debug'];
 }
 
-if ($debug == $config->get("DEBUG")) {
-    if (! isset($_GET['nigend'])) {
-        $nigend = 224286;
-    } else {
-        $nigend = $_GET['nigend'];
-    }
+// Authentification en mode debug
+if ($debug === $config->get("DEBUG")) {
+    $nigend = $_GET['nigend'] ?? 224286;
+
     $personsAttributes = ["employeenumber", "title", "sn", "givenname", "mail", "codeunite", "ou"];
     $person            = sprintf("employeenumber=%s", $nigend);
     $personsInfo       = [];
-    $ldapManager       = LdapManager::getInstance();
-    $personsInfo       = $ldapManager->searchPersons($person, $personsAttributes, 10)[0];
 
-    if ((sizeof($personsInfo) == 0) && ($nigend == 224286)) {
-        $this->userId        = 224286;
-        $this->userName      = "ADJ VOIRIN Nicolas";
-        $this->userMail      = "nicolas.voirin@gendarmerie.interieur.gouv.fr";
-        $this->userUnit      = "SOLC BDRIJ GGD27";
-        $this->userCu        = "12027";
-        $this->userShortName = "VOIRIN Nicolas";
-
+    if ($ldapAvailable) {
+        $ldapManager = LdapManager::getInstance();
+        $personsInfo = $ldapManager->searchPersons($person, $personsAttributes, 10)[0] ?? null;
     }
-    $rightsManager->initialize(1, $personsInfo);
+
+    // Fallback pour l'utilisateur de test
+    if (! $personsInfo && $nigend == 224286) {
+        $personsInfo = [
+            "employeenumber" => "224286",
+            "title"          => "ADJ",
+            "sn"             => "VOIRIN",
+            "givenname"      => "Nicolas",
+            "mail"           => "nicolas.voirin@gendarmerie.interieur.gouv.fr",
+            "ou"             => "SOLC BDRIJ GGD27",
+            "codeunite"      => "12027",
+        ];
+    }
+
+    $rightsManager->initialize(1, $personsInfo ?: []);
 } else {
     $rightsManager->initialize();
 }
 
-$logger->info("cu:" . $rightsManager->getUserCu());
+$logger->info("Utilisateur connecté - CU: " . $rightsManager->getUserCu());
 
+// Ajouter les variables utilisateur à Twig
 $twig->addGlobal('user', [
     'debug'          => $debug,
     'authenticated'  => $rightsManager->isAuthenticated(),
@@ -176,3 +228,7 @@ $twig->addGlobal('user', [
     'admin'          => $rightsManager->isAdmin(),
     'superAdmin'     => $rightsManager->isSuperAdmin(),
 ]);
+
+// Variables globales supplémentaires
+$twig->addGlobal('config', $config);
+$twig->addGlobal('ldap_available', $ldapAvailable);

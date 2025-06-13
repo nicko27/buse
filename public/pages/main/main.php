@@ -24,7 +24,7 @@ if (isset($get['subpage'])) {
     $subpage = 0;
 }
 
-$php_file = sprintf("%s/main/subpages/%s/main.php", $config->get('PAGES_DIR'), SUBPAGES_MAIN_LIST[$subpage]);
+$php_file = sprintf("%s/main/subpages/%s/main.php", $config->get('PAGES_DIR'), $config->get('SUBPAGES_MAIN_LIST')[$subpage]);
 
 try {
     if (is_file($php_file)) {

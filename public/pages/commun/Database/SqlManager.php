@@ -25,6 +25,8 @@ class SqlManager
     /** @var array Table des noms de tables autorisés (protection contre les injections SQL) */
     private $allowedTables = [];
 
+    private static $isInitialized = false;
+
     /**
      * Constructeur privé pour empêcher l'instanciation directe
      *
@@ -33,6 +35,7 @@ class SqlManager
     private function __construct(PDO $db)
     {
         $this->db = $db;
+
         // Initialiser le logger seulement s'il est disponible
         try {
             $this->logger = Logger::getInstance()->getLogger();
@@ -40,6 +43,9 @@ class SqlManager
             // En cas d'erreur, on crée un logger null qui ne fait rien
             $this->logger = new \Psr\Log\NullLogger();
         }
+
+        // Marquer comme initialisé seulement si tout est OK
+        self::$isInitialized = true;
     }
 
     /**
@@ -60,6 +66,11 @@ class SqlManager
         return self::$instance;
     }
 
+    public static function isInitialized(): bool
+    {
+        return self::$isInitialized;
+    }
+
     /**
      * Réinitialiser l'instance (utile pour les tests ou pour changer de connexion)
      *
@@ -67,7 +78,8 @@ class SqlManager
      */
     public static function resetInstance(): void
     {
-        self::$instance = null;
+        self::$instance      = null;
+        self::$isInitialized = false; // ✅ CORRECTION : réinitialiser le flag aussi
     }
 
     /**

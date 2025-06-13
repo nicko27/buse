@@ -1,13 +1,11 @@
 .
+├── buse.sql
 ├── composer.json
 ├── composer.lock
 ├── files
-│   └── bdsp-ops-01-synthese-des-interventions1.xlsx
 ├── index.php
 ├── logs
-│   ├── error-2025-04-29.log
-│   └── error-2025-05-06.log
-├── mails
+│   └── error-2025-06-12.log
 ├── package-lock.json
 ├── public
 │   ├── assets
@@ -52,6 +50,7 @@
 │   │   │   │   ├── bused.png
 │   │   │   │   ├── buseg.png
 │   │   │   │   ├── buse.png
+│   │   │   │   ├── interdit.png
 │   │   │   │   └── update.gif
 │   │   │   └── upload
 │   │   │       └── spinner.gif
@@ -60,8 +59,16 @@
 │   │   │   ├── main
 │   │   │   │   ├── main.js
 │   │   │   │   └── subpages
-│   │   │   │       ├── import.js
+│   │   │   │       ├── import
+│   │   │   │       │   └── main.js
+│   │   │   │       ├── suivi.js
+│   │   │   │       ├── synthese_mail
+│   │   │   │       │   └── main.js
+│   │   │   │       ├── unites_ldap
+│   │   │   │       │   └── main.js
 │   │   │   │       ├── unites_ldap.js
+│   │   │   │       ├── update
+│   │   │   │       │   └── main.js
 │   │   │   │       └── update.js
 │   │   │   └── show
 │   │   │       ├── permanences.js
@@ -70,13 +77,13 @@
 │   │   ├── libs
 │   │   │   ├── colorFlow
 │   │   │   │   ├── docs
-│   │   │   │   │   └── documentation.html
+│   │   │   │   │   └── colorFlow.md
 │   │   │   │   └── src
 │   │   │   │       ├── colorFlow.css
 │   │   │   │       └── colorFlow.js
 │   │   │   ├── dateFlow
 │   │   │   │   ├── docs
-│   │   │   │   │   └── documentation.html
+│   │   │   │   │   └── dateFlow.md
 │   │   │   │   └── src
 │   │   │   │       ├── dateFlow.css
 │   │   │   │       └── dateFlow.js
@@ -94,64 +101,64 @@
 │   │   │   │       └── fa-solid-900.woff2
 │   │   │   ├── modalFlow
 │   │   │   │   ├── docs
-│   │   │   │   │   └── documentation.html
-│   │   │   │   ├── examples.html
+│   │   │   │   │   └── modalFlow.md
 │   │   │   │   ├── README.md
 │   │   │   │   └── src
+│   │   │   │       ├── examples.html
 │   │   │   │       ├── modalFlow.css
 │   │   │   │       └── modalFlow.js
 │   │   │   ├── notifyFlow
 │   │   │   │   ├── docs
-│   │   │   │   │   └── documentation.html
+│   │   │   │   │   ├── exemples.html
+│   │   │   │   │   └── notifyFlow.md
 │   │   │   │   └── src
 │   │   │   │       ├── notifyFlow.css
 │   │   │   │       └── notifyFlow.js
 │   │   │   ├── tableFlow
 │   │   │   │   ├── docs
-│   │   │   │   │   ├── actions.html
-│   │   │   │   │   ├── choice.html
-│   │   │   │   │   ├── color.html
-│   │   │   │   │   ├── columnreorder.html
-│   │   │   │   │   ├── contextmenu.html
-│   │   │   │   │   ├── documentation.css
-│   │   │   │   │   ├── documentation.html
-│   │   │   │   │   ├── filterandpaginate.html
-│   │   │   │   │   ├── hide.html
-│   │   │   │   │   ├── highlight.html
-│   │   │   │   │   ├── linetoggle.html
-│   │   │   │   │   ├── texteditor.html
-│   │   │   │   │   └── validation.html
+│   │   │   │   │   ├── actions.md
+│   │   │   │   │   ├── choice.md
+│   │   │   │   │   ├── color.md
+│   │   │   │   │   ├── contextmenu.md
+│   │   │   │   │   ├── date.md
+│   │   │   │   │   ├── filter.md
+│   │   │   │   │   ├── hide.md
+│   │   │   │   │   ├── highlight.md
+│   │   │   │   │   ├── linetoggle.md
+│   │   │   │   │   ├── reorder.md
+│   │   │   │   │   ├── selection.md
+│   │   │   │   │   ├── tableFlow.md
+│   │   │   │   │   ├── texteditor.md
+│   │   │   │   │   └── validation.md
 │   │   │   │   ├── plugins
 │   │   │   │   │   ├── actions.js
+│   │   │   │   │   ├── choice.css
 │   │   │   │   │   ├── choice.js
 │   │   │   │   │   ├── color.js
-│   │   │   │   │   ├── columnreorder.js
 │   │   │   │   │   ├── contextmenu.js
+│   │   │   │   │   ├── date.js
 │   │   │   │   │   ├── edit.js
 │   │   │   │   │   ├── filterandpaginate.js
 │   │   │   │   │   ├── hide.js
-│   │   │   │   │   ├── hightlight.js
+│   │   │   │   │   ├── highlight.js
 │   │   │   │   │   ├── linetoggle.js
+│   │   │   │   │   ├── README.md
+│   │   │   │   │   ├── reorder.js
 │   │   │   │   │   ├── selection.js
 │   │   │   │   │   ├── sort.js
 │   │   │   │   │   ├── texteditor.js
 │   │   │   │   │   └── validation.js
+│   │   │   │   ├── README.md
 │   │   │   │   └── src
-│   │   │   │       ├── instanceManager.js
-│   │   │   │       ├── instancePluginManager.js
-│   │   │   │       ├── pluginRegistry.js
 │   │   │   │       ├── tableFlow.css
-│   │   │   │       ├── tableFlow.js
-│   │   │   │       └── types.js
+│   │   │   │       └── tableFlow.js
 │   │   │   ├── tooltipFlow
-│   │   │   │   ├── docs
-│   │   │   │   │   └── documentation.html
 │   │   │   │   └── src
 │   │   │   │       ├── tooltipFlow.css
 │   │   │   │       └── tooltipFlow.js
 │   │   │   └── updateFlow
 │   │   │       ├── docs
-│   │   │       │   └── documentation.html
+│   │   │       │   └── updateFlow.md
 │   │   │       ├── README.md
 │   │   │       └── src
 │   │   │           ├── php
@@ -173,24 +180,37 @@
 │   │   │           │       └── Security.php
 │   │   │           └── updateFlow.js
 │   │   └── sound
-│   │       └── beep.wav
+│   │       ├── beep.wav
+│   │       ├── files
+│   │       │   └── bdsp-ops-01-synthese-des-interventions1.xlsx
+│   │       └── mails
+│   │           ├── mail_10097.eml
+│   │           ├── mail_10431.eml
+│   │           ├── mail_39289.eml
+│   │           ├── mail_9871.eml
+│   │           ├── mail_9898.eml
+│   │           └── mail.eml
 │   ├── pages
 │   │   ├── commun
 │   │   │   ├── Config
 │   │   │   │   └── Config.php
 │   │   │   ├── Database
+│   │   │   │   ├── BddManager.php
+│   │   │   │   ├── SqlAdapter.php
 │   │   │   │   └── SqlManager.php
-│   │   │   ├── EMLGenerator
-│   │   │   │   └── EMLGenerator.php
 │   │   │   ├── init.php
 │   │   │   ├── Ldap
 │   │   │   │   └── LdapManager.php
 │   │   │   ├── Logger
 │   │   │   │   └── Logger.php
+│   │   │   ├── Mail
+│   │   │   │   └── EMLGenerator.php
 │   │   │   ├── Security
-│   │   │   │   └── CsrfManager.php
+│   │   │   │   ├── CsrfManager.php
+│   │   │   │   ├── DummySSO.php
+│   │   │   │   ├── RightsManager.php
+│   │   │   │   └── SSOlocal.php
 │   │   │   ├── Template
-│   │   │   │   ├── TemplateManager.php
 │   │   │   │   └── TwigExtensions.php
 │   │   │   └── Utils
 │   │   │       ├── DateUtils.php
@@ -214,6 +234,8 @@
 │   │   │       ├── cities
 │   │   │       │   ├── main.php
 │   │   │       │   └── update.php
+│   │   │       ├── configuration
+│   │   │       │   └── main.php
 │   │   │       ├── import
 │   │   │       │   ├── handleUpload.php
 │   │   │       │   ├── listFiles.php
@@ -223,78 +245,114 @@
 │   │   │       │   │   └── timelineFcts.php
 │   │   │       │   ├── updatePatrolsPerms.php
 │   │   │       │   └── updateSynthesis.php
+│   │   │       ├── mailSynthesis
+│   │   │       │   ├── main.php
+│   │   │       │   ├── prepare.php
+│   │   │       │   └── sendMail.php
 │   │   │       ├── mairies
+│   │   │       │   └── main.php
+│   │   │       ├── pages
+│   │   │       │   └── main.php
+│   │   │       ├── rights
+│   │   │       │   ├── actions.php
 │   │   │       │   └── main.php
 │   │   │       ├── services
 │   │   │       │   └── main.php
 │   │   │       ├── sites
 │   │   │       │   └── main.php
-│   │   │       ├── synthese
+│   │   │       ├── synthese_mail
+│   │   │       │   ├── mail.php
 │   │   │       │   ├── main.php
-│   │   │       │   ├── synthesisFileViewer.php
-│   │   │       │   └── update.php
+│   │   │       │   └── sendMailNotificationSynthesis.php
+│   │   │       ├── synthese_prepare
+│   │   │       │   └── main.php
 │   │   │       ├── unites_ldap
 │   │   │       │   ├── main.php
 │   │   │       │   └── unitsHandler.php
 │   │   │       ├── unites_manuelles
 │   │   │       │   └── main.php
 │   │   │       └── update
-│   │   │           ├── attachHead.php
-│   │   │           ├── includes.php
-│   │   │           ├── merge.php
-│   │   │           ├── pull.php
-│   │   │           ├── push.php
-│   │   │           ├── rebase.php
-│   │   │           ├── reset.php
-│   │   │           └── version.php
-│   │   ├── show
-│   │   │   ├── blocks
-│   │   │   │   ├── getTimelineBlocksFcts.php
-│   │   │   │   ├── getTimelineBlocks.php
-│   │   │   │   └── timelineFcts.php
-│   │   │   ├── modal
-│   │   │   │   ├── block
-│   │   │   │   │   ├── addBlock.php
-│   │   │   │   │   ├── deleteBlock.php
-│   │   │   │   │   ├── showAddBlock.php
-│   │   │   │   │   ├── showUpdateBlock.php
-│   │   │   │   │   └── updateBlock.php
-│   │   │   │   ├── memo
-│   │   │   │   │   ├── addMemo.php
-│   │   │   │   │   ├── deleteMemo.php
-│   │   │   │   │   ├── showAddMemo.php
-│   │   │   │   │   ├── showUpdateMemo.php
-│   │   │   │   │   └── updateMemo.php
-│   │   │   │   └── PAM
-│   │   │   │       ├── showUpdatePAM.php
-│   │   │   │       └── updatePAM.php
-│   │   │   ├── PAM
-│   │   │   │   ├── getPAMFcts.php
-│   │   │   │   └── getPAM.php
-│   │   │   ├── permanences.php
-│   │   │   └── timeline.php
-│   │   └── synthesis
-│   │       └── mail.php
+│   │   │           └── main.php
+│   │   └── show
+│   │       ├── blocks
+│   │       │   ├── getTimelineBlocksFcts.php
+│   │       │   ├── getTimelineBlocks.php
+│   │       │   └── timelineFcts.php
+│   │       ├── modal
+│   │       │   ├── block
+│   │       │   │   ├── addBlock.php
+│   │       │   │   ├── deleteBlock.php
+│   │       │   │   ├── showAddBlock.php
+│   │       │   │   ├── showUpdateBlock.php
+│   │       │   │   └── updateBlock.php
+│   │       │   ├── memo
+│   │       │   │   ├── addMemo.php
+│   │       │   │   ├── deleteMemo.php
+│   │       │   │   ├── showAddMemo.php
+│   │       │   │   ├── showUpdateMemo.php
+│   │       │   │   └── updateMemo.php
+│   │       │   └── PAM
+│   │       │       ├── showUpdatePAM.php
+│   │       │       └── updatePAM.php
+│   │       ├── PAM
+│   │       │   ├── getPAMFcts.php
+│   │       │   └── getPAM.php
+│   │       ├── permanences.php
+│   │       └── timeline.php
 │   └── views
 │       ├── index
 │       │   └── index.twig
 │       ├── main
+│       │   ├── header.twig
 │       │   ├── main.twig
-│       │   └── subpages
-│       │       ├── categories.twig
-│       │       ├── cies.twig
-│       │       ├── cities.twig
-│       │       ├── import.twig
-│       │       ├── mairies.twig
-│       │       ├── rights.twig
-│       │       ├── services.twig
-│       │       ├── sites.twig
-│       │       ├── synthese.twig
-│       │       ├── unites_ldap.twig
-│       │       ├── unites_manuelles.twig
-│       │       └── update.twig
+│       │   ├── menu.twig
+│       │   ├── subpages
+│       │   │   ├── categories
+│       │   │   │   └── main.twig
+│       │   │   ├── cies
+│       │   │   │   └── main.twig
+│       │   │   ├── cities
+│       │   │   │   └── main.twig
+│       │   │   ├── configuration
+│       │   │   │   └── main.twig
+│       │   │   ├── default
+│       │   │   │   └── main.twig
+│       │   │   ├── import
+│       │   │   │   └── main.twig
+│       │   │   ├── mailSynthesis
+│       │   │   │   ├── cie_mail_html.twig
+│       │   │   │   ├── cob_mail_html.twig
+│       │   │   │   ├── eml_unit_mail.twig
+│       │   │   │   ├── event_mail_html.twig
+│       │   │   │   ├── event_mail_text.twig
+│       │   │   │   ├── global_mail.twig
+│       │   │   │   └── main.twig
+│       │   │   ├── mairies
+│       │   │   │   └── main.twig
+│       │   │   ├── pages
+│       │   │   │   └── main.twig
+│       │   │   ├── rights
+│       │   │   │   └── main.twig
+│       │   │   ├── services
+│       │   │   │   └── main.twig
+│       │   │   ├── sites
+│       │   │   │   └── main.twig
+│       │   │   ├── synthese_mail
+│       │   │   │   ├── main.twig
+│       │   │   │   ├── template_html.twig
+│       │   │   │   └── template_raw.twig
+│       │   │   ├── synthese_prepare
+│       │   │   │   └── main.twig
+│       │   │   ├── unites_ldap
+│       │   │   │   └── main.twig
+│       │   │   ├── unites_manuelles
+│       │   │   │   └── main.twig
+│       │   │   └── update
+│       │   │       └── main.twig
+│       │   └── title.twig
 │       ├── maj
 │       │   └── maj.twig
+│       ├── page.twig
 │       └── show
 │           ├── modal
 │           │   ├── block.twig
@@ -306,9 +364,9 @@
 │           │   └── grid_template.twig
 │           ├── timeline2.twig
 │           └── timeline.twig
-├── push_config.cfg
 ├── PUSH.md
 ├── push.sh
+├── test.php
 ├── tree.txt
 ├── vendor
 │   ├── autoload.php
@@ -685,82 +743,6 @@
 │   │               │   ├── MonologTestCase.php
 │   │               │   └── TestCase.php
 │   │               └── Utils.php
-│   ├── phpmailer
-│   │   └── phpmailer
-│   │       ├── COMMITMENT
-│   │       ├── composer.json
-│   │       ├── get_oauth_token.php
-│   │       ├── language
-│   │       │   ├── phpmailer.lang-af.php
-│   │       │   ├── phpmailer.lang-ar.php
-│   │       │   ├── phpmailer.lang-as.php
-│   │       │   ├── phpmailer.lang-az.php
-│   │       │   ├── phpmailer.lang-ba.php
-│   │       │   ├── phpmailer.lang-be.php
-│   │       │   ├── phpmailer.lang-bg.php
-│   │       │   ├── phpmailer.lang-bn.php
-│   │       │   ├── phpmailer.lang-ca.php
-│   │       │   ├── phpmailer.lang-cs.php
-│   │       │   ├── phpmailer.lang-da.php
-│   │       │   ├── phpmailer.lang-de.php
-│   │       │   ├── phpmailer.lang-el.php
-│   │       │   ├── phpmailer.lang-eo.php
-│   │       │   ├── phpmailer.lang-es.php
-│   │       │   ├── phpmailer.lang-et.php
-│   │       │   ├── phpmailer.lang-fa.php
-│   │       │   ├── phpmailer.lang-fi.php
-│   │       │   ├── phpmailer.lang-fo.php
-│   │       │   ├── phpmailer.lang-fr.php
-│   │       │   ├── phpmailer.lang-gl.php
-│   │       │   ├── phpmailer.lang-he.php
-│   │       │   ├── phpmailer.lang-hi.php
-│   │       │   ├── phpmailer.lang-hr.php
-│   │       │   ├── phpmailer.lang-hu.php
-│   │       │   ├── phpmailer.lang-hy.php
-│   │       │   ├── phpmailer.lang-id.php
-│   │       │   ├── phpmailer.lang-it.php
-│   │       │   ├── phpmailer.lang-ja.php
-│   │       │   ├── phpmailer.lang-ka.php
-│   │       │   ├── phpmailer.lang-ko.php
-│   │       │   ├── phpmailer.lang-ku.php
-│   │       │   ├── phpmailer.lang-lt.php
-│   │       │   ├── phpmailer.lang-lv.php
-│   │       │   ├── phpmailer.lang-mg.php
-│   │       │   ├── phpmailer.lang-mn.php
-│   │       │   ├── phpmailer.lang-ms.php
-│   │       │   ├── phpmailer.lang-nb.php
-│   │       │   ├── phpmailer.lang-nl.php
-│   │       │   ├── phpmailer.lang-pl.php
-│   │       │   ├── phpmailer.lang-pt_br.php
-│   │       │   ├── phpmailer.lang-pt.php
-│   │       │   ├── phpmailer.lang-ro.php
-│   │       │   ├── phpmailer.lang-ru.php
-│   │       │   ├── phpmailer.lang-si.php
-│   │       │   ├── phpmailer.lang-sk.php
-│   │       │   ├── phpmailer.lang-sl.php
-│   │       │   ├── phpmailer.lang-sr_latn.php
-│   │       │   ├── phpmailer.lang-sr.php
-│   │       │   ├── phpmailer.lang-sv.php
-│   │       │   ├── phpmailer.lang-tl.php
-│   │       │   ├── phpmailer.lang-tr.php
-│   │       │   ├── phpmailer.lang-uk.php
-│   │       │   ├── phpmailer.lang-ur.php
-│   │       │   ├── phpmailer.lang-vi.php
-│   │       │   ├── phpmailer.lang-zh_cn.php
-│   │       │   └── phpmailer.lang-zh.php
-│   │       ├── LICENSE
-│   │       ├── README.md
-│   │       ├── SECURITY.md
-│   │       ├── SMTPUTF8.md
-│   │       ├── src
-│   │       │   ├── DSNConfigurator.php
-│   │       │   ├── Exception.php
-│   │       │   ├── OAuth.php
-│   │       │   ├── OAuthTokenProvider.php
-│   │       │   ├── PHPMailer.php
-│   │       │   ├── POP3.php
-│   │       │   └── SMTP.php
-│   │       └── VERSION
 │   ├── phpoffice
 │   │   └── phpspreadsheet
 │   │       ├── CHANGELOG.md
@@ -1381,7 +1363,8 @@
 │   │                   │   ├── Style
 │   │                   │   │   ├── CellAlignment.php
 │   │                   │   │   ├── CellBorder.php
-│   │                   │   │   └── CellFill.php
+│   │                   │   │   ├── CellFill.php
+│   │                   │   │   └── ColorMap.php
 │   │                   │   ├── Workbook.php
 │   │                   │   ├── Worksheet.php
 │   │                   │   └── Xf.php
@@ -1581,6 +1564,20 @@
 │   │               ├── Stringable.php
 │   │               ├── UnhandledMatchError.php
 │   │               └── ValueError.php
+│   ├── tijsverkoyen
+│   │   └── css-to-inline-styles
+│   │       ├── composer.json
+│   │       ├── LICENSE.md
+│   │       └── src
+│   │           ├── Css
+│   │           │   ├── Processor.php
+│   │           │   ├── Property
+│   │           │   │   ├── Processor.php
+│   │           │   │   └── Property.php
+│   │           │   └── Rule
+│   │           │       ├── Processor.php
+│   │           │       └── Rule.php
+│   │           └── CssToInlineStyles.php
 │   ├── twig
 │   │   └── twig
 │   │       ├── CHANGELOG
@@ -1592,6 +1589,9 @@
 │   │       └── src
 │   │           ├── AbstractTwigCallable.php
 │   │           ├── Attribute
+│   │           │   ├── AsTwigFilter.php
+│   │           │   ├── AsTwigFunction.php
+│   │           │   ├── AsTwigTest.php
 │   │           │   ├── FirstClassTwigCallableReady.php
 │   │           │   └── YieldReady.php
 │   │           ├── Cache
@@ -1609,9 +1609,35 @@
 │   │           │   ├── LoaderError.php
 │   │           │   ├── RuntimeError.php
 │   │           │   └── SyntaxError.php
+│   │           ├── ExpressionParser
+│   │           │   ├── AbstractExpressionParser.php
+│   │           │   ├── ExpressionParserDescriptionInterface.php
+│   │           │   ├── ExpressionParserInterface.php
+│   │           │   ├── ExpressionParsers.php
+│   │           │   ├── ExpressionParserType.php
+│   │           │   ├── Infix
+│   │           │   │   ├── ArgumentsTrait.php
+│   │           │   │   ├── ArrowExpressionParser.php
+│   │           │   │   ├── BinaryOperatorExpressionParser.php
+│   │           │   │   ├── ConditionalTernaryExpressionParser.php
+│   │           │   │   ├── DotExpressionParser.php
+│   │           │   │   ├── FilterExpressionParser.php
+│   │           │   │   ├── FunctionExpressionParser.php
+│   │           │   │   ├── IsExpressionParser.php
+│   │           │   │   ├── IsNotExpressionParser.php
+│   │           │   │   └── SquareBracketExpressionParser.php
+│   │           │   ├── InfixAssociativity.php
+│   │           │   ├── InfixExpressionParserInterface.php
+│   │           │   ├── PrecedenceChange.php
+│   │           │   ├── Prefix
+│   │           │   │   ├── GroupingExpressionParser.php
+│   │           │   │   ├── LiteralExpressionParser.php
+│   │           │   │   └── UnaryOperatorExpressionParser.php
+│   │           │   └── PrefixExpressionParserInterface.php
 │   │           ├── ExpressionParser.php
 │   │           ├── Extension
 │   │           │   ├── AbstractExtension.php
+│   │           │   ├── AttributeExtension.php
 │   │           │   ├── CoreExtension.php
 │   │           │   ├── DebugExtension.php
 │   │           │   ├── EscaperExtension.php
@@ -1700,12 +1726,21 @@
 │   │           │   │   │   └── EnumFunction.php
 │   │           │   │   ├── GetAttrExpression.php
 │   │           │   │   ├── InlinePrint.php
+│   │           │   │   ├── ListExpression.php
 │   │           │   │   ├── MacroReferenceExpression.php
 │   │           │   │   ├── MethodCallExpression.php
 │   │           │   │   ├── NameExpression.php
 │   │           │   │   ├── NullCoalesceExpression.php
 │   │           │   │   ├── OperatorEscapeInterface.php
 │   │           │   │   ├── ParentExpression.php
+│   │           │   │   ├── ReturnArrayInterface.php
+│   │           │   │   ├── ReturnBoolInterface.php
+│   │           │   │   ├── ReturnNumberInterface.php
+│   │           │   │   ├── ReturnPrimitiveTypeInterface.php
+│   │           │   │   ├── ReturnStringInterface.php
+│   │           │   │   ├── SupportDefinedTestDeprecationTrait.php
+│   │           │   │   ├── SupportDefinedTestInterface.php
+│   │           │   │   ├── SupportDefinedTestTrait.php
 │   │           │   │   ├── TempNameExpression.php
 │   │           │   │   ├── Ternary
 │   │           │   │   │   └── ConditionalTernary.php
@@ -1716,7 +1751,8 @@
 │   │           │   │   │   ├── EvenTest.php
 │   │           │   │   │   ├── NullTest.php
 │   │           │   │   │   ├── OddTest.php
-│   │           │   │   │   └── SameasTest.php
+│   │           │   │   │   ├── SameasTest.php
+│   │           │   │   │   └── TrueTest.php
 │   │           │   │   ├── TestExpression.php
 │   │           │   │   ├── Unary
 │   │           │   │   │   ├── AbstractUnary.php
@@ -1893,4 +1929,4 @@
 │               └── Validator.php
 └── version
 
-318 directories, 1575 files
+348 directories, 1581 files
