@@ -6,7 +6,7 @@ use Commun\Logger\Logger;
 use Commun\Security\RightsManager;
 
 /**
- * Classe Router - Gestionnaire de routage simple avec support GET/POST
+ * Classe Router - Gestionnaire de routage avec support du nouveau schema simplifié
  */
 class Router
 {
@@ -24,6 +24,9 @@ class Router
 
     /** @var array Cache des routes chargées */
     private array $routes = [];
+
+    /** @var array Cache des types de templates */
+    private array $templateTypes = [];
 
     /** @var bool Indique si les routes ont été chargées */
     private bool $routesLoaded = false;
@@ -122,6 +125,9 @@ class Router
         }
 
         try {
+            // Charger les types de templates
+            $this->loadTemplateTypes();
+
             // Charger les pages actives
             $pagesResult = $this->dbManager->getAllContentTable('pages');
 
@@ -135,9 +141,6 @@ class Router
                 $this->routes[$page['slug']] = [
                     'page'      => $page,
                     'templates' => $this->loadPageTemplates($pageId),
-                    'layout'    => $this->loadPageLayout($pageId),
-                    'assets'    => $this->loadPageAssets($pageId),
-                    'rights'    => $this->loadPageRights($pageId),
                 ];
             }
 
@@ -156,7 +159,30 @@ class Router
     }
 
     /**
-     * Charge les templates d'une page depuis la table simplifiée
+     * Charge les types de templates depuis la base de données
+     */
+    private function loadTemplateTypes(): void
+    {
+        try {
+            $typesResult = $this->dbManager->getAllContentTable('page_template_types');
+
+            $this->templateTypes = [];
+            foreach ($typesResult as $type) {
+                if ($type['active']) {
+                    $this->templateTypes[$type['id']] = $type;
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->logger->error("Erreur lors du chargement des types de templates", [
+                'error' => $e->getMessage(),
+            ]);
+            $this->templateTypes = [];
+        }
+    }
+
+    /**
+     * Charge les templates d'une page
      */
     private function loadPageTemplates(int $pageId): array
     {
@@ -166,11 +192,16 @@ class Router
             $pageTemplates = [];
             foreach ($templatesResult as $template) {
                 if ($template['page_id'] == $pageId && $template['enabled']) {
-                    $zone = $template['zone'];
-                    if (! isset($pageTemplates[$zone])) {
-                        $pageTemplates[$zone] = [];
+                    $typeId = $template['template_type_id'];
+
+                    if (isset($this->templateTypes[$typeId])) {
+                        $zoneName = $this->templateTypes[$typeId]['name'];
+
+                        if (! isset($pageTemplates[$zoneName])) {
+                            $pageTemplates[$zoneName] = [];
+                        }
+                        $pageTemplates[$zoneName][] = $template;
                     }
-                    $pageTemplates[$zone][] = $template;
                 }
             }
 
@@ -185,114 +216,6 @@ class Router
 
         } catch (\Exception $e) {
             $this->logger->error("Erreur lors du chargement des templates", [
-                'page_id' => $pageId,
-                'error'   => $e->getMessage(),
-            ]);
-            return [];
-        }
-    }
-
-    /**
-     * Charge le layout d'une page
-     */
-    private function loadPageLayout(int $pageId): array
-    {
-        try {
-            if (! $this->dbManager->tableExists('page_layouts')) {
-                return ['layout_template' => 'layouts/default.twig'];
-            }
-
-            $layoutsResult = $this->dbManager->getAllContentTable('page_layouts');
-
-            foreach ($layoutsResult as $layout) {
-                if ($layout['page_id'] == $pageId) {
-                    return $layout;
-                }
-            }
-
-            // Fallback par défaut
-            return ['layout_template' => 'layouts/default.twig'];
-
-        } catch (\Exception $e) {
-            $this->logger->error("Erreur lors du chargement du layout", [
-                'page_id' => $pageId,
-                'error'   => $e->getMessage(),
-            ]);
-            return ['layout_template' => 'layouts/default.twig'];
-        }
-    }
-
-    /**
-     * Charge les assets d'une page
-     */
-    private function loadPageAssets(int $pageId): array
-    {
-        try {
-            if (! $this->dbManager->tableExists('page_assets')) {
-                return ['css' => [], 'js' => []];
-            }
-
-            $assetsResult = $this->dbManager->getAllContentTable('page_assets');
-
-            $assets = ['css' => [], 'js' => []];
-
-            foreach ($assetsResult as $asset) {
-                if ($asset['page_id'] == $pageId && $asset['enabled']) {
-                    $type = $asset['file_type'];
-                    $zone = $asset['zone'] ?? 'global';
-
-                    if (! isset($assets[$type][$zone])) {
-                        $assets[$type][$zone] = [];
-                    }
-
-                    $assets[$type][$zone][] = $asset;
-                }
-            }
-
-            // Trier par priorité
-            foreach (['css', 'js'] as $type) {
-                foreach ($assets[$type] as $zone => $zoneAssets) {
-                    usort($assets[$type][$zone], function ($a, $b) {
-                        return ($a['priority'] ?? 0) <=> ($b['priority'] ?? 0);
-                    });
-                }
-            }
-
-            return $assets;
-
-        } catch (\Exception $e) {
-            $this->logger->error("Erreur lors du chargement des assets", [
-                'page_id' => $pageId,
-                'error'   => $e->getMessage(),
-            ]);
-            return ['css' => [], 'js' => []];
-        }
-    }
-
-    /**
-     * Charge les droits requis pour une page
-     */
-    private function loadPageRights(int $pageId): array
-    {
-        try {
-            // Si la table page_rights existe, l'utiliser
-            if ($this->dbManager->tableExists('page_rights')) {
-                $rightsResult = $this->dbManager->getAllContentTable('page_rights');
-
-                $pageRights = [];
-                foreach ($rightsResult as $right) {
-                    if ($right['page_id'] == $pageId) {
-                        $pageRights[] = $right['right_name'];
-                    }
-                }
-
-                return $pageRights;
-            }
-
-            return [];
-
-        } catch (\Exception $e) {
-            $this->logger->error("Erreur lors du chargement des droits de la page", [
                 'page_id' => $pageId,
                 'error'   => $e->getMessage(),
             ]);
@@ -453,107 +376,50 @@ class Router
     }
 
     /**
-     * Retourne le layout de la route courante
-     */
-    public function getCurrentLayout(): array
-    {
-        if (! $this->currentRoute) {
-            return ['layout_template' => 'layouts/default.twig'];
-        }
-
-        return $this->currentRoute['layout'] ?? ['layout_template' => 'layouts/default.twig'];
-    }
-
-    /**
-     * Retourne les assets de la route courante
-     */
-    public function getCurrentAssets(): array
-    {
-        if (! $this->currentRoute) {
-            return ['css' => [], 'js' => []];
-        }
-
-        return $this->currentRoute['assets'] ?? ['css' => [], 'js' => []];
-    }
-
-    /**
      * Vérifie si l'utilisateur a les droits pour accéder à une route
      */
     public function checkAccess(array $route): bool
     {
         $page = $route['page'];
 
-        // Si l'authentification est requise
-        if ($page['requires_auth']) {
-            // Vérifier si l'utilisateur est connecté
-            if (! $this->isUserAuthenticated()) {
-                $this->logger->info("Accès refusé : utilisateur non authentifié", [
-                    'page'   => $page['slug'],
-                    'method' => $this->httpMethod,
-                ]);
-                return false;
-            }
-
-            // Si des droits spécifiques sont requis
-            if (! empty($route['rights'])) {
-                if (! $this->rightsManager) {
-                    $this->logger->error("RightsManager non défini pour vérifier les droits");
-                    return false;
-                }
-
-                // Vérifier si l'utilisateur a au moins un des droits requis
-                $hasAccess = false;
-                foreach ($route['rights'] as $requiredRight) {
-                    if ($this->checkUserRight($requiredRight)) {
-                        $hasAccess = true;
-                        break;
-                    }
-                }
-
-                if (! $hasAccess) {
-                    $this->logger->info("Accès refusé : droits insuffisants", [
-                        'page'            => $page['slug'],
-                        'required_rights' => $route['rights'],
-                        'user'            => $this->rightsManager->getUserId(),
-                        'method'          => $this->httpMethod,
-                    ]);
-                    return false;
-                }
-            }
+        // Si aucun droit requis (rights = 0), accès libre
+        if (empty($page['rights']) || $page['rights'] == 0) {
+            return true;
         }
 
-        return true;
-    }
-
-    /**
-     * Vérifie si l'utilisateur possède un droit spécifique
-     */
-    private function checkUserRight(string $right): bool
-    {
-        if (! $this->rightsManager) {
+        // Vérifier si l'utilisateur est connecté
+        if (! $this->isUserAuthenticated()) {
+            $this->logger->info("Accès refusé : utilisateur non authentifié", [
+                'page'            => $page['slug'],
+                'method'          => $this->httpMethod,
+                'rights_required' => $page['rights'],
+            ]);
             return false;
         }
 
-        switch ($right) {
-            case 'timeline':
-                return $this->rightsManager->canReadTimeline();
-            case 'permanences':
-                return $this->rightsManager->canReadPermanences();
-            case 'import':
-                return $this->rightsManager->canImport();
-            case 'view_synthesis':
-                return $this->rightsManager->canViewSynthesis();
-            case 'view_synthesis_1':
-                return $this->rightsManager->canViewSynthesisLevel(1);
-            case 'view_synthesis_2':
-                return $this->rightsManager->canViewSynthesisLevel(2);
-            case 'admin':
-                return $this->rightsManager->isAdmin();
-            case 'super_admin':
-                return $this->rightsManager->isSuperAdmin();
-            default:
-                return $this->rightsManager->hasRight($right);
+        // Vérifier les droits avec RightsManager
+        if (! $this->rightsManager) {
+            $this->logger->error("RightsManager non défini pour vérifier les droits");
+            return false;
         }
+
+        $userRights     = $this->rightsManager->getBinaryRights();
+        $requiredRights = (int) $page['rights'];
+
+        // Vérification binaire : l'utilisateur a-t-il au moins un des droits requis ?
+        $hasAccess = ($userRights & $requiredRights) > 0;
+
+        if (! $hasAccess) {
+            $this->logger->info("Accès refusé : droits insuffisants", [
+                'page'            => $page['slug'],
+                'required_rights' => $requiredRights,
+                'user_rights'     => $userRights,
+                'user'            => $this->rightsManager->getUserId(),
+                'method'          => $this->httpMethod,
+            ]);
+        }
+
+        return $hasAccess;
     }
 
     /**
@@ -575,7 +441,7 @@ class Router
     {
         $page = $route['page'];
 
-        // Redirection simple basée sur une colonne redirect_to (si elle existe)
+        // Redirection simple basée sur redirect_to
         if (isset($page['redirect_to']) && ! empty($page['redirect_to'])) {
             header('Location: ' . $page['redirect_to'], true, 302);
             exit;
@@ -636,9 +502,10 @@ class Router
      */
     public function clearCache(): void
     {
-        $this->routes       = [];
-        $this->routesLoaded = false;
-        $this->currentRoute = null;
+        $this->routes        = [];
+        $this->templateTypes = [];
+        $this->routesLoaded  = false;
+        $this->currentRoute  = null;
 
         $this->logger->info("Cache du routeur vidé");
     }
@@ -664,13 +531,13 @@ class Router
     /**
      * Retourne les droits requis pour la route courante
      */
-    public function getCurrentRouteRights(): array
+    public function getCurrentRouteRights(): int
     {
         if (! $this->currentRoute) {
-            return [];
+            return 0;
         }
 
-        return $this->currentRoute['rights'] ?? [];
+        return (int) ($this->currentRoute['page']['rights'] ?? 0);
     }
 
     /**
@@ -682,7 +549,7 @@ class Router
             return false;
         }
 
-        return (bool) $this->currentRoute['page']['requires_auth'];
+        return $this->getCurrentRouteRights() > 0;
     }
 
     /**
@@ -709,12 +576,13 @@ class Router
     public function getStats(): array
     {
         return [
-            'routes_loaded' => $this->routesLoaded,
-            'routes_count'  => count($this->routes),
-            'current_route' => $this->currentRoute['page']['slug'] ?? null,
-            'http_method'   => $this->httpMethod,
-            'web_directory' => $this->webDirectory,
-            'request_info'  => $this->getRequestInfo(),
+            'routes_loaded'        => $this->routesLoaded,
+            'routes_count'         => count($this->routes),
+            'template_types_count' => count($this->templateTypes),
+            'current_route'        => $this->currentRoute['page']['slug'] ?? null,
+            'http_method'          => $this->httpMethod,
+            'web_directory'        => $this->webDirectory,
+            'request_info'         => $this->getRequestInfo(),
         ];
     }
 
@@ -727,8 +595,43 @@ class Router
             'router_stats'       => $this->getStats(),
             'current_route_full' => $this->currentRoute,
             'all_routes'         => array_keys($this->getAllRoutes()),
+            'template_types'     => $this->templateTypes,
             'get_params'         => $this->getParams,
             'post_params'        => $this->postParams,
         ];
+    }
+
+    /**
+     * Retourne tous les types de templates disponibles
+     */
+    public function getTemplateTypes(): array
+    {
+        if (empty($this->templateTypes)) {
+            $this->loadTemplateTypes();
+        }
+        return $this->templateTypes;
+    }
+
+    /**
+     * Retourne un type de template par son ID
+     */
+    public function getTemplateType(int $typeId): ?array
+    {
+        $types = $this->getTemplateTypes();
+        return $types[$typeId] ?? null;
+    }
+
+    /**
+     * Retourne un type de template par son nom
+     */
+    public function getTemplateTypeByName(string $name): ?array
+    {
+        $types = $this->getTemplateTypes();
+        foreach ($types as $type) {
+            if ($type['name'] === $name) {
+                return $type;
+            }
+        }
+        return null;
     }
 }
