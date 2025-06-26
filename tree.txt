@@ -1,8 +1,4 @@
 .
-├── ${ROOT}
-│   ├── files
-│   └── logs
-│       └── error-2025-06-13.log
 ├── buse.sql
 ├── composer.json
 ├── composer.lock
@@ -10,7 +6,8 @@
 ├── index.php
 ├── logs
 │   ├── error-2025-06-12.log
-│   └── error-2025-06-13.log
+│   ├── error-2025-06-13.log
+│   └── error-2025-06-25.log
 ├── package-lock.json
 ├── public
 │   ├── assets
@@ -197,37 +194,56 @@
 │   │           └── mail.eml
 │   ├── pages
 │   │   ├── commun
-│   │   │   ├── Config
-│   │   │   │   └── Config.php
-│   │   │   ├── Database
-│   │   │   │   ├── BDDManager.php
-│   │   │   │   ├── SqlAdapter.php
-│   │   │   │   └── SqlManager.php
-│   │   │   ├── init.php
-│   │   │   ├── Ldap
-│   │   │   │   └── LdapManager.php
-│   │   │   ├── Logger
-│   │   │   │   └── Logger.php
-│   │   │   ├── Mail
-│   │   │   │   └── EMLGenerator.php
-│   │   │   ├── Security
-│   │   │   │   ├── CsrfManager.php
-│   │   │   │   ├── DummySSO.php
-│   │   │   │   ├── RightsManager.php
-│   │   │   │   └── SSOlocal.php
-│   │   │   ├── Template
-│   │   │   │   └── TwigExtensions.php
-│   │   │   └── Utils
-│   │   │       ├── DateUtils.php
-│   │   │       ├── ExcelProcessor.php
-│   │   │       ├── FileListUtils.php
-│   │   │       ├── FileUtils.php
-│   │   │       ├── StringUtils.php
-│   │   │       ├── TphUtils.php
-│   │   │       └── UploadManager.php
+│   │   │   ├── classes
+│   │   │   │   ├── Config
+│   │   │   │   │   └── Config.php
+│   │   │   │   ├── Database
+│   │   │   │   │   ├── BDDManager.php
+│   │   │   │   │   ├── SqlAdapter.php
+│   │   │   │   │   └── SqlManager.php
+│   │   │   │   ├── Ldap
+│   │   │   │   │   └── LdapManager.php
+│   │   │   │   ├── Logger
+│   │   │   │   │   └── Logger.php
+│   │   │   │   ├── Mail
+│   │   │   │   │   └── EMLGenerator.php
+│   │   │   │   ├── Router
+│   │   │   │   │   └── Router.php
+│   │   │   │   ├── Security
+│   │   │   │   │   ├── CsrfManager.php
+│   │   │   │   │   ├── DummySSO.php
+│   │   │   │   │   ├── RightsManager.php
+│   │   │   │   │   └── SSOlocal.php
+│   │   │   │   ├── Template
+│   │   │   │   │   └── TwigExtensions.php
+│   │   │   │   └── Utils
+│   │   │   │       ├── DateUtils.php
+│   │   │   │       ├── ExcelProcessor.php
+│   │   │   │       ├── FileListUtils.php
+│   │   │   │       ├── FileUtils.php
+│   │   │   │       ├── StringUtils.php
+│   │   │   │       ├── TphUtils.php
+│   │   │   │       └── UploadManager.php
+│   │   │   ├── initialisation
+│   │   │   │   ├── 010-autoload.php
+│   │   │   │   ├── 020-classes.php
+│   │   │   │   ├── 030-config.php
+│   │   │   │   ├── 040-database.php
+│   │   │   │   ├── 050-logger.php
+│   │   │   │   ├── 060-directories.php
+│   │   │   │   ├── 070-session.php
+│   │   │   │   ├── 080-rights.php
+│   │   │   │   ├── 090-ldap.php
+│   │   │   │   ├── 100-twig-base.php
+│   │   │   │   ├── 110-twig-extensions.php
+│   │   │   │   ├── 120-router.php
+│   │   │   │   ├── 130-routing.php
+│   │   │   │   ├── 140-access.php
+│   │   │   │   ├── 150-php-execution.php
+│   │   │   │   ├── 160-render.php
+│   │   │   │   └── 170-stats.php
+│   │   │   └── init.php
 │   │   ├── index
-│   │   │   └── fonctions
-│   │   │       └── indexFcts.php
 │   │   ├── main
 │   │   │   ├── actions.php
 │   │   │   ├── main.php
@@ -306,11 +322,15 @@
 │   │       └── timeline.php
 │   └── views
 │       ├── index
-│       │   └── index.twig
+│       │   ├── header.twig
+│       │   ├── index.twig
+│       │   ├── index.twig.old
+│       │   └── title.twig
 │       ├── main
 │       │   ├── header.twig
 │       │   ├── main.twig
 │       │   ├── menu.twig
+│       │   ├── page.twig
 │       │   ├── subpages
 │       │   │   ├── categories
 │       │   │   │   └── main.twig
@@ -357,7 +377,6 @@
 │       │   └── title.twig
 │       ├── maj
 │       │   └── maj.twig
-│       ├── page.twig
 │       └── show
 │           ├── modal
 │           │   ├── block.twig
@@ -1934,4 +1953,4 @@
 │               └── Validator.php
 └── version
 
-351 directories, 1583 files
+350 directories, 1603 files
