@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="csrf-token" content="{{ CSRF_TOKEN }}" />
+        {% if page == PAGE_SHOW_TIMELINE %}
+        {% if debug == 0 %}
+            <meta http-equiv="refresh" content="600" />
+        {% endif %}
+        {% endif %}
+        <script>
+            window.WEB_PAGES = "{{ WEB_PAGES }}";
+            window.WEB_ASSETS = "{{ WEB_ASSETS }}";
+            window.WEB_PUBLIC = "{{ WEB_PUBLIC }}";
+        </script>
+        <link rel="shortcut icon" type="image/x-icon" href="{{ WEB_ASSETS }}/img/index/{{SHORTCUT_ICON}}" />
+        <title> {{ SITE_FIRST_MAJ}} v{{ version }}</title>
+        <link rel="stylesheet" href="{{ WEB_ASSETS }}/css/index/index.css" />
+    </head>

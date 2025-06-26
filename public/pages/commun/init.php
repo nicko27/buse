@@ -14,7 +14,7 @@ use Commun\Template\TwigExtensions;
 
 require_once dirname(__DIR__, 3) . "/vendor/autoload.php";
 
-// Charger les classes
+// Charger les classes nécessaires
 require_once __DIR__ . "/Config/Config.php";
 require_once __DIR__ . "/Database/BDDManager.php";
 require_once __DIR__ . "/Database/SqlManager.php";
@@ -34,11 +34,14 @@ require_once __DIR__ . "/Security/CsrfManager.php";
 require_once __DIR__ . "/Mail/EMLGenerator.php";
 require_once __DIR__ . "/Security/RightsManager.php";
 
-// ✅ ÉTAPE 1 : Initialiser la configuration (lit le .env seulement)
+// =====================================================
+// ÉTAPE 1 : Initialisation de la configuration
+// =====================================================
+
 $config = Config::getInstance();
 
-// ✅ ÉTAPE 2 : Initialiser SqlManager avec les paramètres du .env
 try {
+    // Initialiser SqlManager avec les paramètres du .env
     SqlManager::initWithParams(
         $config->get('DB_HOST'),
         $config->get('DB_NAME'),
@@ -46,11 +49,9 @@ try {
         $config->get('DB_PASSWORD')
     );
 
-    // ✅ ÉTAPE 3 : Créer l'adapter neutre et charger la config BDD
+    // Créer l'adapter et charger la configuration depuis la base de données
     $sqlManager = SqlManager::getInitializedInstance();
     $sqlAdapter = new SqlAdapter($sqlManager);
-
-    // ✅ ÉTAPE 4 : Charger la configuration depuis la base de données
     $config->loadFromDatabase($sqlAdapter);
 
 } catch (\Exception $e) {
@@ -58,14 +59,20 @@ try {
     // Continuer avec la config .env seulement si la BDD n'est pas accessible
 }
 
-// Initialiser le logger avec les paramètres de configuration
+// =====================================================
+// ÉTAPE 2 : Initialisation du logger
+// =====================================================
+
 Logger::initWithParams(
     $config->get('LOGGER_NAME', $config->get('SITE', 'buse')),
     $config->get('LOG_DIR', dirname(__DIR__, 3) . '/logs')
 );
 $logger = Logger::getInstance()->getLogger();
 
-// ✅ Vérifier si une session est déjà active avant de la démarrer
+// =====================================================
+// ÉTAPE 3 : Gestion de session et CSRF
+// =====================================================
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -73,7 +80,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $csrfManager            = CsrfManager::getInstance();
 $_SESSION['CSRF_TOKEN'] = $csrfManager->getToken();
 
-// Créer les répertoires nécessaires
+// =====================================================
+// ÉTAPE 4 : Création des répertoires nécessaires
+// =====================================================
+
 $directories = [
     $config->get('LOG_DIR', dirname(__DIR__, 3) . '/logs'),
     $config->get('UPLOAD_DIR', dirname(__DIR__, 3) . '/files'),
@@ -85,13 +95,19 @@ foreach ($directories as $dir) {
     }
 }
 
-// ✅ ÉTAPE 5 : Initialiser le routeur
+// =====================================================
+// ÉTAPE 5 : Initialisation du routeur simplifié
+// =====================================================
+
 $router = Router::getInstance($sqlAdapter);
 $router->setWebDirectory($config->get('WEB_DIR', ''));
 $router->setDefaultRoute($config->get('DEFAULT_ROUTE', 'index'));
 $router->setAccessDeniedRoute($config->get('ACCESS_DENIED_ROUTE', 'login'));
 
-// ✅ ÉTAPE 6 : Construire le chemin des vues
+// =====================================================
+// ÉTAPE 6 : Configuration de Twig simple
+// =====================================================
+
 $viewsDir = $config->get('VIEWS_DIR');
 if (! $viewsDir) {
     $viewsDir = dirname(__DIR__, 2) . '/views';
@@ -101,7 +117,6 @@ if (! is_dir($viewsDir)) {
     throw new \Exception("Le dossier des vues n'existe pas : $viewsDir");
 }
 
-// ✅ ÉTAPE 7 : Configurer Twig
 $loader = new \Twig\Loader\FilesystemLoader($viewsDir);
 $twig   = new \Twig\Environment($loader, [
     'cache' => $config->get('TWIG_CACHE', false),
@@ -112,12 +127,41 @@ $twig   = new \Twig\Environment($loader, [
 $twig->addExtension(new \Twig\Extension\DebugExtension());
 $twig->addExtension(new TwigExtensions());
 
-// ✅ ÉTAPE 8 : Ajouter toutes les variables de configuration à Twig automatiquement
+// Ajouter des filtres utiles pour les templates
+$twig->addFilter(new \Twig\TwigFilter('sort_by', function ($array, $property) {
+    if (! is_array($array)) {
+        return $array;
+    }
+
+    usort($array, function ($a, $b) use ($property) {
+        $aVal = is_array($a) ? ($a[$property] ?? 0) : (isset($a->$property) ? $a->$property : 0);
+        $bVal = is_array($b) ? ($b[$property] ?? 0) : (isset($b->$property) ? $b->$property : 0);
+        return $aVal <=> $bVal;
+    });
+
+    return $array;
+}));
+
+$twig->addFilter(new \Twig\TwigFilter('filter_by', function ($array, $property, $value) {
+    if (! is_array($array)) {
+        return [];
+    }
+
+    return array_filter($array, function ($item) use ($property, $value) {
+        $itemVal = is_array($item) ? ($item[$property] ?? null) : (isset($item->$property) ? $item->$property : null);
+        return $itemVal === $value;
+    });
+}));
+
+// Ajouter les variables de configuration à Twig
 foreach ($config->getTwigVars() as $key => $value) {
     $twig->addGlobal($key, $value);
 }
 
-// Configuration LDAP
+// =====================================================
+// ÉTAPE 7 : Configuration LDAP
+// =====================================================
+
 $ldapAvailable = false;
 try {
     $ldapBaseDNLists    = $config->get("LDAP_BASE_DN_LISTS");
@@ -160,7 +204,10 @@ try {
     $ldapAvailable = false;
 }
 
-// ✅ ÉTAPE 9 : Initialiser le gestionnaire de droits
+// =====================================================
+// ÉTAPE 8 : Initialisation du gestionnaire de droits
+// =====================================================
+
 $rightsManager = RightsManager::getInstance();
 
 // Gestion du mode debug
@@ -210,17 +257,51 @@ if ($debug === $config->get("DEBUG")) {
 
 $logger->info("Utilisateur connecté - CU: " . $rightsManager->getUserCu());
 
-// ✅ ÉTAPE 10 : Lier le gestionnaire de droits au routeur
+// Lier le gestionnaire de droits au routeur
 $router->setRightsManager($rightsManager);
 
-// ✅ ÉTAPE 11 : Router la requête actuelle
+// =====================================================
+// ÉTAPE 9 : Routage et résolution de la requête
+// =====================================================
+
+// Router la requête actuelle
 $currentRoute = $router->matchFromUri();
 
 // Si aucune route trouvée, page 404
 if (! $currentRoute) {
     http_response_code(404);
-    die("Page non trouvée");
+
+    try {
+        echo $twig->render('errors/404.twig', [
+            'requested_uri'    => $_SERVER['REQUEST_URI'] ?? '/',
+            'available_routes' => array_keys($router->getAllRoutes()),
+            'is_debug'         => $config->get('TWIG_DEBUG', false),
+        ]);
+    } catch (\Exception $e) {
+        die("Page non trouvée");
+    }
+    exit;
 }
+
+// Vérifier les droits d'accès
+if (! $router->checkAccess($currentRoute)) {
+    $logger->warning("Accès refusé pour l'utilisateur", [
+        'user_id'         => $rightsManager->getUserId(),
+        'page'            => $currentRoute['page']['slug'],
+        'method'          => $router->isPost() ? 'POST' : 'GET',
+        'required_rights' => $currentRoute['rights'] ?? [],
+    ]);
+
+    // Rediriger vers la page d'accès refusé
+    $router->redirectToAccessDenied();
+}
+
+// Gérer les redirections
+$router->handleRedirect($currentRoute);
+
+// =====================================================
+// ÉTAPE 10 : Préparation des données pour Twig
+// =====================================================
 
 // Construire le tableau des droits pour la session et Twig
 $rightsTbl = [
@@ -237,85 +318,155 @@ $rightsTbl = [
     'synthesisLevel' => $rightsManager->getSynthesisViewLevel(),
     'admin'          => $rightsManager->isAdmin(),
     'superAdmin'     => $rightsManager->isSuperAdmin(),
+    'binaryRights'   => $rightsManager->getBinaryRights(),
 ];
 
-$binaryRights = $rightsManager->getBinaryRights();
-
-// ✅ ÉTAPE 12 : Vérifier les droits d'accès
-if (! $router->checkAccess($currentRoute)) {
-    $logger->warning("Accès refusé pour l'utilisateur", [
-        'user_id'         => $rightsManager->getUserId(),
-        'page'            => $currentRoute['page']['slug'],
-        'required_rights' => $currentRoute['rights'] ?? [],
-    ]);
-
-    // Rediriger vers la page d'accès refusé
-    $router->redirectToAccessDenied();
-}
-
-// Gérer les redirections
-$router->handleRedirect($currentRoute);
-
-// ✅ ÉTAPE 11 : Ajouter les variables utilisateur à Twig
+// Ajouter les variables globales à Twig
 $twig->addGlobal('user', $rightsTbl);
-
-$currentRoute = $router->matchFromUri();
-
-// Si aucune route trouvée, page 404
-if (! $currentRoute) {
-    http_response_code(404);
-    die("Page non trouvée");
-}
-
-// Vérifier les droits d'accès
-if (! $router->checkAccess($currentRoute)) {
-    http_response_code(403);
-    die("Accès refusé");
-}
-
-// Gérer les redirections
-$router->handleRedirect($currentRoute);
-
-// ✅ ÉTAPE 12 : Ajouter les variables du routeur à Twig
 $twig->addGlobal('current_route', $currentRoute);
 $twig->addGlobal('router', $router);
 $twig->addGlobal('config', $config);
 $twig->addGlobal('ldap_available', $ldapAvailable);
 
-// ✅ ÉTAPE 13 : Charger et exécuter le fichier PHP de la page
+// Variables spécifiques au système de templates simplifié
+$twig->addGlobal('page_templates', $currentRoute['templates'] ?? []);
+$twig->addGlobal('page_layout', $currentRoute['layout'] ?? ['layout_template' => 'layouts/default.twig']);
+$twig->addGlobal('page_assets', $currentRoute['assets'] ?? ['css' => [], 'js' => []]);
+$twig->addGlobal('request_info', $router->getRequestInfo());
+
+// =====================================================
+// ÉTAPE 11 : Chargement et exécution du fichier PHP de la page
+// =====================================================
+
 $page    = $currentRoute['page'];
-$phpFile = $page['php_file'];
+$phpFile = null;
 
-// Construire le chemin complet du fichier PHP
-$phpFilePath = $config->get('PAGES_DIR') . '/' . $phpFile;
-
-if (! file_exists($phpFilePath)) {
-    $logger->error("Fichier PHP de la page non trouvé", [
-        'file' => $phpFilePath,
-        'slug' => $page['slug'],
-    ]);
-    http_response_code(500);
-    die("Erreur interne du serveur");
+// Déduire le fichier PHP à partir du slug
+$slugParts = explode('/', $page['slug']);
+if (count($slugParts) === 1) {
+    // Page principale (ex: 'index', 'show', 'main')
+    $phpFile = $page['slug'] . '/' . $page['slug'] . '.php';
+} elseif (count($slugParts) === 2) {
+    // Sous-page (ex: 'main/import', 'main/categories')
+    $phpFile = $slugParts[0] . '/subpages/' . $slugParts[1] . '/main.php';
 }
 
-// Inclure le fichier PHP de la page
-require_once $phpFilePath;
+if ($phpFile) {
+    $phpFilePath = $config->get('PAGES_DIR', dirname(__DIR__)) . '/' . $phpFile;
 
-// ✅ ÉTAPE 14 : Organiser les templates, JS et CSS par type/position/media
-$templatesByType = $router->getTemplatesByType($currentRoute);
-$jsByPosition    = $router->getJSAssetsByPosition($currentRoute);
-$cssByMedia      = $router->getCSSAssetsByMedia($currentRoute);
+    if (file_exists($phpFilePath)) {
+        $logger->debug("Exécution du fichier PHP de la page", [
+            'file'   => $phpFilePath,
+            'slug'   => $page['slug'],
+            'method' => $router->isPost() ? 'POST' : 'GET',
+        ]);
 
-// Ajouter les assets organisés à Twig
-$twig->addGlobal('page_templates', $templatesByType);
-$twig->addGlobal('page_js_assets', $jsByPosition);
-$twig->addGlobal('page_css_assets', $cssByMedia);
+        // Inclure le fichier PHP de la page
+        // Les variables $router, $twig, $config, etc. sont disponibles dans le fichier inclus
+        require_once $phpFilePath;
+    } else {
+        $logger->debug("Aucun fichier PHP spécifique trouvé pour la page", [
+            'attempted_file' => $phpFilePath,
+            'slug'           => $page['slug'],
+        ]);
+    }
+}
 
-// ✅ ÉTAPE 15 : Rendre le template principal (si défini)
-if (isset($templatesByType['content']) && ! empty($templatesByType['content'])) {
-    $mainTemplate = $templatesByType['content'][0]; // Premier template content
-    echo $twig->render($mainTemplate['twig_file']);
-} else {
-    // Fallback : afficher la structure de base
-    echo $twig->render('page.twig');
+// =====================================================
+// ÉTAPE 12 : Rendu final avec le système simple
+// =====================================================
+
+try {
+    // Récupérer le layout configuré pour cette page
+    $layout         = $router->getCurrentLayout();
+    $layoutTemplate = $layout['layout_template'] ?? 'layouts/default.twig';
+
+    $logger->debug("Rendu de la page avec layout simple", [
+        'page'            => $page['slug'],
+        'layout'          => $layoutTemplate,
+        'templates_count' => array_sum(array_map('count', $currentRoute['templates'] ?? [])),
+        'method'          => $router->isPost() ? 'POST' : 'GET'
+    ]);
+
+    // Rendre le layout principal
+    // Le layout utilisera les variables page_templates pour inclure les zones
+    echo $twig->render($layoutTemplate);
+
+} catch (\Twig\Error\LoaderError $e) {
+    $logger->error("Template de layout non trouvé", [
+        'layout' => $layoutTemplate,
+        'page'   => $page['slug'],
+        'error'  => $e->getMessage(),
+    ]);
+
+    // Fallback vers un layout par défaut
+    try {
+        echo $twig->render('layouts/default.twig');
+    } catch (\Exception $fallbackError) {
+        // Dernière chance : afficher une page d'erreur simple
+        http_response_code(500);
+        echo "<h1>Erreur de template</h1>";
+        echo "<p>Impossible de charger le layout pour cette page.</p>";
+        if ($config->get('TWIG_DEBUG', false)) {
+            echo "<h2>Erreur principale :</h2>";
+            echo "<pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
+            echo "<h2>Erreur de fallback :</h2>";
+            echo "<pre>" . htmlspecialchars($fallbackError->getMessage()) . "</pre>";
+            echo "<h2>Debug du routeur :</h2>";
+            echo "<pre>" . htmlspecialchars(json_encode($router->debug(), JSON_PRETTY_PRINT)) . "</pre>";
+        }
+    }
+
+} catch (\Exception $e) {
+    $logger->error("Erreur lors du rendu de la page", [
+        'page'   => $page['slug'],
+        'layout' => $layoutTemplate,
+        'error'  => $e->getMessage(),
+        'trace'  => $e->getTraceAsString(),
+    ]);
+
+    http_response_code(500);
+    echo "<h1>Erreur serveur</h1>";
+    echo "<p>Une erreur s'est produite lors du rendu de la page.</p>";
+
+    if ($config->get('TWIG_DEBUG', false)) {
+        echo "<h2>Détails de l'erreur :</h2>";
+        echo "<pre>" . htmlspecialchars($e->getMessage()) . "</pre>";
+        echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+
+        echo "<h2>Debug du routeur :</h2>";
+        echo "<pre>" . htmlspecialchars(json_encode($router->debug(), JSON_PRETTY_PRINT)) . "</pre>";
+
+        echo "<h2>Variables Twig disponibles :</h2>";
+        echo "<pre>" . htmlspecialchars(json_encode([
+            'page_templates' => array_keys($currentRoute['templates'] ?? []),
+            'page_layout'    => $currentRoute['layout']['layout_template'] ?? 'N/A',
+            'page_assets'    => [
+                'css_zones' => array_keys($currentRoute['assets']['css'] ?? []),
+                'js_zones'  => array_keys($currentRoute['assets']['js'] ?? [])
+            ]
+        ], JSON_PRETTY_PRINT)) . "</pre>";
+    }
+}
+
+// =====================================================
+// ÉTAPE 13 : Logging des statistiques (optionnel)
+// =====================================================
+
+if ($config->get('TWIG_DEBUG', false)) {
+    $renderTime = microtime(true) - ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true));
+
+    $logger->debug("Statistiques de la requête", [
+        'route'              => $page['slug'],
+        'method'             => $router->isPost() ? 'POST' : 'GET',
+        'render_time'        => round($renderTime * 1000, 2) . 'ms',
+        'memory_usage'       => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB',
+        'templates_by_zone'  => array_map('count', $currentRoute['templates'] ?? []),
+        'assets_count'       => [
+            'css' => array_sum(array_map('count', $currentRoute['assets']['css'] ?? [])),
+            'js'  => array_sum(array_map('count', $currentRoute['assets']['js'] ?? []))
+        ],
+        'user_authenticated' => $rightsManager->isAuthenticated(),
+        'has_post_data'      => ! empty($_POST)
+    ]);
 }
