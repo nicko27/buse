@@ -1,40 +1,78 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <head>
-        {% try %}
-            {% include header ~ '.twig' %}
-        {% catch %}
-            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-        {% endtry %}
-    </head>
-  <body>
-    {% try %}
-        {% include banner ~ '.twig' %}
-    {% catch %}
-        {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-    {% endtry %}
+<head>
+    {# Chargement du template header si disponible #}
+    {% if page_templates_processed.header is defined and page_templates_processed.header|length > 0 %}
+        {% for template in page_templates_processed.header %}
+            {% if template.enabled %}
+                {{ template.content|raw }}
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        {# Header par défaut #}
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="csrf-token" content="{{ csrf_token|default('') }}" />
+        {% if current_page.slug == config('PAGE_SHOW_TIMELINE', 'show-timeline') and not debug_mode|default(false) %}
+            <meta http-equiv="refresh" content="600" />
+        {% endif %}
+        <script>
+            window.WEB_PAGES = "{{ config('WEB_PAGES', '') }}";
+            window.WEB_ASSETS = "{{ config('WEB_ASSETS', '') }}";
+            window.WEB_PUBLIC = "{{ config('WEB_PUBLIC', '') }}";
+        </script>
+        <link rel="shortcut icon" type="image/x-icon" href="{{ config('WEB_ASSETS', '') }}/img/index/{{ config('SHORTCUT_ICON', 'favicon.ico') }}" />
+        <title>{{ config('SITE_FIRST_MAJ', '') }} v{{ version|default('1.0') }}</title>
+        <link rel="stylesheet" href="{{ config('WEB_ASSETS', '') }}/css/index/index.css" />
+    {% endif %}
+</head>
+
+<body>
+    {# Chargement du template banner si disponible #}
+    {% if page_templates_processed.banner is defined and page_templates_processed.banner|length > 0 %}
+        {% for template in page_templates_processed.banner %}
+            {% if template.enabled %}
+                {{ template.content|raw }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
 
     <div class="field">
-        {% try %}
-            {% include sidebar-left ~ '.twig' %}
-        {% catch %}
-            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-        {% endtry %}
-        {% try %}
-            {% include content ~ '.twig' %}
-        {% catch %}
-            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-        {% endtry %}
-        {% try %}
-            {% include sidebar-right ~ '.twig' %}
-        {% catch %}
-            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-        {% endtry %}
+        {# Chargement du template sidebar-left si disponible #}
+        {% if page_templates_processed['sidebar-left'] is defined and page_templates_processed['sidebar-left']|length > 0 %}
+            {% for template in page_templates_processed['sidebar-left'] %}
+                {% if template.enabled %}
+                    {{ template.content|raw }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {# Chargement du template content si disponible #}
+        {% if page_templates_processed.content is defined and page_templates_processed.content|length > 0 %}
+            {% for template in page_templates_processed.content %}
+                {% if template.enabled %}
+                    {{ template.content|raw }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {# Chargement du template sidebar-right si disponible #}
+        {% if page_templates_processed['sidebar-right'] is defined and page_templates_processed['sidebar-right']|length > 0 %}
+            {% for template in page_templates_processed['sidebar-right'] %}
+                {% if template.enabled %}
+                    {{ template.content|raw }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
     </div>
-    </body>
+
+    {# Chargement du template footer si disponible #}
+    {% if page_templates_processed.footer is defined and page_templates_processed.footer|length > 0 %}
+        {% for template in page_templates_processed.footer %}
+            {% if template.enabled %}
+                {{ template.content|raw }}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+</body>
 </html>
-{% try %}
-    {% include footer ~ '.twig' %}
-{% catch %}
-    {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
-{% endtry %}

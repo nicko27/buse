@@ -1,5 +1,5 @@
 <?php
-// ===== 180-php-execution.php =====
+// ===== 160-php-execution.php =====
 /**
  * 180-php-execution.php
  * Exécution du fichier PHP spécifique à la page courante
@@ -26,29 +26,53 @@ try {
     $pageSlug                       = $page['slug'];
     $phpExecutionStats['page_slug'] = $pageSlug;
 
-    // Déduire le fichier PHP à partir du slug
+    // ===== NOUVEAU : Utilisation du champ 'php' de la BDD =====
+
     $pagesDir        = $config->get('PAGES_DIR', dirname(__DIR__));
     $phpFile         = null;
     $executionMethod = null;
 
-    $slugParts = explode('/', $pageSlug);
+    // Vérifier si la page a un fichier PHP défini
+    if (! empty($page['php'])) {
+        $phpFile         = $pagesDir . '/' . ltrim($page['php'], '/');
+        $executionMethod = 'database_field';
 
-    if (count($slugParts) === 1) {
-        // Page principale (ex: 'index', 'show', 'main')
-        $phpFile         = $pagesDir . '/' . $pageSlug . '/' . $pageSlug . '.php';
-        $executionMethod = 'main_page';
+        if ($logger) {
+            $logger->debug("Fichier PHP défini dans la BDD", [
+                'slug'          => $pageSlug,
+                'php_field'     => $page['php'],
+                'resolved_path' => $phpFile,
+            ]);
+        }
+    } else {
+        // Fallback : déduction par convention si pas de champ php
+        $slugParts = explode('/', $pageSlug);
 
-    } elseif (count($slugParts) === 2) {
-        // Sous-page (ex: 'main/import', 'main/categories')
-        $phpFile         = $pagesDir . '/' . $slugParts[0] . '/subpages/' . $slugParts[1] . '/main.php';
-        $executionMethod = 'subpage';
+        if (count($slugParts) === 1) {
+            // Page principale (ex: 'index', 'show', 'main')
+            $phpFile         = $pagesDir . '/' . $pageSlug . '/' . $pageSlug . '.php';
+            $executionMethod = 'convention_main_page';
 
-    } elseif (count($slugParts) > 2) {
-        // Sous-sous-page ou plus complexe
-        $mainSection     = $slugParts[0];
-        $subPath         = implode('/', array_slice($slugParts, 1));
-        $phpFile         = $pagesDir . '/' . $mainSection . '/subpages/' . $subPath . '/main.php';
-        $executionMethod = 'deep_subpage';
+        } elseif (count($slugParts) === 2) {
+            // Sous-page (ex: 'main/import', 'main/categories')
+            $phpFile         = $pagesDir . '/' . $slugParts[0] . '/subpages/' . $slugParts[1] . '/main.php';
+            $executionMethod = 'convention_subpage';
+
+        } elseif (count($slugParts) > 2) {
+            // Sous-sous-page ou plus complexe
+            $mainSection     = $slugParts[0];
+            $subPath         = implode('/', array_slice($slugParts, 1));
+            $phpFile         = $pagesDir . '/' . $mainSection . '/subpages/' . $subPath . '/main.php';
+            $executionMethod = 'convention_deep_subpage';
+        }
+
+        if ($logger) {
+            $logger->debug("Fichier PHP déduit par convention (pas de champ php dans la BDD)", [
+                'slug'         => $pageSlug,
+                'deduced_path' => $phpFile,
+                'method'       => $executionMethod,
+            ]);
+        }
     }
 
     $phpExecutionStats['php_file_path']    = $phpFile;
