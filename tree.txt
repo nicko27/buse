@@ -239,17 +239,18 @@
 │   │   │   │   ├── 070-session.php
 │   │   │   │   ├── 080-rights.php
 │   │   │   │   ├── 090-ldap.php
-│   │   │   │   ├── 100-twig-base.php
-│   │   │   │   ├── 110-twig-extensions.php
-│   │   │   │   ├── 120-router.php
-│   │   │   │   ├── 125-twig-router.php
-│   │   │   │   ├── 130-routing.php
-│   │   │   │   ├── 140-access.php
-│   │   │   │   ├── 150-php-execution.php
-│   │   │   │   ├── 160-render.php
-│   │   │   │   └── 170-stats.php
+│   │   │   │   ├── 100-router.php
+│   │   │   │   ├── 110-routing.php
+│   │   │   │   ├── 120-twig-base.php
+│   │   │   │   ├── 130-twig-extensions.php
+│   │   │   │   ├── 140-twig-data.php
+│   │   │   │   ├── 150-access.php
+│   │   │   │   ├── 160-php-execution.php
+│   │   │   │   ├── 170-render.php
+│   │   │   │   └── 200-stats.php
 │   │   │   └── init.php
 │   │   ├── index
+│   │   │   └── index.php
 │   │   ├── main
 │   │   │   ├── actions.php
 │   │   │   ├── main.php
@@ -335,14 +336,15 @@
 │   │       │   └── index.twig
 │   │       └── layouts
 │   │           └── default.twig
-│   ├── tmp
 │   └── views
+│       ├── commun
+│       │   ├── banner.twig
+│       │   └── menu.twig
 │       ├── errors
 │       │   ├── 403.twig
 │       │   ├── 404.twig
 │       │   └── 500.twig
 │       ├── index
-│       │   ├── banner.twig
 │       │   ├── header.twig
 │       │   ├── index.twig
 │       │   └── index.twig.old
@@ -1978,4 +1980,4 @@
 │               └── Validator.php
 └── version
 
-360 directories, 1618 files
+360 directories, 1620 files
