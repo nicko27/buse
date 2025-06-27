@@ -53,7 +53,7 @@ class Config implements ArrayAccess
     private function __construct()
     {
         $this->loadEnv();
-        $this->debugMode = $this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev';
+        $this->envVars['DEBUG_MODE'] = $this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev';
     }
 
     /**
