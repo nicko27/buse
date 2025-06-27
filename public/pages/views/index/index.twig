@@ -1,0 +1,76 @@
+{% extends "layouts/default.twig" %}
+
+{% block title %}Accueil - {{ app.name }}{% endblock %}
+
+{% block content %}
+    <h1>Bienvenue</h1>
+
+    {% if user.authenticated %}
+        <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; margin: 20px 0; border-radius: 6px;">
+            <h3 style="margin: 0 0 10px 0; color: #155724;">Bonjour {{ user.name }}</h3>
+            <p style="margin: 0; color: #155724;">
+                <strong>Unite :</strong> {{ user.unit|default("Non specifiee") }}<br>
+                <strong>Code unite :</strong> {{ user.cu|default("Non specifie") }}<br>
+                <strong>Droits :</strong> {{ user.binaryRights }}
+            </p>
+        </div>
+
+        <h2>Navigation</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
+            {% if has_right('timeline') %}
+                <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <h3 style="margin: 0 0 10px 0;">Timeline</h3>
+                    <p>Consultation des evenements</p>
+                    <a href="{{ url('timeline') }}">Acceder</a>
+                </div>
+            {% endif %}
+
+            {% if has_right('permanences') %}
+                <div style="background: #f3e5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #9c27b0;">
+                    <h3 style="margin: 0 0 10px 0;">Permanences</h3>
+                    <p>Gestion des permanences</p>
+                    <a href="{{ url('permanences') }}">Acceder</a>
+                </div>
+            {% endif %}
+
+            {% if has_right('admin') %}
+                <div style="background: #ffebee; padding: 20px; border-radius: 8px; border-left: 4px solid #f44336;">
+                    <h3 style="margin: 0 0 10px 0;">Administration</h3>
+                    <p>Configuration et parametres</p>
+                    <a href="{{ url('admin') }}">Acceder</a>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; margin: 20px 0; border-radius: 6px; text-align: center;">
+            <h3 style="margin: 0 0 15px 0; color: #856404;">Authentification requise</h3>
+            <p style="margin: 0 0 20px 0; color: #856404;">
+                Vous devez vous connecter pour acceder aux fonctionnalites de l''application.
+            </p>
+            <a href="{{ url('login') }}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                Se connecter
+            </a>
+        </div>
+    {% endif %}
+
+    <h2>Informations systeme</h2>
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4>Application</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>Nom :</strong> {{ app.name }}</li>
+                    <li><strong>Version :</strong> {{ app.version }}</li>
+                    <li><strong>Environnement :</strong> {{ app.environment }}</li>
+                </ul>
+            </div>
+            <div>
+                <h4>Services</h4>
+                <ul style="list-style: none; padding: 0;">
+                    <li><strong>LDAP :</strong> {{ ldap_available ? "Disponible" : "Indisponible" }}</li>
+                    <li><strong>Debug :</strong> {{ debug_mode ? "Active" : "Desactive" }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}

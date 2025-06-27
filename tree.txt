@@ -2,12 +2,15 @@
 ├── buse.sql
 ├── composer.json
 ├── composer.lock
+├── debug-buse-routing.php
 ├── files
 ├── index.php
 ├── logs
 │   ├── error-2025-06-12.log
 │   ├── error-2025-06-13.log
-│   └── error-2025-06-25.log
+│   ├── error-2025-06-25.log
+│   ├── error-2025-06-26.log
+│   └── error-2025-06-27.log
 ├── package-lock.json
 ├── public
 │   ├── assets
@@ -192,6 +195,8 @@
 │   │           ├── mail_9871.eml
 │   │           ├── mail_9898.eml
 │   │           └── mail.eml
+│   ├── cache
+│   ├── exports
 │   ├── pages
 │   │   ├── commun
 │   │   │   ├── classes
@@ -237,6 +242,7 @@
 │   │   │   │   ├── 100-twig-base.php
 │   │   │   │   ├── 110-twig-extensions.php
 │   │   │   │   ├── 120-router.php
+│   │   │   │   ├── 125-twig-router.php
 │   │   │   │   ├── 130-routing.php
 │   │   │   │   ├── 140-access.php
 │   │   │   │   ├── 150-php-execution.php
@@ -294,38 +300,54 @@
 │   │   │       │   └── main.php
 │   │   │       └── update
 │   │   │           └── main.php
-│   │   └── show
-│   │       ├── blocks
-│   │       │   ├── getTimelineBlocksFcts.php
-│   │       │   ├── getTimelineBlocks.php
-│   │       │   └── timelineFcts.php
-│   │       ├── modal
-│   │       │   ├── block
-│   │       │   │   ├── addBlock.php
-│   │       │   │   ├── deleteBlock.php
-│   │       │   │   ├── showAddBlock.php
-│   │       │   │   ├── showUpdateBlock.php
-│   │       │   │   └── updateBlock.php
-│   │       │   ├── memo
-│   │       │   │   ├── addMemo.php
-│   │       │   │   ├── deleteMemo.php
-│   │       │   │   ├── showAddMemo.php
-│   │       │   │   ├── showUpdateMemo.php
-│   │       │   │   └── updateMemo.php
-│   │       │   └── PAM
-│   │       │       ├── showUpdatePAM.php
-│   │       │       └── updatePAM.php
-│   │       ├── PAM
-│   │       │   ├── getPAMFcts.php
-│   │       │   └── getPAM.php
-│   │       ├── permanences.php
-│   │       └── timeline.php
+│   │   ├── show
+│   │   │   ├── blocks
+│   │   │   │   ├── getTimelineBlocksFcts.php
+│   │   │   │   ├── getTimelineBlocks.php
+│   │   │   │   └── timelineFcts.php
+│   │   │   ├── modal
+│   │   │   │   ├── block
+│   │   │   │   │   ├── addBlock.php
+│   │   │   │   │   ├── deleteBlock.php
+│   │   │   │   │   ├── showAddBlock.php
+│   │   │   │   │   ├── showUpdateBlock.php
+│   │   │   │   │   └── updateBlock.php
+│   │   │   │   ├── memo
+│   │   │   │   │   ├── addMemo.php
+│   │   │   │   │   ├── deleteMemo.php
+│   │   │   │   │   ├── showAddMemo.php
+│   │   │   │   │   ├── showUpdateMemo.php
+│   │   │   │   │   └── updateMemo.php
+│   │   │   │   └── PAM
+│   │   │   │       ├── showUpdatePAM.php
+│   │   │   │       └── updatePAM.php
+│   │   │   ├── PAM
+│   │   │   │   ├── getPAMFcts.php
+│   │   │   │   └── getPAM.php
+│   │   │   ├── permanences.php
+│   │   │   └── timeline.php
+│   │   └── views
+│   │       ├── errors
+│   │       │   ├── 403.twig
+│   │       │   ├── 404.twig
+│   │       │   └── 500.twig
+│   │       ├── index
+│   │       │   └── index.twig
+│   │       └── layouts
+│   │           └── default.twig
+│   ├── tmp
 │   └── views
+│       ├── errors
+│       │   ├── 403.twig
+│       │   ├── 404.twig
+│       │   └── 500.twig
 │       ├── index
+│       │   ├── banner.twig
 │       │   ├── header.twig
 │       │   ├── index.twig
-│       │   ├── index.twig.old
-│       │   └── title.twig
+│       │   └── index.twig.old
+│       ├── layouts
+│       │   └── default.twig
 │       ├── main
 │       │   ├── header.twig
 │       │   ├── main.twig
@@ -394,6 +416,7 @@
 ├── tree.txt
 ├── vendor
 │   ├── autoload.php
+│   ├── bin
 │   ├── composer
 │   │   ├── autoload_classmap.php
 │   │   ├── autoload_files.php
@@ -956,6 +979,7 @@
 │   │               │   │   ├── Formula.php
 │   │               │   │   ├── Helpers.php
 │   │               │   │   ├── HLookup.php
+│   │               │   │   ├── Hstack.php
 │   │               │   │   ├── Hyperlink.php
 │   │               │   │   ├── Indirect.php
 │   │               │   │   ├── LookupBase.php
@@ -966,8 +990,10 @@
 │   │               │   │   ├── RowColumnInformation.php
 │   │               │   │   ├── Selection.php
 │   │               │   │   ├── Sort.php
+│   │               │   │   ├── TorowTocol.php
 │   │               │   │   ├── Unique.php
-│   │               │   │   └── VLookup.php
+│   │               │   │   ├── VLookup.php
+│   │               │   │   └── Vstack.php
 │   │               │   ├── MathTrig
 │   │               │   │   ├── Absolute.php
 │   │               │   │   ├── Angle.php
@@ -1387,8 +1413,7 @@
 │   │                   │   ├── Style
 │   │                   │   │   ├── CellAlignment.php
 │   │                   │   │   ├── CellBorder.php
-│   │                   │   │   ├── CellFill.php
-│   │                   │   │   └── ColorMap.php
+│   │                   │   │   └── CellFill.php
 │   │                   │   ├── Workbook.php
 │   │                   │   ├── Worksheet.php
 │   │                   │   └── Xf.php
@@ -1953,4 +1978,4 @@
 │               └── Validator.php
 └── version
 
-350 directories, 1603 files
+360 directories, 1618 files

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Test{% endblock %}</title>
+</head>
+<body>
+    <h1>{{ app.name|default("Test App") }}</h1>
+    {% block content %}
+        <p>Template de test fonctionnel</p>
+    {% endblock %}
+</body>
+</html>

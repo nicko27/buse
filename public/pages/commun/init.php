@@ -30,6 +30,7 @@ try {
                                                                     // ===== PHASE 4 : ROUTING & RENDERING =====
     require_once __DIR__ . '/initialisation/120-router.php';        // Router
     require_once __DIR__ . '/initialisation/130-routing.php';       // Résolution route
+    require_once __DIR__ . '/initialisation/135-twig-router.php';   // Ajout données routeur à Twig
     require_once __DIR__ . '/initialisation/140-access.php';        // Vérification accès
     require_once __DIR__ . '/initialisation/150-php-execution.php'; // Exécution PHP
     require_once __DIR__ . '/initialisation/160-render.php';        // Rendu final

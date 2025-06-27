@@ -1,0 +1,31 @@
+{% extends "layouts/default.twig" %}
+
+{% block title %}404 - Page non trouvee{% endblock %}
+
+{% block content %}
+    <div style="text-align: center; padding: 40px;">
+        <h1 style="color: #e74c3c; font-size: 72px; margin: 0;">404</h1>
+        <h2 style="color: #2c3e50;">Page non trouvee</h2>
+        <p style="font-size: 18px; color: #7f8c8d; margin: 20px 0;">
+            La page que vous cherchez n''existe pas ou a ete deplacee.
+        </p>
+        <p style="margin: 30px 0;">
+            <strong>URI demandee :</strong> <code>{{ requested_uri|default("/") }}</code>
+        </p>
+
+        {% if is_debug and available_routes is defined %}
+            <details style="margin: 30px 0; text-align: left; background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <summary style="cursor: pointer; font-weight: bold;">Debug - Routes disponibles</summary>
+                <ul style="margin: 10px 0;">
+                {% for route in available_routes %}
+                    <li><a href="{{ url(route) }}">{{ route }}</a></li>
+                {% endfor %}
+                </ul>
+            </details>
+        {% endif %}
+
+        <a href="{{ url('index') }}" style="background: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
+            Retour a l''accueil
+        </a>
+    </div>
+{% endblock %}

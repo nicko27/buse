@@ -1,0 +1,29 @@
+{% extends "layouts/default.twig" %}
+
+{% block title %}403 - Acces refuse{% endblock %}
+
+{% block content %}
+    <div style="text-align: center; padding: 40px;">
+        <h1 style="color: #e67e22; font-size: 72px; margin: 0;">403</h1>
+        <h2 style="color: #2c3e50;">Acces refuse</h2>
+        <p style="font-size: 18px; color: #7f8c8d; margin: 20px 0;">
+            Vous n''avez pas les droits necessaires pour acceder a cette page.
+        </p>
+
+        {% if not user_authenticated %}
+            <p style="margin: 30px 0;">
+                <a href="{{ url('login') }}" style="background: #27ae60; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Se connecter
+                </a>
+            </p>
+        {% else %}
+            <p style="margin: 30px 0;">
+                <strong>Droits requis :</strong> {{ required_rights|default("Non specifies") }}
+            </p>
+        {% endif %}
+
+        <a href="{{ url('index') }}" style="background: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-top: 20px;">
+            Retour a l''accueil
+        </a>
+    </div>
+{% endblock %}

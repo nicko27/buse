@@ -9,21 +9,24 @@
     </head>
   <body>
     {% try %}
-        {% include title ~ '.twig' %}
+        {% include banner ~ '.twig' %}
     {% catch %}
         {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
     {% endtry %}
 
     <div class="field">
-        {% include menu ~ '.twig' %}
         {% try %}
-            {% include menu ~ '.twig' %}
+            {% include sidebar-left ~ '.twig' %}
         {% catch %}
             {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
         {% endtry %}
-
         {% try %}
             {% include content ~ '.twig' %}
+        {% catch %}
+            {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
+        {% endtry %}
+        {% try %}
+            {% include sidebar-right ~ '.twig' %}
         {% catch %}
             {# Template non trouvé, ne rien faire ou utilisez un template par défaut #}
         {% endtry %}
