@@ -33,6 +33,9 @@ class Config implements ArrayAccess
     /** @var bool Indique si la configuration BDD a été chargée */
     private bool $databaseLoaded = false;
 
+    /** @var bool Mode debug pour les logs */
+    private bool $debugMode = false;
+
     /**
      * Retourne l'instance unique de configuration
      */
@@ -50,6 +53,7 @@ class Config implements ArrayAccess
     private function __construct()
     {
         $this->loadEnv();
+        $this->debugMode = $this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev';
     }
 
     /**
@@ -78,7 +82,7 @@ class Config implements ArrayAccess
     private function findEnvPath(): ?string
     {
         $currentDir = __DIR__;
-        $maxLevels  = 5; // Limite pour éviter les boucles infinies
+        $maxLevels  = 6; // Limite pour éviter les boucles infinies
 
         for ($i = 0; $i < $maxLevels; $i++) {
             $envFile = $currentDir . '/.env';
@@ -239,54 +243,45 @@ class Config implements ArrayAccess
      */
     private function buildPagesAndSubpagesArrays(): void
     {
-        error_log("=== DEBUT buildPagesAndSubpagesArrays ===");
-        error_log("Nombre d'envVars : " . count($this->envVars));
-        error_log("Nombre de config : " . count($this->config));
+        if ($this->debugMode) {
+            error_log("Config: Construction des tableaux PAGES et SUBPAGES");
+        }
 
         $pages    = [];
         $subpages = [];
 
-        // ✅ CORRECTION : Préserver les tableaux existants s'ils existent déjà
+        // Préserver les tableaux existants s'ils existent déjà
         if (isset($this->config['PAGES_LIST']) && is_array($this->config['PAGES_LIST'])) {
             $pages = $this->config['PAGES_LIST'];
-            error_log("PAGES_LIST préservé depuis config existante");
         }
         if (isset($this->config['SUBPAGES_MAIN_LIST']) && is_array($this->config['SUBPAGES_MAIN_LIST'])) {
             $subpages = $this->config['SUBPAGES_MAIN_LIST'];
-            error_log("SUBPAGES_MAIN_LIST préservé depuis config existante");
         }
 
-        // ✅ CORRECTION : Chercher dans TOUTES les sources (BDD ET .env)
+        // Chercher dans TOUTES les sources (BDD ET .env)
         $allConfig = array_merge($this->envVars, $this->config);
-        error_log("Nombre total après merge : " . count($allConfig));
 
-        // Debug: afficher quelques clés pour voir si les PAGES_ sont présentes
-        foreach ($allConfig as $key => $value) {
-            if (str_starts_with($key, 'PAGES_') || str_starts_with($key, 'SUBPAGES_')) {
-                error_log("Trouvé dans allConfig: $key = $value");
-            }
-        }
+        $pagesCount    = 0;
+        $subpagesCount = 0;
 
         foreach ($allConfig as $key => $value) {
             // Construire le tableau des pages (PAGES_0, PAGES_1, etc.)
             if (str_starts_with($key, 'PAGES_')) {
                 $suffix = substr($key, 6); // Récupérer ce qui suit "PAGES_"
-                error_log("Traitement PAGES_ : key=$key, suffix=$suffix, is_numeric=" . (is_numeric($suffix) ? 'true' : 'false'));
                 if (is_numeric($suffix)) {
                     $pageId         = (int) $suffix;
                     $pages[$pageId] = $value;
-                    error_log("Ajouté à pages: [$pageId] = $value");
+                    $pagesCount++;
                 }
             }
 
             // Construire le tableau des sous-pages (SUBPAGES_0, SUBPAGES_1, etc.)
             if (str_starts_with($key, 'SUBPAGES_')) {
                 $suffix = substr($key, 9); // Récupérer ce qui suit "SUBPAGES_"
-                error_log("Traitement SUBPAGES_ : key=$key, suffix=$suffix, is_numeric=" . (is_numeric($suffix) ? 'true' : 'false'));
                 if (is_numeric($suffix)) {
                     $subpageId            = (int) $suffix;
                     $subpages[$subpageId] = $value;
-                    error_log("Ajouté à subpages: [$subpageId] = $value");
+                    $subpagesCount++;
                 }
             }
         }
@@ -303,10 +298,9 @@ class Config implements ArrayAccess
         $this->twigVars['PAGES_LIST']         = $pages;
         $this->twigVars['SUBPAGES_MAIN_LIST'] = $subpages;
 
-        // Debug : loguer les tableaux construits
-        error_log("PAGES_LIST construit : " . json_encode($pages));
-        error_log("SUBPAGES_MAIN_LIST construit : " . json_encode($subpages));
-        error_log("=== FIN buildPagesAndSubpagesArrays ===");
+        if ($this->debugMode && ($pagesCount > 0 || $subpagesCount > 0)) {
+            error_log("Config: Construit $pagesCount pages et $subpagesCount sous-pages");
+        }
     }
 
     /**
@@ -315,34 +309,21 @@ class Config implements ArrayAccess
     public function debugPagesConfig(): void
     {
         error_log("=== DEBUG Config PAGES ===");
-        error_log("Nombre total de variables de config : " . count($this->config));
-        error_log("Nombre total de variables env : " . count($this->envVars));
+        error_log("Variables CONFIG: " . count($this->config));
+        error_log("Variables ENV: " . count($this->envVars));
 
-        // Afficher toutes les clés pour voir ce qui est disponible
-        $allKeys = array_keys($this->config);
-        error_log("Toutes les clés CONFIG disponibles : " . implode(', ', $allKeys));
+        $pagesKeys = [];
+        $allConfig = array_merge($this->envVars, $this->config);
 
-        $allEnvKeys = array_keys($this->envVars);
-        error_log("Toutes les clés ENV disponibles : " . implode(', ', $allEnvKeys));
-
-        // Chercher dans config
-        foreach ($this->config as $key => $value) {
-            if (str_starts_with($key, 'PAGES_') || str_starts_with($key, 'SUBPAGES_') ||
-                str_starts_with($key, 'PAGE_') || str_starts_with($key, 'SUBPAGE_')) {
-                error_log("CONFIG: $key = " . json_encode($value));
+        foreach ($allConfig as $key => $value) {
+            if (str_starts_with($key, 'PAGES_') || str_starts_with($key, 'SUBPAGES_')) {
+                $pagesKeys[] = "$key = " . (is_array($value) ? json_encode($value) : $value);
             }
         }
 
-        // Chercher dans envVars
-        foreach ($this->envVars as $key => $value) {
-            if (str_starts_with($key, 'PAGES_') || str_starts_with($key, 'SUBPAGES_') ||
-                str_starts_with($key, 'PAGE_') || str_starts_with($key, 'SUBPAGE_')) {
-                error_log("ENV: $key = " . json_encode($value));
-            }
-        }
-
-        error_log("PAGES_LIST final = " . json_encode($this->get('PAGES_LIST')));
-        error_log("SUBPAGES_MAIN_LIST final = " . json_encode($this->get('SUBPAGES_MAIN_LIST')));
+        error_log("Clés trouvées: " . implode(', ', $pagesKeys));
+        error_log("PAGES_LIST final: " . json_encode($this->get('PAGES_LIST')));
+        error_log("SUBPAGES_MAIN_LIST final: " . json_encode($this->get('SUBPAGES_MAIN_LIST')));
         error_log("=== FIN DEBUG ===");
     }
 

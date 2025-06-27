@@ -25,6 +25,7 @@ class SqlManager
     /** @var array Table des noms de tables autorisés (protection contre les injections SQL) */
     private $allowedTables = [];
 
+    /** @var bool Flag d'initialisation */
     private static $isInitialized = false;
 
     /**
@@ -66,9 +67,12 @@ class SqlManager
         return self::$instance;
     }
 
+    /**
+     * Vérifie si l'instance est initialisée
+     */
     public static function isInitialized(): bool
     {
-        return self::$isInitialized;
+        return self::$isInitialized && self::$instance !== null;
     }
 
     /**
@@ -78,6 +82,11 @@ class SqlManager
      */
     public static function resetInstance(): void
     {
+        // Fermer la connexion PDO si elle existe
+        if (self::$instance && self::$instance->db) {
+            self::$instance->db = null;
+        }
+
         self::$instance      = null;
         self::$isInitialized = false; // ✅ CORRECTION : réinitialiser le flag aussi
     }
@@ -107,18 +116,77 @@ class SqlManager
             PDO::ATTR_EMULATE_PREPARES   => false,
         ];
 
+        // Ajouter l'option MySQL seulement si ce n'est pas surchargé
+        if (! isset($options[PDO::MYSQL_ATTR_INIT_COMMAND])) {
+            $defaultOptions[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci";
+        }
+
         // Fusionner les options par défaut avec les options fournies
         $connectionOptions = array_merge($defaultOptions, $options);
 
-        // Créer l'instance PDO
-        $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
-        $pdo = new PDO($dsn, $username, $password, $connectionOptions);
+        // Validation des types d'attributs pour éviter les erreurs
+        $validatedOptions = [];
+        foreach ($connectionOptions as $attribute => $value) {
+            // S'assurer que les clés d'attributs sont des entiers
+            if (is_string($attribute) && defined($attribute)) {
+                $attribute = constant($attribute);
+            }
 
-        // Réinitialiser l'instance avant de créer une nouvelle
-        self::resetInstance();
+            // Validation spécifique pour certains attributs
+            switch ($attribute) {
+                case PDO::ATTR_ERRMODE:
+                case PDO::ATTR_DEFAULT_FETCH_MODE:
+                    $validatedOptions[(int) $attribute] = (int) $value;
+                    break;
+                case PDO::ATTR_EMULATE_PREPARES:
+                    $validatedOptions[(int) $attribute] = (bool) $value;
+                    break;
+                default:
+                    $validatedOptions[(int) $attribute] = $value;
+                    break;
+            }
+        }
 
-        // Initialiser et retourner l'instance SqlManager
-        return self::getInstance($pdo);
+        try {
+            // Version simplifiée sans options par défaut pour diagnostic
+            $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
+
+            // Utiliser seulement les options fournies par l'utilisateur
+            $pdo = new PDO($dsn, $username, $password, $options);
+
+            // Configurer après la connexion
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+            // Test de connexion simple
+            $pdo->query("SELECT 1");
+
+            // Réinitialiser l'instance avant de créer une nouvelle
+            self::resetInstance();
+
+            // Initialiser et retourner l'instance SqlManager
+            return self::getInstance($pdo);
+
+        } catch (PDOException $e) {
+            // Log l'erreur si possible
+            if (class_exists('\Commun\Logger\Logger')) {
+                try {
+                    $logger = Logger::getInstance()->getLogger();
+                    $logger->error("Erreur de connexion PDO", [
+                        'host'     => $host,
+                        'database' => $dbname,
+                        'user'     => $username,
+                        'error'    => $e->getMessage(),
+                        'options'  => $validatedOptions,
+                    ]);
+                } catch (\Exception $logError) {
+                    // Ignore les erreurs de log
+                }
+            }
+
+            throw new PDOException("Connexion à la base de données échouée: " . $e->getMessage(), (int) $e->getCode(), $e);
+        }
     }
 
     /**
@@ -129,7 +197,7 @@ class SqlManager
      */
     public static function getInitializedInstance(): self
     {
-        if (self::$instance === null) {
+        if (self::$instance === null || ! self::$isInitialized) {
             throw new \Exception("SqlManager has not been initialized. Call initWithParams() first.");
         }
         return self::$instance;
@@ -161,6 +229,24 @@ class SqlManager
         }
 
         return in_array($table, $this->allowedTables, true);
+    }
+
+    /**
+     * Teste la connectivité avec la base de données
+     *
+     * @return bool True si la connexion est opérationnelle, false sinon
+     */
+    public function testConnection(): bool
+    {
+        try {
+            $stmt = $this->db->query("SELECT 1 as test");
+            return $stmt !== false;
+        } catch (PDOException $e) {
+            $this->logger->error("Test de connexion échoué", [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -704,5 +790,29 @@ class SqlManager
     public function getPDO(): PDO
     {
         return $this->db;
+    }
+
+    /**
+     * ✅ AMÉLIORATION : Obtenir des informations sur la connexion
+     *
+     * @return array Informations sur la connexion
+     */
+    public function getConnectionInfo(): array
+    {
+        try {
+            $info = [
+                'driver'            => $this->db->getAttribute(PDO::ATTR_DRIVER_NAME),
+                'version'           => $this->db->getAttribute(PDO::ATTR_SERVER_VERSION),
+                'connection_status' => $this->db->getAttribute(PDO::ATTR_CONNECTION_STATUS),
+                'charset'           => $this->db->query("SELECT @@character_set_connection")->fetchColumn(),
+                'database'          => $this->db->query("SELECT DATABASE()")->fetchColumn(),
+            ];
+            return $info;
+        } catch (PDOException $e) {
+            $this->logger->error("Erreur lors de la récupération des infos de connexion", [
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
     }
 }
