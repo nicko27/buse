@@ -44,7 +44,6 @@
 │   │   │   │   │   └── Router.php
 │   │   │   │   ├── Security
 │   │   │   │   │   ├── CsrfManager.php
-│   │   │   │   │   ├── DummySSO.php
 │   │   │   │   │   ├── RightsManager.php
 │   │   │   │   │   └── SSOlocal.php
 │   │   │   │   ├── Template
@@ -249,4 +248,4 @@
 ├── tree_vendor_assets.txt
 └── tree_vendor.txt
 
-79 directories, 170 files
+79 directories, 169 files

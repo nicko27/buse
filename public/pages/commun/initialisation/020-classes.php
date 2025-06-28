@@ -76,9 +76,7 @@ foreach ($requiredClasses as $classFile) {
 
             // Log de debug pour les nouvelles classes de logging
             $fileName = basename($classFile);
-            if (in_array($fileName, $advancedLoggingClasses)) {
-                error_log("Logging avancé: Classe chargée - {$fileName}");
-            }
+            error_log("Logging avancé: Classe chargée - {$fileName}");
         } else {
             $missingClasses[] = $classFile;
         }
