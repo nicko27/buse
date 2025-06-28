@@ -165,7 +165,7 @@ class LdapManager
             }
         }
 
-        return $returnType === 1 ? implode('', $list) : $list;
+        return $list;
     }
 
     public function searchServices(string $query, array $attributes, int $limit = 10): array

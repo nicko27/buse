@@ -287,7 +287,7 @@ if (! function_exists('getLogSearchEngine')) {
     }
 }
 
-if (! function_calls('getLogViewerAuth')) {
+if (! function_exists('getLogViewerAuth')) {
     /**
      * Retourne l'instance d'authentification du visualiseur
      */

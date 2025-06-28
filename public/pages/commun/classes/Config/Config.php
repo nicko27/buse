@@ -2,20 +2,20 @@
 namespace Commun\Config;
 
 /**
- * Classe centrale de configuration applicative
+ * Classe centrale de configuration applicative - VERSION CORRIGÉE
  *
  * - Lit le .env pour les variables d'environnement
  * - Se fait alimenter par une source de données via BDDManager
- * - Typage dynamique selon la colonne `typeval`
+ * - Typage dynamique selon configuration_type_id
  * - Expose un accès centralisé, sans define()
  * - Compatible avec un accès direct (array) ou via méthode
  * - Gère la liste des variables à injecter dans Twig
  *
  * @package Commun\Config
  * @author Application Framework
- * @version 1.0
+ * @version 1.1 - Corrigé pour correspondre au schéma BDD existant
  *
- * Types de valeurs supportés pour typeval:
+ * Types de valeurs supportés selon configuration_types.code:
  * - 'int', 'integer': Conversion en entier
  * - 'float', 'double': Conversion en nombre à virgule flottante
  * - 'bool', 'boolean': Conversion en booléen (supporte 'true', 'yes', 'on', 'oui', '1')
@@ -65,9 +65,36 @@ class Config
     private function __construct()
     {
         $this->loadEnv();
-        // CORRECTION 1: Récupérer la vraie valeur de DEBUG_MODE au lieu d'une expression booléenne
-        $this->debugMode = $this->get('DEBUG_MODE', false) ||
-            ($this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev');
+        // CORRECTION 1: Simplification de la logique du mode debug
+        $this->debugMode = $this->isDebugMode();
+    }
+
+    /**
+     * Détermine si le mode debug doit être activé
+     *
+     * @return bool
+     */
+    private function isDebugMode(): bool
+    {
+        // 1. Variable DEBUG_MODE explicite
+        $debugMode = $this->get('DEBUG_MODE', false);
+        if ($debugMode === '1' || $debugMode === 'true' || $debugMode === true) {
+            return true;
+        }
+
+        // 2. Variable ENV en mode développement
+        $env = $this->get('ENV', 'production');
+        if (in_array($env, ['dev', 'development', 'local'])) {
+            return true;
+        }
+
+        // 3. Variable TWIG_DEBUG activée
+        $twigDebug = $this->get('TWIG_DEBUG', false);
+        if ($twigDebug === '1' || $twigDebug === 'true' || $twigDebug === true) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -130,6 +157,7 @@ class Config
 
     /**
      * Charge la configuration depuis une source de données
+     * CORRECTION 2: Adapté à la vraie structure de la base de données
      *
      * @param \Commun\Database\BDDManager $dbManager Gestionnaire de base de données
      * @return void
@@ -138,7 +166,7 @@ class Config
     public function loadFromDatabase(\Commun\Database\BDDManager $dbManager): void
     {
         try {
-            // CORRECTION 21: Vérifier que les tables existent avant de les utiliser
+            // Vérifier que les tables existent avant de les utiliser
             if (! $dbManager->tableExists('configuration_types')) {
                 throw new \Exception("Table 'configuration_types' non trouvée");
             }
@@ -171,14 +199,13 @@ class Config
             $this->twigVars = [];
 
             foreach ($configData as $row) {
-                $var     = $row['var'];
-                $value   = $row['value'];
-                $typeval = $row['typeval'] ?? null;
-                $typeId  = $row['configuration_type_id'] ?? null;
+                $var    = $row['var'];
+                $value  = $row['value'];
+                $typeId = $row['configuration_type_id'] ?? null;
 
-                // Détecter le type à utiliser (priorité à typeval si présent)
-                $type = $typeval;
-                if (! $type && $typeId && isset($types[$typeId])) {
+                // CORRECTION 3: Utiliser configuration_type_id au lieu de typeval inexistant
+                $type = null;
+                if ($typeId && isset($types[$typeId])) {
                     $type = $types[$typeId]['code'] ?? null;
                 }
 
@@ -303,7 +330,12 @@ class Config
             return null;
         }
 
-        switch ($type) {
+        // Si pas de type défini, retourner la valeur comme string
+        if (empty($type)) {
+            return (string) $value;
+        }
+
+        switch (strtolower($type)) {
             case 'int':
             case 'integer':
                 return (int) $value;
@@ -340,7 +372,58 @@ class Config
         }
     }
 
-    // --- SUPPRESSION de l'implémentation ArrayAccess (problème 37) ---
-    // L'interface ArrayAccess n'est pas vraiment utilisée ailleurs dans le code
-    // et complique inutilement la classe. Suppression complète.
+    /**
+     * Obtient le mode debug actuel
+     *
+     * @return bool
+     */
+    public function isDebug(): bool
+    {
+        return $this->debugMode;
+    }
+
+    /**
+     * CORRECTION 4: Méthodes pour la compatibilité avec l'ancien code
+     */
+
+    /**
+     * Définit une variable de configuration (pour les tests)
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    public function set(string $key, $value): void
+    {
+        $this->config[$key] = $value;
+    }
+
+    /**
+     * Vérifie si une variable existe
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function has(string $key): bool
+    {
+        return isset($this->config[$key]) ||
+        isset($this->envVars[$key]) ||
+        getenv($key) !== false;
+    }
+
+    /**
+     * Retourne les statistiques de configuration
+     *
+     * @return array
+     */
+    public function getStats(): array
+    {
+        return [
+            'env_vars_count'    => count($this->envVars),
+            'config_vars_count' => count($this->config),
+            'twig_vars_count'   => count($this->twigVars),
+            'database_loaded'   => $this->databaseLoaded,
+            'debug_mode'        => $this->debugMode,
+        ];
+    }
 }

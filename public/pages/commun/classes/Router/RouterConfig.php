@@ -6,6 +6,8 @@ namespace Commun\Router;
  *
  * Cette classe contient toutes les constantes et configurations
  * par défaut du routeur sécurisé.
+ *
+ * VERSION COMPLÈTE avec gestion des domaines de redirection
  */
 class RouterConfig
 {
@@ -59,6 +61,9 @@ class RouterConfig
         '127.0.0.1',
     ];
 
+    // CORRECTION : Domaines de redirection par défaut (pour la constante ALLOWED_REDIRECT_DOMAINS)
+    public const ALLOWED_REDIRECT_DOMAINS = 'localhost,127.0.0.1';
+
     // Patterns de validation
     public const PARAM_KEY_PATTERN = '/^[a-zA-Z0-9_-]+$/';
     public const DOMAIN_PATTERN    = '/^[a-zA-Z0-9.-]+$/';
@@ -82,22 +87,32 @@ class RouterConfig
         'cache_stale_threshold'     => 7200, // 2 heures
     ];
 
+    // Routes par défaut
+    public const DEFAULT_ROUTES = [
+        'default_route'       => 'index',
+        'access_denied_route' => 'login',
+        'error_404_route'     => '404',
+        'error_500_route'     => '500',
+    ];
+
     /**
      * Retourne la configuration par défaut du routeur
      */
     public static function getDefaultConfig(): array
     {
         return [
-            'max_routes_cache'        => self::DEFAULT_MAX_ROUTES_CACHE,
-            'cache_ttl'               => self::DEFAULT_CACHE_TTL,
-            'db_timeout'              => self::DEFAULT_DB_TIMEOUT,
-            'thread_safe_mode'        => true,
-            'slug_validation_pattern' => self::SLUG_PATTERN,
-            'allowed_http_methods'    => self::ALLOWED_HTTP_METHODS,
-            'allowed_redirect_codes'  => self::ALLOWED_REDIRECT_CODES,
-            'sensitive_param_keys'    => self::SENSITIVE_PARAM_KEYS,
-            'ip_headers'              => self::IP_HEADERS,
-            'default_allowed_domains' => self::DEFAULT_ALLOWED_DOMAINS,
+            'max_routes_cache'         => self::DEFAULT_MAX_ROUTES_CACHE,
+            'cache_ttl'                => self::DEFAULT_CACHE_TTL,
+            'db_timeout'               => self::DEFAULT_DB_TIMEOUT,
+            'thread_safe_mode'         => true,
+            'slug_validation_pattern'  => self::SLUG_PATTERN,
+            'allowed_http_methods'     => self::ALLOWED_HTTP_METHODS,
+            'allowed_redirect_codes'   => self::ALLOWED_REDIRECT_CODES,
+            'sensitive_param_keys'     => self::SENSITIVE_PARAM_KEYS,
+            'ip_headers'               => self::IP_HEADERS,
+            'default_allowed_domains'  => self::DEFAULT_ALLOWED_DOMAINS,
+            'allowed_redirect_domains' => self::ALLOWED_REDIRECT_DOMAINS,
+            'default_routes'           => self::DEFAULT_ROUTES,
         ];
     }
 
@@ -132,6 +147,21 @@ class RouterConfig
             }
         }
 
+        // Validation des domaines autorisés
+        if (isset($config['allowed_redirect_domains'])) {
+            if (! is_string($config['allowed_redirect_domains'])) {
+                $errors[] = "allowed_redirect_domains must be a comma-separated string";
+            } else {
+                $domains = explode(',', $config['allowed_redirect_domains']);
+                foreach ($domains as $domain) {
+                    $domain = trim($domain);
+                    if (! empty($domain) && ! preg_match(self::DOMAIN_PATTERN, $domain)) {
+                        $errors[] = "Invalid domain format: $domain";
+                    }
+                }
+            }
+        }
+
         return $errors;
     }
 
@@ -150,5 +180,182 @@ class RouterConfig
         }
 
         return array_merge($defaultConfig, $userConfig);
+    }
+
+    /**
+     * Obtient les domaines autorisés pour les redirections
+     *
+     * @param string|null $configValue Valeur de configuration (défaut depuis la constante)
+     * @return array Liste des domaines autorisés
+     */
+    public static function getAllowedRedirectDomains(?string $configValue = null): array
+    {
+        $domainsString = $configValue ?? self::ALLOWED_REDIRECT_DOMAINS;
+
+        if (empty($domainsString)) {
+            return self::DEFAULT_ALLOWED_DOMAINS;
+        }
+
+        $domains      = array_map('trim', explode(',', $domainsString));
+        $validDomains = [];
+
+        foreach ($domains as $domain) {
+            if (! empty($domain) && preg_match(self::DOMAIN_PATTERN, $domain)) {
+                $validDomains[] = strtolower($domain);
+            }
+        }
+
+        // Toujours inclure les domaines par défaut
+        return array_unique(array_merge(self::DEFAULT_ALLOWED_DOMAINS, $validDomains));
+    }
+
+    /**
+     * Valide un slug selon les règles définies
+     */
+    public static function isValidSlug(string $slug): bool
+    {
+        if (empty($slug) || strlen($slug) > self::MAX_SLUG_LENGTH) {
+            return false;
+        }
+
+        // Vérification des caractères dangereux
+        if (strpos($slug, '..') !== false || strpos($slug, "\0") !== false) {
+            return false;
+        }
+
+        return preg_match(self::SLUG_PATTERN, $slug) === 1;
+    }
+
+    /**
+     * Valide une méthode HTTP
+     */
+    public static function isValidHttpMethod(string $method): bool
+    {
+        return in_array(strtoupper($method), self::ALLOWED_HTTP_METHODS, true);
+    }
+
+    /**
+     * Valide un code de redirection
+     */
+    public static function isValidRedirectCode(int $code): bool
+    {
+        return in_array($code, self::ALLOWED_REDIRECT_CODES, true);
+    }
+
+    /**
+     * Retourne les routes par défaut configurées
+     */
+    public static function getDefaultRoutes(): array
+    {
+        return self::DEFAULT_ROUTES;
+    }
+
+    /**
+     * Valide et nettoie un paramètre de clé
+     */
+    public static function sanitizeParamKey(string $key): ?string
+    {
+        if (! preg_match(self::PARAM_KEY_PATTERN, $key)) {
+            return null;
+        }
+        return $key;
+    }
+
+    /**
+     * Vérifie si une clé de paramètre est sensible
+     */
+    public static function isSensitiveParam(string $key): bool
+    {
+        $keyLower = strtolower($key);
+
+        foreach (self::SENSITIVE_PARAM_KEYS as $sensitiveKey) {
+            if (strpos($keyLower, $sensitiveKey) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Obtient la configuration des health checks
+     */
+    public static function getHealthCheckConfig(): array
+    {
+        return self::HEALTH_CHECK_CONFIG;
+    }
+
+    /**
+     * Retourne les headers IP par ordre de priorité
+     */
+    public static function getIpHeaders(): array
+    {
+        return self::IP_HEADERS;
+    }
+
+    /**
+     * Crée une constante globale pour la compatibilité avec l'ancien code
+     *
+     * @param string|null $domainsString Domaines à définir
+     */
+    public static function defineAllowedRedirectDomains(?string $domainsString = null): void
+    {
+        if (! defined('ALLOWED_REDIRECT_DOMAINS')) {
+            $domains = $domainsString ?? self::ALLOWED_REDIRECT_DOMAINS;
+            define('ALLOWED_REDIRECT_DOMAINS', $domains);
+        }
+    }
+
+    /**
+     * Configuration complète pour l'initialisation du routeur
+     */
+    public static function getCompleteRouterConfig(): array
+    {
+        // S'assurer que la constante est définie
+        self::defineAllowedRedirectDomains();
+
+        return [
+            // Configuration de base
+            'routing'     => [
+                'default_route'       => self::DEFAULT_ROUTES['default_route'],
+                'access_denied_route' => self::DEFAULT_ROUTES['access_denied_route'],
+                'error_routes'        => [
+                    '404' => self::DEFAULT_ROUTES['error_404_route'],
+                    '500' => self::DEFAULT_ROUTES['error_500_route'],
+                ],
+            ],
+
+            // Configuration du cache
+            'cache'       => [
+                'max_routes'      => self::DEFAULT_MAX_ROUTES_CACHE,
+                'ttl'             => self::DEFAULT_CACHE_TTL,
+                'enabled'         => true,
+                'integrity_check' => true,
+            ],
+
+            // Configuration de sécurité
+            'security'    => [
+                'allowed_methods'        => self::ALLOWED_HTTP_METHODS,
+                'allowed_redirect_codes' => self::ALLOWED_REDIRECT_CODES,
+                'allowed_domains'        => self::getAllowedRedirectDomains(),
+                'slug_pattern'           => self::SLUG_PATTERN,
+                'max_uri_length'         => self::MAX_URI_LENGTH,
+                'sensitive_params'       => self::SENSITIVE_PARAM_KEYS,
+            ],
+
+            // Configuration de performance
+            'performance' => [
+                'db_timeout'    => self::DEFAULT_DB_TIMEOUT,
+                'thread_safe'   => true,
+                'memory_limits' => self::HEALTH_CHECK_CONFIG,
+            ],
+
+            // Configuration de logging
+            'logging'     => [
+                'ip_headers'       => self::IP_HEADERS,
+                'mask_sensitive'   => true,
+                'log_slow_queries' => true,
+            ],
+        ];
     }
 }

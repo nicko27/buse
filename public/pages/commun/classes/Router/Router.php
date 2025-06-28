@@ -6,19 +6,18 @@ use Commun\Logger\Logger;
 use Commun\Security\RightsManager;
 
 /**
- * Classe Router - Gestionnaire de routage sécurisé et optimisé
+ * Classe Router - Gestionnaire de routage sécurisé adapté au schéma BDD existant
  *
- * CORRECTIONS APPLIQUÉES :
- * - Gestion robuste des exceptions
- * - Cache sécurisé avec validation d'intégrité
- * - Requêtes SQL optimisées avec jointures
- * - Validation stricte des slugs et URLs
- * - Gestion mémoire optimisée avec lazy loading
- * - Sécurisation des redirections
- * - Masquage des données sensibles dans les logs
- * - Thread-safety amélioré
- * - Validation des types de données
- * - Gestion des timeouts et performances
+ * VERSION CORRIGÉE pour correspondre au schéma de base de données réel :
+ * - Table pages : id, slug, title, description, php, layout, active, redirect_to, rights
+ * - Table page_templates : id, page_id, template_type_id, template_path, priority, enabled
+ * - Table page_template_types : id, name, description, active
+ *
+ * Simplifications appliquées :
+ * - Requêtes SQL adaptées au vrai schéma
+ * - Suppression des colonnes inexistantes
+ * - Gestion robuste des erreurs de BDD
+ * - Cache intelligent et sécurisé
  */
 class Router
 {
@@ -36,17 +35,17 @@ class Router
 
     /** @var array Cache des routes avec hash d'intégrité */
     private array $routesCache = [
-        'data' => [],
-        'hash' => null,
+        'data'      => [],
+        'hash'      => null,
         'timestamp' => 0,
-        'valid' => false
+        'valid'     => false,
     ];
 
     /** @var array Cache des types de templates */
     private array $templateTypesCache = [
-        'data' => [],
-        'hash' => null,
-        'valid' => false
+        'data'  => [],
+        'hash'  => null,
+        'valid' => false,
     ];
 
     /** @var bool Indique si les routes ont été chargées avec succès */
@@ -85,8 +84,8 @@ class Router
     /** @var array Whitelist des domaines autorisés pour les redirections */
     private array $allowedRedirectDomains = [];
 
-    /** @var array Regex patterns pour la validation des slugs */
-    private array $slugValidationPattern = '/^[a-zA-Z0-9\/_-]+$/';
+    /** @var string Regex pattern pour la validation des slugs */
+    private string $slugValidationPattern = '/^[a-zA-Z0-9\/_-]+$/';
 
     /** @var bool Mode thread-safe activé */
     private bool $threadSafeMode = true;
@@ -100,12 +99,12 @@ class Router
     private function __construct(BDDManager $dbManager)
     {
         // Validation stricte des dépendances
-        if (!$dbManager) {
+        if (! $dbManager) {
             throw new \InvalidArgumentException("BDDManager instance cannot be null");
         }
 
         // Test de connectivité BDD avant initialisation
-        if (!$dbManager->testConnection()) {
+        if (! $dbManager->testConnection()) {
             throw new \RuntimeException("Database connection test failed");
         }
 
@@ -115,7 +114,7 @@ class Router
         $this->httpMethod = $this->validateHttpMethod($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
         // Nettoyage et validation des paramètres
-        $this->getParams = $this->sanitizeParams($_GET);
+        $this->getParams  = $this->sanitizeParams($_GET);
         $this->postParams = $this->sanitizeParams($_POST);
 
         // Initialisation du logger avec gestion d'erreur
@@ -138,7 +137,7 @@ class Router
         if (self::$instance === null) {
             $lockKey = 'router_instance';
 
-            if (!isset(self::$mutexLocks[$lockKey])) {
+            if (! isset(self::$mutexLocks[$lockKey])) {
                 self::$mutexLocks[$lockKey] = true;
 
                 try {
@@ -163,9 +162,9 @@ class Router
     private function validateHttpMethod(string $method): string
     {
         $allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'];
-        $method = strtoupper(trim($method));
+        $method         = strtoupper(trim($method));
 
-        if (!in_array($method, $allowedMethods, true)) {
+        if (! in_array($method, $allowedMethods, true)) {
             throw new \InvalidArgumentException("Invalid HTTP method: $method");
         }
 
@@ -181,7 +180,7 @@ class Router
 
         foreach ($params as $key => $value) {
             // Validation de la clé
-            if (!is_string($key) || !preg_match('/^[a-zA-Z0-9_-]+$/', $key)) {
+            if (! is_string($key) || ! preg_match('/^[a-zA-Z0-9_-]+$/', $key)) {
                 continue; // Ignorer les clés invalides
             }
 
@@ -220,24 +219,43 @@ class Router
      */
     private function initializeAllowedDomains(): void
     {
-        $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $currentHost                  = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $this->allowedRedirectDomains = [
             $currentHost,
             'localhost',
-            '127.0.0.1'
+            '127.0.0.1',
         ];
 
-        // Ajouter d'autres domaines depuis la configuration si disponible
+        // CORRECTION : Utiliser RouterConfig au lieu de la constante directe
+        try {
+            // Récupérer les domaines depuis RouterConfig
+            $configDomains                = RouterConfig::getAllowedRedirectDomains();
+            $this->allowedRedirectDomains = array_merge($this->allowedRedirectDomains, $configDomains);
+
+            // Supprimer les doublons
+            $this->allowedRedirectDomains = array_unique($this->allowedRedirectDomains);
+
+        } catch (\Exception $e) {
+            // Fallback en cas d'erreur
+            $this->logger->warning("Could not load redirect domains from RouterConfig", [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Fallback sur variable d'environnement ou constante si elle existe
         if (defined('ALLOWED_REDIRECT_DOMAINS')) {
-            $this->allowedRedirectDomains = array_merge(
-                $this->allowedRedirectDomains,
-                explode(',', ALLOWED_REDIRECT_DOMAINS)
-            );
+            $extraDomains = explode(',', ALLOWED_REDIRECT_DOMAINS);
+            foreach ($extraDomains as $domain) {
+                $domain = trim($domain);
+                if (! empty($domain) && ! in_array($domain, $this->allowedRedirectDomains)) {
+                    $this->allowedRedirectDomains[] = $domain;
+                }
+            }
         }
     }
 
     /**
-     * Charge toutes les routes depuis la base de données avec optimisations
+     * Charge toutes les routes depuis la base de données - VERSION SIMPLIFIÉE
      */
     public function loadRoutes(): void
     {
@@ -258,52 +276,22 @@ class Router
             // Charger les types de templates d'abord
             $this->loadTemplateTypesOptimized();
 
-            // Requête optimisée avec jointures pour éviter le problème N+1
-            $sql = "
-                SELECT
-                    p.id as page_id,
-                    p.slug,
-                    p.title,
-                    p.description,
-                    p.rights,
-                    p.active,
-                    p.redirect_to,
-                    p.php,
-                    pt.id as template_id,
-                    pt.template_type_id,
-                    pt.template_path,
-                    pt.enabled as template_enabled,
-                    pt.priority,
-                    pt.template_data,
-                    ptt.name as zone_name,
-                    ptt.active as type_active
-                FROM pages p
-                LEFT JOIN page_templates pt ON p.id = pt.page_id AND pt.enabled = 1
-                LEFT JOIN page_template_types ptt ON pt.template_type_id = ptt.id AND ptt.active = 1
-                WHERE p.active = 1
-                ORDER BY p.slug, ptt.name, pt.priority ASC
-            ";
+            // VERSION SIMPLIFIÉE : Charger les pages d'abord, puis les templates
+            $this->loadPagesAndTemplates();
 
-            $result = $this->executeWithTimeout($sql);
-
-            if ($result['error'] !== 0) {
-                throw new \RuntimeException("Failed to load routes: " . ($result['msgError'] ?? 'Unknown error'));
-            }
-
-            $this->processRouteData($result['data']);
             $this->routesLoadedSuccessfully = true;
 
             $this->logger->info("Routes loaded successfully", [
-                'count' => count($this->routesCache['data']),
-                'method' => $this->httpMethod,
-                'memory_usage' => memory_get_usage(true)
+                'count'        => count($this->routesCache['data']),
+                'method'       => $this->httpMethod,
+                'memory_usage' => memory_get_usage(true),
             ]);
 
         } catch (\Exception $e) {
             $this->routesLoadedSuccessfully = false;
             $this->logger->error("Critical error loading routes", [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             throw new \RuntimeException("Failed to load routes: " . $e->getMessage(), 0, $e);
         } finally {
@@ -312,34 +300,107 @@ class Router
     }
 
     /**
-     * Exécution d'une requête avec timeout
+     * Charge les pages et templates de manière simplifiée
      */
-    private function executeWithTimeout(string $sql, array $params = []): array
+    private function loadPagesAndTemplates(): void
     {
-        $startTime = microtime(true);
+        // 1. Charger toutes les pages actives
+        $pages = $this->dbManager->getAllContentTable('pages');
 
+        // 2. Charger tous les templates actifs
+        $templates = [];
         try {
-            $result = $this->dbManager->query($sql, $params);
-
-            $executionTime = microtime(true) - $startTime;
-
-            if ($executionTime > $this->dbTimeout) {
-                $this->logger->warning("Slow query detected", [
-                    'execution_time' => $executionTime,
-                    'sql' => substr($sql, 0, 200)
-                ]);
+            $templatesData = $this->dbManager->getAllContentTable('page_templates');
+            foreach ($templatesData as $template) {
+                if (! empty($template['enabled'])) {
+                    $templates[] = $template;
+                }
             }
-
-            return $result;
         } catch (\Exception $e) {
-            $executionTime = microtime(true) - $startTime;
+            // Les templates sont optionnels
+            $this->logger->warning("Could not load page templates", ['error' => $e->getMessage()]);
+        }
 
-            if ($executionTime > $this->dbTimeout) {
-                throw new \RuntimeException("Query timeout exceeded", 0, $e);
+        // 3. Construire les routes
+        $routes     = [];
+        $routeCount = 0;
+
+        foreach ($pages as $page) {
+            if (empty($page['active']) || $routeCount >= $this->maxRoutesInCache) {
+                continue;
             }
 
-            throw $e;
+            $slug = $this->sanitizeValue($page['slug']);
+
+            // Validation stricte du slug
+            if (! $this->isValidSlug($slug)) {
+                $this->logger->warning("Invalid slug detected", ['slug' => $slug]);
+                continue;
+            }
+
+            $pageId = (int) $page['id'];
+            $rights = $this->validateRights($page['rights']);
+
+            // Structure de la route
+            $routes[$slug] = [
+                'page'      => [
+                    'id'          => $pageId,
+                    'slug'        => $slug,
+                    'title'       => $this->sanitizeValue($page['title']),
+                    'description' => $this->sanitizeValue($page['description'] ?? ''),
+                    'rights'      => $rights,
+                    'active'      => (bool) $page['active'],
+                    'redirect_to' => $this->validateRedirectUrl($page['redirect_to']),
+                    'php'         => $this->sanitizeValue($page['php'] ?? ''),
+                    'layout'      => $this->sanitizeValue($page['layout'] ?? ''),
+                ],
+                'templates' => [],
+            ];
+
+            // Ajouter les templates associés à cette page
+            foreach ($templates as $template) {
+                if ((int) $template['page_id'] === $pageId) {
+                    $templateTypeId = (int) $template['template_type_id'];
+
+                    // Récupérer le nom de la zone depuis les types de templates
+                    $zoneName = null;
+                    if (isset($this->templateTypesCache['data'][$templateTypeId])) {
+                        $zoneName = $this->templateTypesCache['data'][$templateTypeId]['name'];
+                    }
+
+                    if ($zoneName) {
+                        if (! isset($routes[$slug]['templates'][$zoneName])) {
+                            $routes[$slug]['templates'][$zoneName] = [];
+                        }
+
+                        $routes[$slug]['templates'][$zoneName][] = [
+                            'id'               => (int) $template['id'],
+                            'template_type_id' => $templateTypeId,
+                            'template_path'    => $this->sanitizeValue($template['template_path']),
+                            'priority'         => (int) ($template['priority'] ?? 0),
+                            'zone_name'        => $zoneName,
+                        ];
+                    }
+                }
+            }
+
+            // Trier les templates par priorité dans chaque zone
+            foreach ($routes[$slug]['templates'] as &$zoneTemplates) {
+                usort($zoneTemplates, function ($a, $b) {
+                    return $a['priority'] <=> $b['priority'];
+                });
+            }
+
+            $routeCount++;
         }
+
+        // Mise à jour du cache avec hash d'intégrité
+        $this->routesCache = [
+            'data'      => $routes,
+            'hash'      => md5(serialize($routes)),
+            'timestamp' => time(),
+            'valid'     => true,
+        ];
     }
 
     /**
@@ -352,116 +413,34 @@ class Router
         }
 
         try {
-            $result = $this->executeWithTimeout("SELECT * FROM page_template_types WHERE active = 1");
-
-            if ($result['error'] !== 0) {
-                throw new \RuntimeException("Failed to load template types");
-            }
+            // Charger les types de templates
+            $typesData = $this->dbManager->getAllContentTable('page_template_types');
 
             $types = [];
-            foreach ($result['data'] as $type) {
-                $typeId = (int) $type['id'];
-                $types[$typeId] = [
-                    'id' => $typeId,
-                    'name' => $this->sanitizeValue($type['name']),
-                    'description' => $this->sanitizeValue($type['description'] ?? ''),
-                    'active' => (bool) $type['active']
-                ];
+            foreach ($typesData as $type) {
+                if (! empty($type['active'])) {
+                    $typeId         = (int) $type['id'];
+                    $types[$typeId] = [
+                        'id'          => $typeId,
+                        'name'        => $this->sanitizeValue($type['name']),
+                        'description' => $this->sanitizeValue($type['description'] ?? ''),
+                        'active'      => (bool) ($type['active'] ?? 1),
+                    ];
+                }
             }
 
             $this->templateTypesCache = [
-                'data' => $types,
-                'hash' => md5(serialize($types)),
-                'valid' => true
+                'data'  => $types,
+                'hash'  => md5(serialize($types)),
+                'valid' => true,
             ];
 
         } catch (\Exception $e) {
             $this->logger->error("Error loading template types", [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             $this->templateTypesCache = ['data' => [], 'hash' => null, 'valid' => false];
         }
-    }
-
-    /**
-     * Traitement des données de routes avec validation
-     */
-    private function processRouteData(array $routeData): void
-    {
-        $routes = [];
-        $routeCount = 0;
-
-        foreach ($routeData as $row) {
-            if ($routeCount >= $this->maxRoutesInCache) {
-                $this->logger->warning("Max routes limit reached", [
-                    'limit' => $this->maxRoutesInCache
-                ]);
-                break;
-            }
-
-            $slug = $this->sanitizeValue($row['slug']);
-
-            // Validation stricte du slug
-            if (!$this->isValidSlug($slug)) {
-                $this->logger->warning("Invalid slug detected", ['slug' => $slug]);
-                continue;
-            }
-
-            $pageId = (int) $row['page_id'];
-            $rights = $this->validateRights($row['rights']);
-
-            if (!isset($routes[$slug])) {
-                $routes[$slug] = [
-                    'page' => [
-                        'id' => $pageId,
-                        'slug' => $slug,
-                        'title' => $this->sanitizeValue($row['title']),
-                        'description' => $this->sanitizeValue($row['description'] ?? ''),
-                        'rights' => $rights,
-                        'active' => (bool) $row['active'],
-                        'redirect_to' => $this->validateRedirectUrl($row['redirect_to']),
-                        'php' => $this->sanitizeValue($row['php'] ?? '')
-                    ],
-                    'templates' => []
-                ];
-                $routeCount++;
-            }
-
-            // Ajouter le template s'il existe
-            if ($row['template_id'] && $row['zone_name'] && $row['template_enabled']) {
-                $zoneName = $this->sanitizeValue($row['zone_name']);
-
-                if (!isset($routes[$slug]['templates'][$zoneName])) {
-                    $routes[$slug]['templates'][$zoneName] = [];
-                }
-
-                $routes[$slug]['templates'][$zoneName][] = [
-                    'id' => (int) $row['template_id'],
-                    'template_type_id' => (int) $row['template_type_id'],
-                    'template_path' => $this->sanitizeValue($row['template_path']),
-                    'priority' => (int) ($row['priority'] ?? 0),
-                    'template_data' => $this->sanitizeValue($row['template_data'] ?? ''),
-                    'zone_name' => $zoneName
-                ];
-            }
-        }
-
-        // Trier les templates par priorité dans chaque zone
-        foreach ($routes as &$route) {
-            foreach ($route['templates'] as &$templates) {
-                usort($templates, function ($a, $b) {
-                    return $a['priority'] <=> $b['priority'];
-                });
-            }
-        }
-
-        // Mise à jour du cache avec hash d'intégrité
-        $this->routesCache = [
-            'data' => $routes,
-            'hash' => md5(serialize($routes)),
-            'timestamp' => time(),
-            'valid' => true
-        ];
     }
 
     /**
@@ -494,7 +473,7 @@ class Router
             $rights = (int) $rights;
         }
 
-        if (!is_int($rights) || $rights < 0) {
+        if (! is_int($rights) || $rights < 0) {
             return 0;
         }
 
@@ -520,7 +499,7 @@ class Router
 
         // URLs absolues - vérification du domaine
         $parsed = parse_url($url);
-        if ($parsed === false || !isset($parsed['host'])) {
+        if ($parsed === false || ! isset($parsed['host'])) {
             return null;
         }
 
@@ -532,9 +511,9 @@ class Router
         }
 
         $this->logger->warning("Blocked redirect to unauthorized domain", [
-            'url' => $url,
-            'host' => $host,
-            'allowed_domains' => $this->allowedRedirectDomains
+            'url'             => $url,
+            'host'            => $host,
+            'allowed_domains' => $this->allowedRedirectDomains,
         ]);
 
         return null;
@@ -545,7 +524,7 @@ class Router
      */
     private function isCacheValid(): bool
     {
-        if (!$this->routesCache['valid'] || empty($this->routesCache['data'])) {
+        if (! $this->routesCache['valid'] || empty($this->routesCache['data'])) {
             return false;
         }
 
@@ -559,7 +538,7 @@ class Router
         if ($currentHash !== $this->routesCache['hash']) {
             $this->logger->error("Cache integrity check failed", [
                 'expected_hash' => $this->routesCache['hash'],
-                'current_hash' => $currentHash
+                'current_hash'  => $currentHash,
             ]);
             return false;
         }
@@ -574,13 +553,13 @@ class Router
     {
         try {
             // Lazy loading des routes
-            if (!$this->routesLoadedSuccessfully) {
+            if (! $this->routesLoadedSuccessfully) {
                 $this->loadRoutes();
             }
 
             // Validation et nettoyage du slug
             $slug = trim($slug, '/');
-            if (!$this->isValidSlug($slug) && $slug !== '') {
+            if (! $this->isValidSlug($slug) && $slug !== '') {
                 $this->logger->warning("Invalid slug in match", ['slug' => $slug]);
                 return null;
             }
@@ -594,7 +573,7 @@ class Router
             $method = $method ? $this->validateHttpMethod($method) : $this->httpMethod;
 
             // Recherche de la route
-            if (!isset($this->routesCache['data'][$slug])) {
+            if (! isset($this->routesCache['data'][$slug])) {
                 return null;
             }
 
@@ -602,15 +581,15 @@ class Router
 
             // Enrichissement sécurisé des informations de requête
             $route['request'] = [
-                'method' => $method,
-                'slug' => $slug,
-                'get' => $this->maskSensitiveParams($this->getParams),
-                'post' => $this->maskSensitiveParams($this->postParams),
-                'is_post' => $method === 'POST',
-                'is_get' => $method === 'GET',
-                'has_post_data' => !empty($this->postParams),
-                'timestamp' => time(),
-                'ip' => $this->getClientIp()
+                'method'        => $method,
+                'slug'          => $slug,
+                'get'           => $this->maskSensitiveParams($this->getParams),
+                'post'          => $this->maskSensitiveParams($this->postParams),
+                'is_post'       => $method === 'POST',
+                'is_get'        => $method === 'GET',
+                'has_post_data' => ! empty($this->postParams),
+                'timestamp'     => time(),
+                'ip'            => $this->getClientIp(),
             ];
 
             $this->currentRoute = $route;
@@ -618,9 +597,9 @@ class Router
 
         } catch (\Exception $e) {
             $this->logger->error("Error in route matching", [
-                'slug' => $slug ?? 'unknown',
+                'slug'   => $slug ?? 'unknown',
                 'method' => $method ?? 'unknown',
-                'error' => $e->getMessage()
+                'error'  => $e->getMessage(),
             ]);
             return null;
         }
@@ -636,12 +615,12 @@ class Router
             'token', 'csrf_token', 'api_token', 'auth_token',
             'secret', 'key', 'private_key',
             'session_id', 'sess_id',
-            'credit_card', 'card_number', 'cvv'
+            'credit_card', 'card_number', 'cvv',
         ];
 
         $masked = [];
         foreach ($params as $key => $value) {
-            $keyLower = strtolower($key);
+            $keyLower    = strtolower($key);
             $isSensitive = false;
 
             foreach ($sensitiveKeys as $sensitiveKey) {
@@ -670,11 +649,11 @@ class Router
             'HTTP_CF_CONNECTING_IP',
             'HTTP_X_FORWARDED_FOR',
             'HTTP_X_REAL_IP',
-            'REMOTE_ADDR'
+            'REMOTE_ADDR',
         ];
 
         foreach ($ipHeaders as $header) {
-            if (!empty($_SERVER[$header])) {
+            if (! empty($_SERVER[$header])) {
                 $ip = trim(explode(',', $_SERVER[$header])[0]);
                 if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
                     return $ip;
@@ -712,7 +691,7 @@ class Router
             }
 
             // Gestion du répertoire web
-            if (!empty($this->webDirectory) && $this->webDirectory !== '/') {
+            if (! empty($this->webDirectory) && $this->webDirectory !== '/') {
                 if (strpos($path, $this->webDirectory . '/') === 0) {
                     $path = substr($path, strlen($this->webDirectory));
                 } elseif ($path === $this->webDirectory) {
@@ -724,8 +703,8 @@ class Router
 
         } catch (\Exception $e) {
             $this->logger->error("Error matching URI", [
-                'uri' => $uri ?? 'null',
-                'error' => $e->getMessage()
+                'uri'   => $uri ?? 'null',
+                'error' => $e->getMessage(),
             ]);
             return null;
         }
@@ -738,7 +717,7 @@ class Router
     {
         try {
             $page = $route['page'] ?? null;
-            if (!$page) {
+            if (! $page) {
                 return false;
             }
 
@@ -750,24 +729,24 @@ class Router
             }
 
             // Vérification de l'authentification
-            if (!$this->rightsManager || !$this->rightsManager->isAuthenticated()) {
+            if (! $this->rightsManager || ! $this->rightsManager->isAuthenticated()) {
                 $this->logger->info("Access denied: user not authenticated", [
-                    'page' => $page['slug'],
-                    'required_rights' => $requiredRights
+                    'page'            => $page['slug'],
+                    'required_rights' => $requiredRights,
                 ]);
                 return false;
             }
 
             // Vérification des droits binaires
             $userRights = $this->rightsManager->getBinaryRights();
-            $hasAccess = ($userRights & $requiredRights) > 0;
+            $hasAccess  = ($userRights & $requiredRights) > 0;
 
-            if (!$hasAccess) {
+            if (! $hasAccess) {
                 $this->logger->info("Access denied: insufficient rights", [
-                    'page' => $page['slug'],
+                    'page'            => $page['slug'],
                     'required_rights' => $requiredRights,
-                    'user_rights' => $userRights,
-                    'user_id' => $this->rightsManager->getUserId()
+                    'user_rights'     => $userRights,
+                    'user_id'         => $this->rightsManager->getUserId(),
                 ]);
             }
 
@@ -776,7 +755,7 @@ class Router
         } catch (\Exception $e) {
             $this->logger->error("Error checking access", [
                 'error' => $e->getMessage(),
-                'page' => $route['page']['slug'] ?? 'unknown'
+                'page'  => $route['page']['slug'] ?? 'unknown',
             ]);
             return false;
         }
@@ -789,13 +768,13 @@ class Router
     {
         // Validation du code de statut
         $allowedCodes = [301, 302, 303, 307, 308];
-        if (!in_array($code, $allowedCodes, true)) {
+        if (! in_array($code, $allowedCodes, true)) {
             $code = 302;
         }
 
         // Validation de l'URL
         $validatedUrl = $this->validateRedirectUrl($url);
-        if (!$validatedUrl) {
+        if (! $validatedUrl) {
             $this->logger->error("Blocked unsafe redirect", ['url' => $url]);
             $validatedUrl = '/'; // Fallback sécurisé
         }
@@ -805,7 +784,7 @@ class Router
             $this->logger->error("Cannot redirect, headers already sent", [
                 'file' => $file,
                 'line' => $line,
-                'url' => $validatedUrl
+                'url'  => $validatedUrl,
             ]);
             return;
         }
@@ -873,7 +852,7 @@ class Router
 
     public function getAllRoutes(): array
     {
-        if (!$this->routesLoadedSuccessfully) {
+        if (! $this->routesLoadedSuccessfully) {
             $this->loadRoutes();
         }
         return $this->routesCache['data'];
@@ -886,41 +865,120 @@ class Router
     }
 
     /**
-     * Nettoyage sécurisé du cache
+     * Test de connexion à la base de données
      */
-    public function clearCache(): void
+    public function testConnection(): bool
     {
-        $this->routesCache = [
-            'data' => [],
-            'hash' => null,
-            'timestamp' => 0,
-            'valid' => false
-        ];
-
-        $this->templateTypesCache = [
-            'data' => [],
-            'hash' => null,
-            'valid' => false
-        ];
-
-        $this->routesLoadedSuccessfully = false;
-        $this->currentRoute = null;
-
-        $this->logger->info("Router cache cleared securely");
+        return $this->dbManager->testConnection();
     }
 
     /**
-     * Réinitialisation sécurisée de l'instance
+     * Health check simplifié
      */
-    public static function resetInstance(): void
+    public function healthCheck(): array
     {
-        if (self::$instance && self::$instance->dbManager) {
-            // Nettoyage propre des ressources
-            self::$instance->clearCache();
+        $health = [
+            'status'    => 'healthy',
+            'checks'    => [],
+            'timestamp' => time(),
+        ];
+
+        // Test de connectivité BDD
+        try {
+            $dbTest                       = $this->dbManager->testConnection();
+            $health['checks']['database'] = $dbTest ? 'ok' : 'failed';
+            if (! $dbTest) {
+                $health['status'] = 'unhealthy';
+            }
+        } catch (\Exception $e) {
+            $health['checks']['database'] = 'error';
+            $health['status']             = 'unhealthy';
         }
 
-        self::$instance = null;
-        self::$mutexLocks = [];
+        // Test de chargement des routes
+        try {
+            if (! $this->routesLoadedSuccessfully) {
+                $this->loadRoutes();
+            }
+            $health['checks']['routes'] = $this->routesLoadedSuccessfully ? 'ok' : 'failed';
+            if (! $this->routesLoadedSuccessfully) {
+                $health['status'] = 'degraded';
+            }
+        } catch (\Exception $e) {
+            $health['checks']['routes'] = 'error';
+            $health['status']           = 'unhealthy';
+        }
+
+        // Test de validité du cache
+        $health['checks']['cache'] = $this->isCacheValid() ? 'ok' : 'stale';
+
+        return $health;
+    }
+
+    /**
+     * Statistiques sécurisées du routeur
+     */
+    public function getStats(): array
+    {
+        $stats = [
+            'routes_loaded'        => $this->routesLoadedSuccessfully,
+            'routes_count'         => count($this->routesCache['data']),
+            'template_types_count' => count($this->templateTypesCache['data']),
+            'current_route'        => $this->currentRoute['page']['slug'] ?? null,
+            'http_method'          => $this->httpMethod,
+            'web_directory'        => $this->webDirectory,
+            'cache_valid'          => $this->isCacheValid(),
+            'cache_timestamp'      => $this->routesCache['timestamp'],
+            'memory_usage_bytes'   => memory_get_usage(true),
+            'thread_safe_mode'     => $this->threadSafeMode,
+        ];
+
+        // Ajouter les informations de requête si disponibles
+        if ($this->currentRoute) {
+            $stats['request_info'] = $this->getRequestInfo();
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Informations sécurisées sur la requête courante
+     */
+    public function getRequestInfo(): array
+    {
+        return [
+            'method'              => $this->httpMethod,
+            'uri'                 => $this->sanitizeValue($_SERVER['REQUEST_URI'] ?? '/'),
+            'slug'                => $this->currentRoute['request']['slug'] ?? null,
+            'is_post'             => $this->isPost(),
+            'is_get'              => $this->isGet(),
+            'has_get_params'      => ! empty($this->getParams),
+            'has_post_params'     => ! empty($this->postParams),
+            'user_agent'          => substr($this->sanitizeValue($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500),
+            'ip'                  => $this->getClientIp(),
+            'timestamp'           => time(),
+            'route_requires_auth' => $this->currentRouteRequiresAuth(),
+        ];
+    }
+
+    /**
+     * Obtention des droits de la route courante
+     */
+    public function getCurrentRouteRights(): int
+    {
+        if (! $this->currentRoute) {
+            return 0;
+        }
+
+        return $this->validateRights($this->currentRoute['page']['rights'] ?? 0);
+    }
+
+    /**
+     * Vérification si la route courante nécessite une authentification
+     */
+    public function currentRouteRequiresAuth(): bool
+    {
+        return $this->getCurrentRouteRights() > 0;
     }
 
     /**
@@ -928,7 +986,7 @@ class Router
      */
     public function generateUrl(string $slug, array $params = []): string
     {
-        if (!$this->isValidSlug($slug)) {
+        if (! $this->isValidSlug($slug)) {
             throw new \InvalidArgumentException("Invalid slug for URL generation: $slug");
         }
 
@@ -942,7 +1000,7 @@ class Router
             }
         }
 
-        if (!empty($cleanParams)) {
+        if (! empty($cleanParams)) {
             $url .= '?' . http_build_query($cleanParams, '', '&', PHP_QUERY_RFC3986);
         }
 
@@ -963,11 +1021,11 @@ class Router
      */
     public function routeExists(string $slug): bool
     {
-        if (!$this->isValidSlug($slug)) {
+        if (! $this->isValidSlug($slug)) {
             return false;
         }
 
-        if (!$this->routesLoadedSuccessfully) {
+        if (! $this->routesLoadedSuccessfully) {
             try {
                 $this->loadRoutes();
             } catch (\Exception $e) {
@@ -983,7 +1041,7 @@ class Router
      */
     public function getTemplatesForZone(string $zone): array
     {
-        if (!$this->currentRoute) {
+        if (! $this->currentRoute) {
             return [];
         }
 
@@ -997,7 +1055,7 @@ class Router
     public function handleRedirect(array $route): bool
     {
         $page = $route['page'] ?? null;
-        if (!$page) {
+        if (! $page) {
             return false;
         }
 
@@ -1023,10 +1081,11 @@ class Router
         $accessDeniedUrl = $this->generateUrl($this->accessDeniedRoute);
 
         // Ajouter l'URL demandée en paramètre pour redirection après login
-        $requestedUrl = $_SERVER['REQUEST_URI'] ?? '/';
+        $requestedUrl     = $_SERVER['REQUEST_URI'] ?? '/';
         $safeRequestedUrl = $this->sanitizeValue($requestedUrl);
 
-        if (strlen($safeRequestedUrl) <= 500) { // Limitation de taille
+        if (strlen($safeRequestedUrl) <= 500) {
+            // Limitation de taille
             $accessDeniedUrl .= '?redirect=' . urlencode($safeRequestedUrl);
         }
 
@@ -1034,137 +1093,95 @@ class Router
     }
 
     /**
-     * Validation de l'authentification utilisateur
+     * Nettoyage sécurisé du cache
      */
-    private function isUserAuthenticated(): bool
+    public function clearCache(): void
     {
-        if ($this->rightsManager) {
-            return $this->rightsManager->isAuthenticated();
-        }
-
-        // Fallback sécurisé sur la session
-        return isset($_SESSION['user']) && !empty($_SESSION['user']) && is_array($_SESSION['user']);
-    }
-
-    /**
-     * Obtention des droits de la route courante
-     */
-    public function getCurrentRouteRights(): int
-    {
-        if (!$this->currentRoute) {
-            return 0;
-        }
-
-        return $this->validateRights($this->currentRoute['page']['rights'] ?? 0);
-    }
-
-    /**
-     * Vérification si la route courante nécessite une authentification
-     */
-    public function currentRouteRequiresAuth(): bool
-    {
-        return $this->getCurrentRouteRights() > 0;
-    }
-
-    /**
-     * Informations sécurisées sur la requête courante
-     */
-    public function getRequestInfo(): array
-    {
-        return [
-            'method' => $this->httpMethod,
-            'uri' => $this->sanitizeValue($_SERVER['REQUEST_URI'] ?? '/'),
-            'slug' => $this->currentRoute['request']['slug'] ?? null,
-            'is_post' => $this->isPost(),
-            'is_get' => $this->isGet(),
-            'has_get_params' => !empty($this->getParams),
-            'has_post_params' => !empty($this->postParams),
-            'user_agent' => substr($this->sanitizeValue($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500),
-            'ip' => $this->getClientIp(),
-            'timestamp' => time(),
-            'route_requires_auth' => $this->currentRouteRequiresAuth()
-        ];
-    }
-
-    /**
-     * Statistiques sécurisées du routeur
-     */
-    public function getStats(): array
-    {
-        $stats = [
-            'routes_loaded' => $this->routesLoadedSuccessfully,
-            'routes_count' => count($this->routesCache['data']),
-            'template_types_count' => count($this->templateTypesCache['data']),
-            'current_route' => $this->currentRoute['page']['slug'] ?? null,
-            'http_method' => $this->httpMethod,
-            'web_directory' => $this->webDirectory,
-            'cache_valid' => $this->isCacheValid(),
-            'cache_timestamp' => $this->routesCache['timestamp'],
-            'memory_usage_bytes' => memory_get_usage(true),
-            'thread_safe_mode' => $this->threadSafeMode
+        $this->routesCache = [
+            'data'      => [],
+            'hash'      => null,
+            'timestamp' => 0,
+            'valid'     => false,
         ];
 
-        // Ajouter les informations de requête si disponibles
-        if ($this->currentRoute) {
-            $stats['request_info'] = $this->getRequestInfo();
-        }
-
-        return $stats;
-    }
-
-    /**
-     * Informations de debug sécurisées
-     */
-    public function debug(): array
-    {
-        if (!$this->routesLoadedSuccessfully) {
-            try {
-                $this->loadRoutes();
-            } catch (\Exception $e) {
-                // Continue avec des données partielles
-            }
-        }
-
-        return [
-            'router_stats' => $this->getStats(),
-            'current_route_sanitized' => $this->sanitizeDebugRoute($this->currentRoute),
-            'available_routes' => array_keys($this->routesCache['data']),
-            'template_types' => $this->getTemplateTypes(),
-            'get_params_masked' => $this->maskSensitiveParams($this->getParams),
-            'post_params_masked' => $this->maskSensitiveParams($this->postParams),
-            'cache_info' => [
-                'valid' => $this->isCacheValid(),
-                'hash' => substr($this->routesCache['hash'] ?? '', 0, 8),
-                'timestamp' => $this->routesCache['timestamp'],
-                'ttl_remaining' => $this->cacheTtl - (time() - $this->routesCache['timestamp'])
-            ],
-            'security_info' => [
-                'allowed_redirect_domains' => $this->allowedRedirectDomains,
-                'thread_safe_mode' => $this->threadSafeMode,
-                'db_timeout' => $this->dbTimeout,
-                'max_routes_cache' => $this->maxRoutesInCache
-            ]
+        $this->templateTypesCache = [
+            'data'  => [],
+            'hash'  => null,
+            'valid' => false,
         ];
+
+        $this->routesLoadedSuccessfully = false;
+        $this->currentRoute             = null;
+
+        $this->logger->info("Router cache cleared securely");
     }
 
     /**
-     * Nettoyage des données de route pour le debug
+     * Réinitialisation sécurisée de l'instance
      */
-    private function sanitizeDebugRoute(?array $route): ?array
+    public static function resetInstance(): void
     {
-        if (!$route) {
-            return null;
+        if (self::$instance && self::$instance->dbManager) {
+            // Nettoyage propre des ressources
+            self::$instance->clearCache();
         }
 
-        $sanitized = $route;
+        self::$instance   = null;
+        self::$mutexLocks = [];
+    }
 
-        // Masquer les données sensibles dans les paramètres de requête
-        if (isset($sanitized['request'])) {
-            $sanitized['request']['get'] = $this->maskSensitiveParams($sanitized['request']['get'] ?? []);
-            $sanitized['request']['post'] = $this->maskSensitiveParams($sanitized['request']['post'] ?? []);
+    /**
+     * Configuration du timeout de base de données
+     */
+    public function setDbTimeout(int $timeout): void
+    {
+        if ($timeout > 0 && $timeout <= 300) {
+            // Max 5 minutes
+            $this->dbTimeout = $timeout;
+        } else {
+            throw new \InvalidArgumentException("Invalid database timeout: $timeout");
         }
+    }
 
-        return $sanitized;
+    /**
+     * Configuration de la taille maximale du cache
+     */
+    public function setMaxRoutesInCache(int $maxRoutes): void
+    {
+        if ($maxRoutes > 0 && $maxRoutes <= 10000) {
+            // Limitation raisonnable
+            $this->maxRoutesInCache = $maxRoutes;
+        } else {
+            throw new \InvalidArgumentException("Invalid max routes cache size: $maxRoutes");
+        }
+    }
+
+    /**
+     * Configuration du TTL du cache
+     */
+    public function setCacheTtl(int $ttl): void
+    {
+        if ($ttl > 0 && $ttl <= 86400) {
+            // Max 24 heures
+            $this->cacheTtl = $ttl;
+        } else {
+            throw new \InvalidArgumentException("Invalid cache TTL: $ttl");
+        }
+    }
+
+    /**
+     * Ajout de domaines autorisés pour les redirections
+     */
+    public function addAllowedRedirectDomain(string $domain): void
+    {
+        $domain = strtolower(trim($domain));
+
+        // Validation basique du domaine
+        if (preg_match('/^[a-zA-Z0-9.-]+$/', $domain) && ! in_array($domain, $this->allowedRedirectDomains)) {
+            $this->allowedRedirectDomains[] = $domain;
+        } else {
+            throw new \InvalidArgumentException("Invalid domain: $domain");
+        }
     }
 
     /**
@@ -1201,146 +1218,58 @@ class Router
     }
 
     /**
-     * Configuration du timeout de base de données
+     * Debug info sécurisé
      */
-    public function setDbTimeout(int $timeout): void
+    public function debug(): array
     {
-        if ($timeout > 0 && $timeout <= 300) { // Max 5 minutes
-            $this->dbTimeout = $timeout;
-        } else {
-            throw new \InvalidArgumentException("Invalid database timeout: $timeout");
-        }
-    }
-
-    /**
-     * Configuration de la taille maximale du cache
-     */
-    public function setMaxRoutesInCache(int $maxRoutes): void
-    {
-        if ($maxRoutes > 0 && $maxRoutes <= 10000) { // Limitation raisonnable
-            $this->maxRoutesInCache = $maxRoutes;
-        } else {
-            throw new \InvalidArgumentException("Invalid max routes cache size: $maxRoutes");
-        }
-    }
-
-    /**
-     * Configuration du TTL du cache
-     */
-    public function setCacheTtl(int $ttl): void
-    {
-        if ($ttl > 0 && $ttl <= 86400) { // Max 24 heures
-            $this->cacheTtl = $ttl;
-        } else {
-            throw new \InvalidArgumentException("Invalid cache TTL: $ttl");
-        }
-    }
-
-    /**
-     * Ajout de domaines autorisés pour les redirections
-     */
-    public function addAllowedRedirectDomain(string $domain): void
-    {
-        $domain = strtolower(trim($domain));
-
-        // Validation basique du domaine
-        if (preg_match('/^[a-zA-Z0-9.-]+$/', $domain) && !in_array($domain, $this->allowedRedirectDomains)) {
-            $this->allowedRedirectDomains[] = $domain;
-        } else {
-            throw new \InvalidArgumentException("Invalid domain: $domain");
-        }
-    }
-
-    /**
-     * Vérification de l'état de santé du routeur
-     */
-    public function healthCheck(): array
-    {
-        $health = [
-            'status' => 'healthy',
-            'checks' => [],
-            'timestamp' => time()
-        ];
-
-        // Test de connectivité BDD
-        try {
-            $dbTest = $this->dbManager->testConnection();
-            $health['checks']['database'] = $dbTest ? 'ok' : 'failed';
-            if (!$dbTest) {
-                $health['status'] = 'unhealthy';
-            }
-        } catch (\Exception $e) {
-            $health['checks']['database'] = 'error';
-            $health['status'] = 'unhealthy';
-        }
-
-        // Test de chargement des routes
-        try {
-            if (!$this->routesLoadedSuccessfully) {
+        if (! $this->routesLoadedSuccessfully) {
+            try {
                 $this->loadRoutes();
+            } catch (\Exception $e) {
+                // Continue avec des données partielles
             }
-            $health['checks']['routes'] = $this->routesLoadedSuccessfully ? 'ok' : 'failed';
-            if (!$this->routesLoadedSuccessfully) {
-                $health['status'] = 'degraded';
-            }
-        } catch (\Exception $e) {
-            $health['checks']['routes'] = 'error';
-            $health['status'] = 'unhealthy';
         }
 
-        // Test de validité du cache
-        $health['checks']['cache'] = $this->isCacheValid() ? 'ok' : 'stale';
-
-        // Test de mémoire
-        $memoryUsage = memory_get_usage(true);
-        $memoryLimit = $this->parseMemoryLimit(ini_get('memory_limit'));
-
-        if ($memoryLimit > 0 && $memoryUsage > $memoryLimit * 0.9) {
-            $health['checks']['memory'] = 'critical';
-            $health['status'] = 'unhealthy';
-        } elseif ($memoryLimit > 0 && $memoryUsage > $memoryLimit * 0.7) {
-            $health['checks']['memory'] = 'warning';
-            if ($health['status'] === 'healthy') {
-                $health['status'] = 'degraded';
-            }
-        } else {
-            $health['checks']['memory'] = 'ok';
-        }
-
-        $health['metrics'] = [
-            'memory_usage_bytes' => $memoryUsage,
-            'memory_limit_bytes' => $memoryLimit,
-            'routes_count' => count($this->routesCache['data']),
-            'cache_age_seconds' => time() - $this->routesCache['timestamp']
+        return [
+            'router_stats'            => $this->getStats(),
+            'current_route_sanitized' => $this->sanitizeDebugRoute($this->currentRoute),
+            'available_routes'        => array_keys($this->routesCache['data']),
+            'template_types'          => $this->getTemplateTypes(),
+            'get_params_masked'       => $this->maskSensitiveParams($this->getParams),
+            'post_params_masked'      => $this->maskSensitiveParams($this->postParams),
+            'cache_info'              => [
+                'valid'         => $this->isCacheValid(),
+                'hash'          => substr($this->routesCache['hash'] ?? '', 0, 8),
+                'timestamp'     => $this->routesCache['timestamp'],
+                'ttl_remaining' => $this->cacheTtl - (time() - $this->routesCache['timestamp']),
+            ],
+            'security_info'           => [
+                'allowed_redirect_domains' => $this->allowedRedirectDomains,
+                'thread_safe_mode'         => $this->threadSafeMode,
+                'db_timeout'               => $this->dbTimeout,
+                'max_routes_cache'         => $this->maxRoutesInCache,
+            ],
         ];
-
-        return $health;
     }
 
     /**
-     * Parse de la limite mémoire PHP
+     * Nettoyage des données de route pour le debug
      */
-    private function parseMemoryLimit(string $memoryLimit): int
+    private function sanitizeDebugRoute(?array $route): ?array
     {
-        $memoryLimit = trim($memoryLimit);
-
-        if ($memoryLimit === '-1') {
-            return 0; // Illimité
+        if (! $route) {
+            return null;
         }
 
-        $unit = strtolower(substr($memoryLimit, -1));
-        $value = (int) substr($memoryLimit, 0, -1);
+        $sanitized = $route;
 
-        switch ($unit) {
-            case 'g':
-                return $value * 1024 * 1024 * 1024;
-            case 'm':
-                return $value * 1024 * 1024;
-            case 'k':
-                return $value * 1024;
-            default:
-                return (int) $memoryLimit;
+        // Masquer les données sensibles dans les paramètres de requête
+        if (isset($sanitized['request'])) {
+            $sanitized['request']['get']  = $this->maskSensitiveParams($sanitized['request']['get'] ?? []);
+            $sanitized['request']['post'] = $this->maskSensitiveParams($sanitized['request']['post'] ?? []);
         }
+
+        return $sanitized;
     }
 
     /**
@@ -1355,7 +1284,7 @@ class Router
         if ($this->logger && $this->routesLoadedSuccessfully) {
             $this->logger->debug("Router instance destroyed", [
                 'routes_loaded' => $this->routesLoadedSuccessfully,
-                'memory_peak' => memory_get_peak_usage(true)
+                'memory_peak'   => memory_get_peak_usage(true),
             ]);
         }
     }
