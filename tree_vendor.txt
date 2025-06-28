@@ -1,0 +1,425 @@
+.
+├── buse.sql
+├── composer.json
+├── composer.lock
+├── debug-buse-routing.php
+├── files
+├── index.php
+├── logs
+│   ├── error-2025-06-12.log
+│   ├── error-2025-06-13.log
+│   ├── error-2025-06-25.log
+│   ├── error-2025-06-26.log
+│   ├── error-2025-06-27.log
+│   └── error-2025-06-28.log
+├── package-lock.json
+├── public
+│   ├── assets
+│   │   ├── css
+│   │   │   ├── commun
+│   │   │   │   ├── base.css
+│   │   │   │   ├── buttons.css
+│   │   │   │   ├── canvas.css
+│   │   │   │   ├── notice_button.html
+│   │   │   │   ├── notice_switches.html
+│   │   │   │   └── switches.css
+│   │   │   ├── index
+│   │   │   │   └── index.css
+│   │   │   ├── main
+│   │   │   │   └── main.css
+│   │   │   ├── show
+│   │   │   │   ├── modal.css
+│   │   │   │   ├── permanences2.css
+│   │   │   │   ├── permanences.css
+│   │   │   │   ├── timeline2.css
+│   │   │   │   └── timeline.css
+│   │   │   └── theme
+│   │   │       ├── dark.css
+│   │   │       └── light.css
+│   │   ├── fonts
+│   │   │   ├── Poppins-Regular.ttf
+│   │   │   ├── Roboto-BlackItalic.ttf
+│   │   │   ├── Roboto-Black.ttf
+│   │   │   ├── Roboto-BoldItalic.ttf
+│   │   │   ├── Roboto-Bold.ttf
+│   │   │   ├── Roboto-Italic.ttf
+│   │   │   ├── Roboto-LightItalic.ttf
+│   │   │   ├── Roboto-Light.ttf
+│   │   │   ├── Roboto-MediumItalic.ttf
+│   │   │   ├── Roboto-Medium.ttf
+│   │   │   ├── Roboto-Regular.ttf
+│   │   │   ├── Roboto-ThinItalic.ttf
+│   │   │   └── Roboto-Thin.ttf
+│   │   ├── img
+│   │   │   ├── index
+│   │   │   │   ├── bird.png
+│   │   │   │   ├── bused.png
+│   │   │   │   ├── buseg.png
+│   │   │   │   ├── buse.png
+│   │   │   │   ├── interdit.png
+│   │   │   │   └── update.gif
+│   │   │   └── upload
+│   │   │       └── spinner.gif
+│   │   ├── js
+│   │   │   ├── base_fcts.js
+│   │   │   ├── main
+│   │   │   │   ├── main.js
+│   │   │   │   └── subpages
+│   │   │   │       ├── import
+│   │   │   │       │   └── main.js
+│   │   │   │       ├── suivi.js
+│   │   │   │       ├── synthese_mail
+│   │   │   │       │   └── main.js
+│   │   │   │       ├── unites_ldap
+│   │   │   │       │   └── main.js
+│   │   │   │       ├── unites_ldap.js
+│   │   │   │       ├── update
+│   │   │   │       │   └── main.js
+│   │   │   │       └── update.js
+│   │   │   └── show
+│   │   │       ├── permanences.js
+│   │   │       ├── timeline2.js
+│   │   │       └── timeline.js
+│   │   ├── libs
+│   │   │   ├── colorFlow
+│   │   │   │   ├── docs
+│   │   │   │   │   └── colorFlow.md
+│   │   │   │   └── src
+│   │   │   │       ├── colorFlow.css
+│   │   │   │       └── colorFlow.js
+│   │   │   ├── dateFlow
+│   │   │   │   ├── docs
+│   │   │   │   │   └── dateFlow.md
+│   │   │   │   └── src
+│   │   │   │       ├── dateFlow.css
+│   │   │   │       └── dateFlow.js
+│   │   │   ├── dropzone
+│   │   │   │   ├── 29juin2024
+│   │   │   │   ├── dropzone.css
+│   │   │   │   └── dropzone.min.js
+│   │   │   ├── fontawesome
+│   │   │   │   ├── css
+│   │   │   │   │   ├── all.min.css
+│   │   │   │   │   └── solid.min.css
+│   │   │   │   └── webfonts
+│   │   │   │       ├── fa-regular-400.ttf
+│   │   │   │       ├── fa-regular-400.woff2
+│   │   │   │       └── fa-solid-900.woff2
+│   │   │   ├── modalFlow
+│   │   │   │   ├── docs
+│   │   │   │   │   └── modalFlow.md
+│   │   │   │   ├── README.md
+│   │   │   │   └── src
+│   │   │   │       ├── examples.html
+│   │   │   │       ├── modalFlow.css
+│   │   │   │       └── modalFlow.js
+│   │   │   ├── notifyFlow
+│   │   │   │   ├── docs
+│   │   │   │   │   ├── exemples.html
+│   │   │   │   │   └── notifyFlow.md
+│   │   │   │   └── src
+│   │   │   │       ├── notifyFlow.css
+│   │   │   │       └── notifyFlow.js
+│   │   │   ├── tableFlow
+│   │   │   │   ├── docs
+│   │   │   │   │   ├── actions.md
+│   │   │   │   │   ├── choice.md
+│   │   │   │   │   ├── color.md
+│   │   │   │   │   ├── contextmenu.md
+│   │   │   │   │   ├── date.md
+│   │   │   │   │   ├── filter.md
+│   │   │   │   │   ├── hide.md
+│   │   │   │   │   ├── highlight.md
+│   │   │   │   │   ├── linetoggle.md
+│   │   │   │   │   ├── reorder.md
+│   │   │   │   │   ├── selection.md
+│   │   │   │   │   ├── tableFlow.md
+│   │   │   │   │   ├── texteditor.md
+│   │   │   │   │   └── validation.md
+│   │   │   │   ├── plugins
+│   │   │   │   │   ├── actions.js
+│   │   │   │   │   ├── choice.css
+│   │   │   │   │   ├── choice.js
+│   │   │   │   │   ├── color.js
+│   │   │   │   │   ├── contextmenu.js
+│   │   │   │   │   ├── date.js
+│   │   │   │   │   ├── edit.js
+│   │   │   │   │   ├── filterandpaginate.js
+│   │   │   │   │   ├── hide.js
+│   │   │   │   │   ├── highlight.js
+│   │   │   │   │   ├── linetoggle.js
+│   │   │   │   │   ├── README.md
+│   │   │   │   │   ├── reorder.js
+│   │   │   │   │   ├── selection.js
+│   │   │   │   │   ├── sort.js
+│   │   │   │   │   ├── texteditor.js
+│   │   │   │   │   └── validation.js
+│   │   │   │   ├── README.md
+│   │   │   │   └── src
+│   │   │   │       ├── tableFlow.css
+│   │   │   │       └── tableFlow.js
+│   │   │   ├── tooltipFlow
+│   │   │   │   └── src
+│   │   │   │       ├── tooltipFlow.css
+│   │   │   │       └── tooltipFlow.js
+│   │   │   └── updateFlow
+│   │   │       ├── docs
+│   │   │       │   └── updateFlow.md
+│   │   │       ├── README.md
+│   │   │       └── src
+│   │   │           ├── php
+│   │   │           │   ├── autoload.php
+│   │   │           │   ├── Exceptions
+│   │   │           │   │   ├── GitException.php
+│   │   │           │   │   ├── UpdateFlowException.php
+│   │   │           │   │   └── VersionException.php
+│   │   │           │   ├── Handlers
+│   │   │           │   │   ├── PullHandler.php
+│   │   │           │   │   └── PushHandler.php
+│   │   │           │   ├── Managers
+│   │   │           │   │   ├── GitManager.php
+│   │   │           │   │   └── VersionManager.php
+│   │   │           │   ├── UpdateFlow.php
+│   │   │           │   └── Utils
+│   │   │           │       ├── Logger.php
+│   │   │           │       ├── Response.php
+│   │   │           │       └── Security.php
+│   │   │           └── updateFlow.js
+│   │   └── sound
+│   │       ├── beep.wav
+│   │       ├── files
+│   │       │   └── bdsp-ops-01-synthese-des-interventions1.xlsx
+│   │       └── mails
+│   │           ├── mail_10097.eml
+│   │           ├── mail_10431.eml
+│   │           ├── mail_39289.eml
+│   │           ├── mail_9871.eml
+│   │           ├── mail_9898.eml
+│   │           └── mail.eml
+│   ├── cache
+│   ├── exports
+│   ├── pages
+│   │   ├── commun
+│   │   │   ├── classes
+│   │   │   │   ├── Config
+│   │   │   │   │   └── Config.php
+│   │   │   │   ├── Database
+│   │   │   │   │   ├── BDDManager.php
+│   │   │   │   │   ├── SqlAdapter.php
+│   │   │   │   │   └── SqlManager.php
+│   │   │   │   ├── Ldap
+│   │   │   │   │   └── LdapManager.php
+│   │   │   │   ├── Logger
+│   │   │   │   │   └── Logger.php
+│   │   │   │   ├── Mail
+│   │   │   │   │   └── EMLGenerator.php
+│   │   │   │   ├── Router
+│   │   │   │   │   └── Router.php
+│   │   │   │   ├── Security
+│   │   │   │   │   ├── CsrfManager.php
+│   │   │   │   │   ├── DummySSO.php
+│   │   │   │   │   ├── RightsManager.php
+│   │   │   │   │   └── SSOlocal.php
+│   │   │   │   ├── Template
+│   │   │   │   │   ├── RenderContext.php
+│   │   │   │   │   ├── TwigExtensions.php
+│   │   │   │   │   ├── TwigManager.php
+│   │   │   │   │   └── VariableInjector.php
+│   │   │   │   └── Utils
+│   │   │   │       ├── DateUtils.php
+│   │   │   │       ├── ExcelProcessor.php
+│   │   │   │       ├── FileListUtils.php
+│   │   │   │       ├── FileUtils.php
+│   │   │   │       ├── StringUtils.php
+│   │   │   │       ├── TphUtils.php
+│   │   │   │       └── UploadManager.php
+│   │   │   ├── initialisation
+│   │   │   │   ├── 010-autoload.php
+│   │   │   │   ├── 020-classes.php
+│   │   │   │   ├── 030-config.php
+│   │   │   │   ├── 040-database.php
+│   │   │   │   ├── 050-logger.php
+│   │   │   │   ├── 060-directories.php
+│   │   │   │   ├── 070-session.php
+│   │   │   │   ├── 080-rights.php
+│   │   │   │   ├── 090-ldap.php
+│   │   │   │   ├── 100-router.php
+│   │   │   │   ├── 110-routing.php
+│   │   │   │   ├── 120-twig.php
+│   │   │   │   ├── 150-access.php
+│   │   │   │   ├── 160-php-execution.php
+│   │   │   │   ├── 170-render.php
+│   │   │   │   └── 200-stats.php
+│   │   │   └── init.php
+│   │   ├── index
+│   │   │   └── index.php
+│   │   ├── main
+│   │   │   ├── actions.php
+│   │   │   ├── main.php
+│   │   │   └── subpages
+│   │   │       ├── categories
+│   │   │       │   └── main.php
+│   │   │       ├── cies
+│   │   │       │   └── main.php
+│   │   │       ├── cities
+│   │   │       │   ├── main.php
+│   │   │       │   └── update.php
+│   │   │       ├── configuration
+│   │   │       │   └── main.php
+│   │   │       ├── import
+│   │   │       │   ├── handleUpload.php
+│   │   │       │   ├── listFiles.php
+│   │   │       │   ├── maj
+│   │   │       │   │   ├── permanencesFcts.php
+│   │   │       │   │   ├── scrapersFcts.php
+│   │   │       │   │   └── timelineFcts.php
+│   │   │       │   ├── updatePatrolsPerms.php
+│   │   │       │   └── updateSynthesis.php
+│   │   │       ├── mailSynthesis
+│   │   │       │   ├── main.php
+│   │   │       │   ├── prepare.php
+│   │   │       │   └── sendMail.php
+│   │   │       ├── mairies
+│   │   │       │   └── main.php
+│   │   │       ├── pages
+│   │   │       │   └── main.php
+│   │   │       ├── rights
+│   │   │       │   ├── actions.php
+│   │   │       │   └── main.php
+│   │   │       ├── services
+│   │   │       │   └── main.php
+│   │   │       ├── sites
+│   │   │       │   └── main.php
+│   │   │       ├── synthese_mail
+│   │   │       │   ├── mail.php
+│   │   │       │   ├── main.php
+│   │   │       │   └── sendMailNotificationSynthesis.php
+│   │   │       ├── synthese_prepare
+│   │   │       │   └── main.php
+│   │   │       ├── unites_ldap
+│   │   │       │   ├── main.php
+│   │   │       │   └── unitsHandler.php
+│   │   │       ├── unites_manuelles
+│   │   │       │   └── main.php
+│   │   │       └── update
+│   │   │           └── main.php
+│   │   ├── show
+│   │   │   ├── blocks
+│   │   │   │   ├── getTimelineBlocksFcts.php
+│   │   │   │   ├── getTimelineBlocks.php
+│   │   │   │   └── timelineFcts.php
+│   │   │   ├── modal
+│   │   │   │   ├── block
+│   │   │   │   │   ├── addBlock.php
+│   │   │   │   │   ├── deleteBlock.php
+│   │   │   │   │   ├── showAddBlock.php
+│   │   │   │   │   ├── showUpdateBlock.php
+│   │   │   │   │   └── updateBlock.php
+│   │   │   │   ├── memo
+│   │   │   │   │   ├── addMemo.php
+│   │   │   │   │   ├── deleteMemo.php
+│   │   │   │   │   ├── showAddMemo.php
+│   │   │   │   │   ├── showUpdateMemo.php
+│   │   │   │   │   └── updateMemo.php
+│   │   │   │   └── PAM
+│   │   │   │       ├── showUpdatePAM.php
+│   │   │   │       └── updatePAM.php
+│   │   │   ├── PAM
+│   │   │   │   ├── getPAMFcts.php
+│   │   │   │   └── getPAM.php
+│   │   │   ├── permanences.php
+│   │   │   └── timeline.php
+│   │   └── views
+│   │       ├── errors
+│   │       │   ├── 403.twig
+│   │       │   ├── 404.twig
+│   │       │   └── 500.twig
+│   │       ├── index
+│   │       │   └── index.twig
+│   │       └── layouts
+│   │           └── default.twig
+│   ├── tmp
+│   └── views
+│       ├── commun
+│       │   ├── banner.twig
+│       │   └── menu.twig
+│       ├── errors
+│       │   ├── 403.twig
+│       │   ├── 404.twig
+│       │   └── 500.twig
+│       ├── index
+│       │   ├── header.twig
+│       │   ├── index.twig
+│       │   └── index.twig.old
+│       ├── layouts
+│       │   ├── default.twig
+│       │   └── default.twig.old
+│       ├── main
+│       │   ├── header.twig
+│       │   ├── main.twig
+│       │   ├── menu.twig
+│       │   ├── page.twig
+│       │   ├── subpages
+│       │   │   ├── categories
+│       │   │   │   └── main.twig
+│       │   │   ├── cies
+│       │   │   │   └── main.twig
+│       │   │   ├── cities
+│       │   │   │   └── main.twig
+│       │   │   ├── configuration
+│       │   │   │   └── main.twig
+│       │   │   ├── default
+│       │   │   │   └── main.twig
+│       │   │   ├── import
+│       │   │   │   └── main.twig
+│       │   │   ├── mailSynthesis
+│       │   │   │   ├── cie_mail_html.twig
+│       │   │   │   ├── cob_mail_html.twig
+│       │   │   │   ├── eml_unit_mail.twig
+│       │   │   │   ├── event_mail_html.twig
+│       │   │   │   ├── event_mail_text.twig
+│       │   │   │   ├── global_mail.twig
+│       │   │   │   └── main.twig
+│       │   │   ├── mairies
+│       │   │   │   └── main.twig
+│       │   │   ├── pages
+│       │   │   │   └── main.twig
+│       │   │   ├── rights
+│       │   │   │   └── main.twig
+│       │   │   ├── services
+│       │   │   │   └── main.twig
+│       │   │   ├── sites
+│       │   │   │   └── main.twig
+│       │   │   ├── synthese_mail
+│       │   │   │   ├── main.twig
+│       │   │   │   ├── template_html.twig
+│       │   │   │   └── template_raw.twig
+│       │   │   ├── synthese_prepare
+│       │   │   │   └── main.twig
+│       │   │   ├── unites_ldap
+│       │   │   │   └── main.twig
+│       │   │   ├── unites_manuelles
+│       │   │   │   └── main.twig
+│       │   │   └── update
+│       │   │       └── main.twig
+│       │   └── title.twig
+│       ├── maj
+│       │   └── maj.twig
+│       └── show
+│           ├── modal
+│           │   ├── block.twig
+│           │   ├── memo.twig
+│           │   └── PAM.twig
+│           ├── permanences.twig
+│           ├── timeline
+│           │   ├── block_timeline.twig
+│           │   └── grid_template.twig
+│           ├── timeline2.twig
+│           └── timeline.twig
+├── PUSH.md
+├── push.sh
+├── test.php
+├── tree.txt
+└── tree_vendor.txt
+
+131 directories, 291 files
