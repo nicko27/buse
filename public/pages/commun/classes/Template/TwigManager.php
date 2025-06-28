@@ -2,7 +2,6 @@
 namespace Commun\Template;
 
 use Commun\Config\Config;
-use Commun\Logger\Logger;
 use Commun\Router\Router;
 use Commun\Security\CsrfManager;
 use Commun\Security\RightsManager;
@@ -38,7 +37,7 @@ class TwigManager
     private ?Router $router;
     private ?RightsManager $rightsManager;
     private ?CsrfManager $csrfManager;
-    private ?Logger $logger;
+    private $logger; // Type flexible pour accepter différents types de logger
 
     /** @var bool Indique si Twig est initialisé */
     private bool $initialized = false;
@@ -73,14 +72,14 @@ class TwigManager
      * @param Config $config Instance de configuration
      * @param Router|null $router Instance du routeur
      * @param RightsManager|null $rightsManager Gestionnaire de droits
-     * @param Logger|null $logger Logger
+     * @param mixed $logger Logger (accepte différents types)
      * @throws \Exception Si erreur d'initialisation
      */
     public function initialize(
         Config $config,
         ?Router $router = null,
         ?RightsManager $rightsManager = null,
-        ?Logger $logger = null
+        $logger = null
     ): void {
         if ($this->initialized) {
             return; // Déjà initialisé
@@ -97,7 +96,7 @@ class TwigManager
         } catch (\Exception $e) {
             $this->csrfManager = null;
             if ($this->logger) {
-                $this->logger->debug("CSRF Manager non disponible", ['error' => $e->getMessage()]);
+                $this->logDebug("CSRF Manager non disponible", ['error' => $e->getMessage()]);
             }
         }
 
@@ -122,7 +121,7 @@ class TwigManager
         $this->initialized = true;
 
         if ($this->logger) {
-            $this->logger->info("TwigManager initialisé avec succès");
+            $this->logInfo("TwigManager initialisé avec succès");
         }
     }
 
@@ -152,7 +151,7 @@ class TwigManager
         $this->twig = new Environment($loader, $twigOptions);
 
         if ($this->logger) {
-            $this->logger->info("Environnement Twig configuré", [
+            $this->logInfo("Environnement Twig configuré", [
                 'views_dir'     => $viewsDir,
                 'cache_enabled' => $twigOptions['cache'] !== false,
                 'debug_enabled' => $twigOptions['debug'],
@@ -228,7 +227,7 @@ class TwigManager
         if (! is_dir($cacheDir)) {
             if (! mkdir($cacheDir, 0755, true)) {
                 if ($this->logger) {
-                    $this->logger->warning("Impossible de créer le cache Twig", ['cache_dir' => $cacheDir]);
+                    $this->logWarning("Impossible de créer le cache Twig", ['cache_dir' => $cacheDir]);
                 }
                 return false;
             }
@@ -236,7 +235,7 @@ class TwigManager
 
         if (! is_writable($cacheDir)) {
             if ($this->logger) {
-                $this->logger->warning("Cache Twig non accessible en écriture", ['cache_dir' => $cacheDir]);
+                $this->logWarning("Cache Twig non accessible en écriture", ['cache_dir' => $cacheDir]);
             }
             return false;
         }
@@ -412,7 +411,7 @@ class TwigManager
             ];
 
             if ($this->logger) {
-                $this->logger->info("Page rendue avec succès", [
+                $this->logInfo("Page rendue avec succès", [
                     'page'              => $currentRoute['page']['slug'],
                     'layout'            => $layoutTemplate,
                     'render_time_ms'    => $renderTime,
@@ -426,7 +425,7 @@ class TwigManager
             throw new \Exception("Template de layout non trouvé : " . $e->getMessage());
         } catch (\Exception $e) {
             if ($this->logger) {
-                $this->logger->error("Erreur de rendu de page", [
+                $this->logError("Erreur de rendu de page", [
                     'page'  => $currentRoute['page']['slug'] ?? 'unknown',
                     'error' => $e->getMessage(),
                 ]);
@@ -473,7 +472,7 @@ class TwigManager
             ];
 
             if ($this->logger) {
-                $this->logger->debug("Modale rendue", [
+                $this->logDebug("Modale rendue", [
                     'template'       => $templateName,
                     'render_time_ms' => $renderTime,
                 ]);
@@ -485,7 +484,7 @@ class TwigManager
             throw new \Exception("Template modal non trouvé : $templateName");
         } catch (\Exception $e) {
             if ($this->logger) {
-                $this->logger->error("Erreur de rendu de modale", [
+                $this->logError("Erreur de rendu de modale", [
                     'template' => $templateName,
                     'error'    => $e->getMessage(),
                 ]);
@@ -523,7 +522,7 @@ class TwigManager
             $renderTime = round((microtime(true) - $startTime) * 1000, 2);
 
             if ($this->logger) {
-                $this->logger->debug("Composant rendu", [
+                $this->logDebug("Composant rendu", [
                     'component'      => $componentName,
                     'render_time_ms' => $renderTime,
                 ]);
@@ -535,7 +534,7 @@ class TwigManager
             throw new \Exception("Template composant non trouvé : $componentName");
         } catch (\Exception $e) {
             if ($this->logger) {
-                $this->logger->error("Erreur de rendu de composant", [
+                $this->logError("Erreur de rendu de composant", [
                     'component' => $componentName,
                     'error'     => $e->getMessage(),
                 ]);
@@ -591,18 +590,18 @@ class TwigManager
             // Nettoyer et masquer les variables pour le log
             $sanitizedVars = [];
             foreach ($twigGlobals as $key => $value) {
-                $sanitizedVars[$key] = $this->logger->sanitizeForLog($value, 3);
+                $sanitizedVars[$key] = $this->sanitizeForLog($value, 3);
             }
-            $maskedVars = $this->logger->maskSensitiveData($sanitizedVars);
+            $maskedVars = $this->maskSensitiveData($sanitizedVars);
 
-            $this->logger->debug("Variables Twig disponibles", [
+            $this->logDebug("Variables Twig disponibles", [
                 'total_vars_count'    => count($twigGlobals),
                 'injected_vars_count' => count($injectedVars),
                 'variables'           => $maskedVars,
             ]);
 
         } catch (\Exception $e) {
-            $this->logger->warning("Erreur lors du logging des variables Twig", [
+            $this->logWarning("Erreur lors du logging des variables Twig", [
                 'error' => $e->getMessage(),
             ]);
         }
@@ -663,5 +662,97 @@ class TwigManager
     public function isInitialized(): bool
     {
         return $this->initialized;
+    }
+
+    // ===== MÉTHODES HELPER DE LOGGING =====
+
+    /**
+     * Log une information
+     */
+    private function logInfo(string $message, array $context = []): void
+    {
+        if ($this->logger && method_exists($this->logger, 'info')) {
+            $this->logger->info($message, $context);
+        }
+    }
+
+    /**
+     * Log un debug
+     */
+    private function logDebug(string $message, array $context = []): void
+    {
+        if ($this->logger && method_exists($this->logger, 'debug')) {
+            $this->logger->debug($message, $context);
+        }
+    }
+
+    /**
+     * Log un warning
+     */
+    private function logWarning(string $message, array $context = []): void
+    {
+        if ($this->logger && method_exists($this->logger, 'warning')) {
+            $this->logger->warning($message, $context);
+        }
+    }
+
+    /**
+     * Log une erreur
+     */
+    private function logError(string $message, array $context = []): void
+    {
+        if ($this->logger && method_exists($this->logger, 'error')) {
+            $this->logger->error($message, $context);
+        }
+    }
+
+    /**
+     * Sanitize des données pour le log (version simplifiée)
+     */
+    private function sanitizeForLog($data, int $maxDepth = 3): mixed
+    {
+        if ($maxDepth <= 0) {
+            return '[MAX_DEPTH_REACHED]';
+        }
+
+        if (is_array($data)) {
+            $result = [];
+            $count  = 0;
+            foreach ($data as $key => $value) {
+                if ($count >= 10) {
+                    $result['...'] = '[TRUNCATED]';
+                    break;
+                }
+                $result[$key] = $this->sanitizeForLog($value, $maxDepth - 1);
+                $count++;
+            }
+            return $result;
+        } elseif (is_object($data)) {
+            return ['__object_class' => get_class($data)];
+        } elseif (is_string($data) && strlen($data) > 100) {
+            return substr($data, 0, 100) . '...';
+        }
+
+        return $data;
+    }
+
+    /**
+     * Masque les données sensibles (version simplifiée)
+     */
+    private function maskSensitiveData(array $data): array
+    {
+        $sensitiveKeys = ['password', 'token', 'secret', 'key', 'mail'];
+
+        foreach ($data as $key => $value) {
+            $keyLower = strtolower($key);
+            foreach ($sensitiveKeys as $sensitive) {
+                if (strpos($keyLower, $sensitive) !== false) {
+                    $data[$key] = '***masked***';
+                    break;
+                }
+            }
+        }
+
+        return $data;
     }
 }

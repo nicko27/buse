@@ -6,20 +6,13 @@ use Commun\Logger\Logger;
 use Commun\Security\RightsManager;
 
 /**
- * Gestionnaire de routage avec support du schema simplifié
- *
- * Cette classe gère le routage des requêtes, la vérification d'accès,
- * et la génération d'URLs. Elle est séparée en plusieurs responsabilités :
- * - Routage : correspondance URL -> route
- * - Accès : vérification des droits (délégué à AccessChecker)
- * - URLs : génération d'URLs
- *
- * @package Commun\Router
- * @author Application Framework
- * @version 1.0
+ * Classe Router - Gestionnaire de routage avec support du nouveau schema simplifié
  */
 class Router
 {
+    /** @var Router|null Instance unique de la classe */
+    private static ?Router $instance = null;
+
     /** @var \Psr\Log\LoggerInterface Logger pour la journalisation */
     private $logger;
 
@@ -29,16 +22,16 @@ class Router
     /** @var RightsManager|null Instance du gestionnaire de droits */
     private ?RightsManager $rightsManager = null;
 
-    /** @var array<string, array<string, mixed>> Cache des routes chargées */
+    /** @var array Cache des routes chargées */
     private array $routes = [];
 
-    /** @var array<int, array<string, mixed>> Cache des types de templates */
+    /** @var array Cache des types de templates */
     private array $templateTypes = [];
 
     /** @var bool Indique si les routes ont été chargées */
     private bool $routesLoaded = false;
 
-    /** @var array<string, mixed>|null Route actuellement active */
+    /** @var array Route actuellement active */
     private ?array $currentRoute = null;
 
     /** @var string Route par défaut */
@@ -53,31 +46,21 @@ class Router
     /** @var string Méthode HTTP actuelle */
     private string $httpMethod;
 
-    /** @var array<string, string> Paramètres GET validés et échappés */
+    /** @var array Paramètres GET */
     private array $getParams = [];
 
-    /** @var array<string, string> Paramètres POST validés et échappés */
+    /** @var array Paramètres POST */
     private array $postParams = [];
 
-    /** @var int Timestamp du dernier chargement des routes (pour cache) */
-    private int $lastRoutesLoad = 0;
-
-    /** @var int Durée de vie du cache des routes en secondes */
-    private int $cacheLifetime = 300; // 5 minutes
-
     /**
-     * Constructeur
-     *
-     * @param BDDManager $dbManager Instance du gestionnaire de base de données
-     * @throws \Exception Si le gestionnaire de base de données est invalide
+     * Constructeur privé pour empêcher l'instanciation directe
      */
-    public function __construct(BDDManager $dbManager)
+    private function __construct(BDDManager $dbManager)
     {
         $this->dbManager  = $dbManager;
         $this->httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-
-        // CORRECTION 14: Validation et échappement des paramètres
-        $this->sanitizeRequestParams();
+        $this->getParams  = $_GET;
+        $this->postParams = $_POST;
 
         try {
             $this->logger = Logger::getInstance()->getLogger();
@@ -87,43 +70,37 @@ class Router
     }
 
     /**
-     * Factory method pour créer une instance
-     *
-     * @param BDDManager $dbManager Instance du gestionnaire de base de données
-     * @return self Nouvelle instance de Router
+     * Obtenir l'instance unique du routeur
      */
-    public static function create(BDDManager $dbManager): self
+    public static function getInstance(BDDManager $dbManager = null): self
     {
-        return new self($dbManager);
+        if (self::$instance === null) {
+            if ($dbManager === null) {
+                throw new \InvalidArgumentException("BDDManager instance required for initialization");
+            }
+            self::$instance = new self($dbManager);
+        }
+        return self::$instance;
     }
 
     /**
      * Définit la route par défaut
-     *
-     * @param string $route Nom de la route par défaut
-     * @return void
      */
     public function setDefaultRoute(string $route): void
     {
-        $this->defaultRoute = $this->sanitizeRouteSlug($route);
+        $this->defaultRoute = $route;
     }
 
     /**
      * Définit la route de redirection en cas d'accès refusé
-     *
-     * @param string $route Nom de la route d'accès refusé
-     * @return void
      */
     public function setAccessDeniedRoute(string $route): void
     {
-        $this->accessDeniedRoute = $this->sanitizeRouteSlug($route);
+        $this->accessDeniedRoute = $route;
     }
 
     /**
      * Définit le gestionnaire de droits
-     *
-     * @param RightsManager $rightsManager Instance du gestionnaire de droits
-     * @return void
      */
     public function setRightsManager(RightsManager $rightsManager): void
     {
@@ -132,9 +109,6 @@ class Router
 
     /**
      * Définit le répertoire web de l'application
-     *
-     * @param string $webDir Répertoire web
-     * @return void
      */
     public function setWebDirectory(string $webDir): void
     {
@@ -142,43 +116,20 @@ class Router
     }
 
     /**
-     * Charge toutes les routes depuis la base de données avec cache
-     *
-     * @return void
-     * @throws \Exception Si erreur lors du chargement
+     * Charge toutes les routes depuis la base de données
      */
     public function loadRoutes(): void
     {
-        // CORRECTION 15: Cache efficace des routes
-        $currentTime = time();
-
-        if ($this->routesLoaded &&
-            ($currentTime - $this->lastRoutesLoad) < $this->cacheLifetime) {
-            return; // Cache encore valide
+        if ($this->routesLoaded) {
+            return;
         }
 
         try {
-            // CORRECTION 3: Vérifier que les tables existent avant de les utiliser
-            if (! $this->dbManager->tableExists('pages')) {
-                throw new \Exception("Table 'pages' non trouvée");
-            }
-
-            if (! $this->dbManager->tableExists('page_template_types')) {
-                throw new \Exception("Table 'page_template_types' non trouvée");
-            }
-
-            if (! $this->dbManager->tableExists('page_templates')) {
-                throw new \Exception("Table 'page_templates' non trouvée");
-            }
-
             // Charger les types de templates
             $this->loadTemplateTypes();
 
             // Charger les pages actives
             $pagesResult = $this->dbManager->getAllContentTable('pages');
-
-            // Réinitialiser le cache
-            $this->routes = [];
 
             foreach ($pagesResult as $page) {
                 if (! $page['active']) {
@@ -186,40 +137,29 @@ class Router
                 }
 
                 $pageId = $page['id'];
-                $slug   = $this->sanitizeRouteSlug($page['slug']);
 
-                $this->routes[$slug] = [
+                $this->routes[$page['slug']] = [
                     'page'      => $page,
                     'templates' => $this->loadPageTemplates($pageId),
                 ];
             }
 
-            $this->routesLoaded   = true;
-            $this->lastRoutesLoad = $currentTime;
-
+            $this->routesLoaded = true;
             $this->logger->info("Routes chargées avec succès", [
-                'count'        => count($this->routes),
-                'method'       => $this->httpMethod,
-                'cached_until' => $currentTime + $this->cacheLifetime,
+                'count'  => count($this->routes),
+                'method' => $this->httpMethod,
             ]);
 
         } catch (\Exception $e) {
-            // CORRECTION 20: Gestion d'erreurs améliorée
             $this->logger->error("Erreur lors du chargement des routes", [
-                'error'            => $e->getMessage(),
-                'file'             => $e->getFile(),
-                'line'             => $e->getLine(),
-                'tables_available' => $this->getAvailableTables(),
+                'error' => $e->getMessage(),
             ]);
-            throw new \Exception("Impossible de charger les routes : " . $e->getMessage(), 0, $e);
+            throw $e;
         }
     }
 
     /**
      * Charge les types de templates depuis la base de données
-     *
-     * @return void
-     * @throws \Exception Si erreur lors du chargement
      */
     private function loadTemplateTypes(): void
     {
@@ -237,16 +177,12 @@ class Router
             $this->logger->error("Erreur lors du chargement des types de templates", [
                 'error' => $e->getMessage(),
             ]);
-            throw new \Exception("Impossible de charger les types de templates : " . $e->getMessage(), 0, $e);
+            $this->templateTypes = [];
         }
     }
 
     /**
      * Charge les templates d'une page
-     *
-     * @param int $pageId ID de la page
-     * @return array<string, array<array<string, mixed>>> Templates groupés par zone
-     * @throws \Exception Si erreur lors du chargement
      */
     private function loadPageTemplates(int $pageId): array
     {
@@ -283,23 +219,19 @@ class Router
                 'page_id' => $pageId,
                 'error'   => $e->getMessage(),
             ]);
-            throw new \Exception("Impossible de charger les templates pour la page $pageId : " . $e->getMessage(), 0, $e);
+            return [];
         }
     }
 
     /**
      * Trouve une route correspondant au slug donné
-     *
-     * @param string $slug Slug de la route
-     * @param string|null $method Méthode HTTP (optionnel)
-     * @return array<string, mixed>|null Route trouvée ou null
      */
     public function match(string $slug, ?string $method = null): ?array
     {
         $this->loadRoutes();
 
         // Nettoyer le slug
-        $slug = $this->sanitizeRouteSlug($slug);
+        $slug = trim($slug, '/');
 
         // Utiliser la route par défaut si vide
         if (empty($slug)) {
@@ -329,9 +261,6 @@ class Router
 
     /**
      * Trouve une route à partir de l'URI actuelle
-     *
-     * @param string|null $uri URI à analyser (par défaut l'URI courante)
-     * @return array<string, mixed>|null Route trouvée ou null
      */
     public function matchFromUri(?string $uri = null): ?array
     {
@@ -356,8 +285,6 @@ class Router
 
     /**
      * Vérifie si la requête est en POST
-     *
-     * @return bool True si POST
      */
     public function isPost(): bool
     {
@@ -366,8 +293,6 @@ class Router
 
     /**
      * Vérifie si la requête est en GET
-     *
-     * @return bool True si GET
      */
     public function isGet(): bool
     {
@@ -376,10 +301,6 @@ class Router
 
     /**
      * Récupère un paramètre GET
-     *
-     * @param string $key Nom du paramètre
-     * @param mixed $default Valeur par défaut
-     * @return mixed Valeur du paramètre
      */
     public function getParam(string $key, $default = null)
     {
@@ -388,10 +309,6 @@ class Router
 
     /**
      * Récupère un paramètre POST
-     *
-     * @param string $key Nom du paramètre
-     * @param mixed $default Valeur par défaut
-     * @return mixed Valeur du paramètre
      */
     public function postParam(string $key, $default = null)
     {
@@ -400,10 +317,6 @@ class Router
 
     /**
      * Récupère un paramètre GET ou POST
-     *
-     * @param string $key Nom du paramètre
-     * @param mixed $default Valeur par défaut
-     * @return mixed Valeur du paramètre
      */
     public function param(string $key, $default = null)
     {
@@ -412,9 +325,6 @@ class Router
 
     /**
      * Vérifie si un paramètre existe
-     *
-     * @param string $key Nom du paramètre
-     * @return bool True si le paramètre existe
      */
     public function hasParam(string $key): bool
     {
@@ -423,8 +333,6 @@ class Router
 
     /**
      * Retourne tous les paramètres GET
-     *
-     * @return array<string, string> Paramètres GET
      */
     public function getAllGetParams(): array
     {
@@ -433,8 +341,6 @@ class Router
 
     /**
      * Retourne tous les paramètres POST
-     *
-     * @return array<string, string> Paramètres POST
      */
     public function getAllPostParams(): array
     {
@@ -443,8 +349,6 @@ class Router
 
     /**
      * Retourne tous les paramètres (GET + POST)
-     *
-     * @return array<string, string> Tous les paramètres
      */
     public function getAllParams(): array
     {
@@ -453,8 +357,6 @@ class Router
 
     /**
      * Retourne la route actuellement active
-     *
-     * @return array<string, mixed>|null Route active ou null
      */
     public function getCurrentRoute(): ?array
     {
@@ -463,9 +365,6 @@ class Router
 
     /**
      * Retourne les templates de la route courante pour une zone
-     *
-     * @param string $zone Nom de la zone
-     * @return array<array<string, mixed>> Templates de la zone
      */
     public function getTemplatesForZone(string $zone): array
     {
@@ -477,13 +376,99 @@ class Router
     }
 
     /**
-     * Redirige vers une URL
-     *
-     * @param string $url URL de destination
-     * @param int $code Code de statut HTTP
-     * @return never
+     * Vérifie si l'utilisateur a les droits pour accéder à une route
      */
-    public function redirect(string $url, int $code = 302): never
+    public function checkAccess(array $route): bool
+    {
+        $page = $route['page'];
+
+        // Si aucun droit requis (rights = 0), accès libre
+        if (empty($page['rights']) || $page['rights'] == 0) {
+            return true;
+        }
+
+        // Vérifier si l'utilisateur est connecté
+        if (! $this->isUserAuthenticated()) {
+            $this->logger->info("Accès refusé : utilisateur non authentifié", [
+                'page'            => $page['slug'],
+                'method'          => $this->httpMethod,
+                'rights_required' => $page['rights'],
+            ]);
+            return false;
+        }
+
+        // Vérifier les droits avec RightsManager
+        if (! $this->rightsManager) {
+            $this->logger->error("RightsManager non défini pour vérifier les droits");
+            return false;
+        }
+
+        $userRights     = $this->rightsManager->getBinaryRights();
+        $requiredRights = (int) $page['rights'];
+
+        // Vérification binaire : l'utilisateur a-t-il au moins un des droits requis ?
+        $hasAccess = ($userRights & $requiredRights) > 0;
+
+        if (! $hasAccess) {
+            $this->logger->info("Accès refusé : droits insuffisants", [
+                'page'            => $page['slug'],
+                'required_rights' => $requiredRights,
+                'user_rights'     => $userRights,
+                'user'            => $this->rightsManager->getUserId(),
+                'method'          => $this->httpMethod,
+            ]);
+        }
+
+        return $hasAccess;
+    }
+
+    /**
+     * Vérifie si l'utilisateur est authentifié
+     */
+    private function isUserAuthenticated(): bool
+    {
+        if ($this->rightsManager) {
+            return $this->rightsManager->isAuthenticated();
+        }
+
+        return isset($_SESSION['user']) && ! empty($_SESSION['user']);
+    }
+
+    /**
+     * Gère une redirection si nécessaire
+     */
+    public function handleRedirect(array $route): bool
+    {
+        $page = $route['page'];
+
+        // Redirection simple basée sur redirect_to
+        if (isset($page['redirect_to']) && ! empty($page['redirect_to'])) {
+            header('Location: ' . $page['redirect_to'], true, 302);
+            exit;
+        }
+
+        return false;
+    }
+
+    /**
+     * Redirige vers la page d'accès refusé
+     */
+    public function redirectToAccessDenied(): void
+    {
+        $accessDeniedUrl = $this->generateUrl($this->accessDeniedRoute);
+
+        // Ajouter l'URL demandée en paramètre pour redirection après login
+        $requestedUrl = $_SERVER['REQUEST_URI'] ?? '/';
+        $accessDeniedUrl .= '?redirect=' . urlencode($requestedUrl);
+
+        header('Location: ' . $accessDeniedUrl, true, 302);
+        exit;
+    }
+
+    /**
+     * Redirige vers une URL
+     */
+    public function redirect(string $url, int $code = 302): void
     {
         header('Location: ' . $url, true, $code);
         exit;
@@ -491,13 +476,8 @@ class Router
 
     /**
      * Redirige vers une route par son slug
-     *
-     * @param string $slug Slug de la route
-     * @param array<string, mixed> $params Paramètres de query
-     * @param int $code Code de statut HTTP
-     * @return never
      */
-    public function redirectToRoute(string $slug, array $params = [], int $code = 302): never
+    public function redirectToRoute(string $slug, array $params = [], int $code = 302): void
     {
         $url = $this->generateUrl($slug, $params);
         $this->redirect($url, $code);
@@ -505,30 +485,13 @@ class Router
 
     /**
      * Génère une URL à partir d'un slug
-     *
-     * @param string $slug Slug de la route
-     * @param array<string, mixed> $params Paramètres de query
-     * @return string URL générée
      */
     public function generateUrl(string $slug, array $params = []): string
     {
-        $slug = $this->sanitizeRouteSlug($slug);
-        $url  = $this->webDirectory . '/' . trim($slug, '/');
+        $url = $this->webDirectory . '/' . trim($slug, '/');
 
         if (! empty($params)) {
-            // Filtrer et valider les paramètres
-            $validParams = [];
-            foreach ($params as $key => $value) {
-                $cleanKey   = $this->sanitizeParamKey($key);
-                $cleanValue = $this->sanitizeParamValue($value);
-                if ($cleanKey && $cleanValue !== null) {
-                    $validParams[$cleanKey] = $cleanValue;
-                }
-            }
-
-            if (! empty($validParams)) {
-                $url .= '?' . http_build_query($validParams);
-            }
+            $url .= '?' . http_build_query($params);
         }
 
         return $url;
@@ -536,24 +499,19 @@ class Router
 
     /**
      * Vide le cache des routes
-     *
-     * @return void
      */
     public function clearCache(): void
     {
-        $this->routes         = [];
-        $this->templateTypes  = [];
-        $this->routesLoaded   = false;
-        $this->currentRoute   = null;
-        $this->lastRoutesLoad = 0;
+        $this->routes        = [];
+        $this->templateTypes = [];
+        $this->routesLoaded  = false;
+        $this->currentRoute  = null;
 
         $this->logger->info("Cache du routeur vidé");
     }
 
     /**
      * Retourne toutes les routes chargées
-     *
-     * @return array<string, array<string, mixed>> Routes chargées
      */
     public function getAllRoutes(): array
     {
@@ -563,21 +521,15 @@ class Router
 
     /**
      * Vérifie si une route existe
-     *
-     * @param string $slug Slug de la route
-     * @return bool True si la route existe
      */
     public function routeExists(string $slug): bool
     {
         $this->loadRoutes();
-        $slug = $this->sanitizeRouteSlug($slug);
         return isset($this->routes[$slug]);
     }
 
     /**
      * Retourne les droits requis pour la route courante
-     *
-     * @return int Droits requis (masque binaire)
      */
     public function getCurrentRouteRights(): int
     {
@@ -590,18 +542,18 @@ class Router
 
     /**
      * Vérifie si la route courante nécessite une authentification
-     *
-     * @return bool True si authentification requise
      */
     public function currentRouteRequiresAuth(): bool
     {
+        if (! $this->currentRoute) {
+            return false;
+        }
+
         return $this->getCurrentRouteRights() > 0;
     }
 
     /**
      * Retourne des informations sur la requête courante
-     *
-     * @return array<string, mixed> Informations de requête
      */
     public function getRequestInfo(): array
     {
@@ -620,8 +572,6 @@ class Router
 
     /**
      * Retourne des statistiques sur le routeur
-     *
-     * @return array<string, mixed> Statistiques
      */
     public function getStats(): array
     {
@@ -632,15 +582,12 @@ class Router
             'current_route'        => $this->currentRoute['page']['slug'] ?? null,
             'http_method'          => $this->httpMethod,
             'web_directory'        => $this->webDirectory,
-            'cache_valid_until'    => $this->lastRoutesLoad + $this->cacheLifetime,
             'request_info'         => $this->getRequestInfo(),
         ];
     }
 
     /**
      * Méthode de debug
-     *
-     * @return array<string, mixed> Informations de debug
      */
     public function debug(): array
     {
@@ -656,8 +603,6 @@ class Router
 
     /**
      * Retourne tous les types de templates disponibles
-     *
-     * @return array<int, array<string, mixed>> Types de templates
      */
     public function getTemplateTypes(): array
     {
@@ -669,9 +614,6 @@ class Router
 
     /**
      * Retourne un type de template par son ID
-     *
-     * @param int $typeId ID du type
-     * @return array<string, mixed>|null Type de template ou null
      */
     public function getTemplateType(int $typeId): ?array
     {
@@ -681,9 +623,6 @@ class Router
 
     /**
      * Retourne un type de template par son nom
-     *
-     * @param string $name Nom du type
-     * @return array<string, mixed>|null Type de template ou null
      */
     public function getTemplateTypeByName(string $name): ?array
     {
@@ -694,124 +633,5 @@ class Router
             }
         }
         return null;
-    }
-
-    /**
-     * Configure la durée de vie du cache
-     *
-     * @param int $seconds Durée en secondes
-     * @return void
-     */
-    public function setCacheLifetime(int $seconds): void
-    {
-        $this->cacheLifetime = max(0, $seconds);
-    }
-
-    // --- Méthodes privées de validation et nettoyage ---
-
-    /**
-     * Valide et nettoie les paramètres de requête
-     *
-     * @return void
-     */
-    private function sanitizeRequestParams(): void
-    {
-        // Nettoyer et valider les paramètres GET
-        foreach ($_GET as $key => $value) {
-            $cleanKey   = $this->sanitizeParamKey($key);
-            $cleanValue = $this->sanitizeParamValue($value);
-
-            if ($cleanKey && $cleanValue !== null) {
-                $this->getParams[$cleanKey] = $cleanValue;
-            }
-        }
-
-        // Nettoyer et valider les paramètres POST
-        foreach ($_POST as $key => $value) {
-            $cleanKey   = $this->sanitizeParamKey($key);
-            $cleanValue = $this->sanitizeParamValue($value);
-
-            if ($cleanKey && $cleanValue !== null) {
-                $this->postParams[$cleanKey] = $cleanValue;
-            }
-        }
-    }
-
-    /**
-     * Nettoie un nom de paramètre
-     *
-     * @param mixed $key Nom du paramètre
-     * @return string|null Nom nettoyé ou null si invalide
-     */
-    private function sanitizeParamKey($key): ?string
-    {
-        if (! is_string($key) && ! is_numeric($key)) {
-            return null;
-        }
-
-        $key = (string) $key;
-
-        // Validation basique : alphanumériques + underscore + tiret
-        if (! preg_match('/^[a-zA-Z0-9_-]{1,50}$/', $key)) {
-            return null;
-        }
-
-        return $key;
-    }
-
-    /**
-     * Nettoie une valeur de paramètre
-     *
-     * @param mixed $value Valeur du paramètre
-     * @return string|null Valeur nettoyée ou null si invalide
-     */
-    private function sanitizeParamValue($value): ?string
-    {
-        if (is_array($value) || is_object($value)) {
-            return null;
-        }
-
-        $value = (string) $value;
-
-        // Supprimer les caractères de contrôle
-        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
-
-        // Limiter la longueur
-        $value = substr($value, 0, 1000);
-
-        return $value;
-    }
-
-    /**
-     * Nettoie un slug de route
-     *
-     * @param string $slug Slug à nettoyer
-     * @return string Slug nettoyé
-     */
-    private function sanitizeRouteSlug(string $slug): string
-    {
-        $slug = trim($slug, '/');
-
-        // Remplacer les caractères invalides
-        $slug = preg_replace('/[^a-zA-Z0-9\/\-_]/', '', $slug);
-
-        // Nettoyer les slashes multiples
-        $slug = preg_replace('/\/+/', '/', $slug);
-
-        return $slug;
-    }
-
-    /**
-     * Récupère la liste des tables disponibles (pour debug)
-     *
-     * @return array<string> Liste des tables
-     */
-    private function getAvailableTables(): array
-    {
-        try {
-            return $this->dbManager->getAvailableTables();
-        } catch (\Exception $e) {
-            return [];
-        }
     }
 }

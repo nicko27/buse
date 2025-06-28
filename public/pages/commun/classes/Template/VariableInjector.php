@@ -2,7 +2,6 @@
 namespace Commun\Template;
 
 use Commun\Config\Config;
-use Commun\Logger\Logger;
 use Commun\Router\Router;
 use Commun\Security\CsrfManager;
 use Commun\Security\RightsManager;
@@ -24,7 +23,7 @@ class VariableInjector
     private ?Router $router;
     private ?RightsManager $rightsManager;
     private ?CsrfManager $csrfManager;
-    private ?Logger $logger;
+    private $logger; // Type flexible pour accepter différents types de logger
     private Environment $twig;
 
     /** @var array<string, mixed> Variables déjà injectées (cache) */
@@ -38,7 +37,7 @@ class VariableInjector
      * @param Router|null $router Instance du routeur
      * @param RightsManager|null $rightsManager Gestionnaire de droits
      * @param CsrfManager|null $csrfManager Gestionnaire CSRF
-     * @param Logger|null $logger Logger
+     * @param mixed $logger Logger (accepte différents types)
      */
     public function __construct(
         Environment $twig,
@@ -46,7 +45,7 @@ class VariableInjector
         ?Router $router = null,
         ?RightsManager $rightsManager = null,
         ?CsrfManager $csrfManager = null,
-        ?Logger $logger = null
+        $logger = null
     ) {
         $this->twig          = $twig;
         $this->config        = $config;
@@ -233,7 +232,7 @@ class VariableInjector
             return $navigation;
 
         } catch (\Exception $e) {
-            if ($this->logger) {
+            if ($this->logger && method_exists($this->logger, 'debug')) {
                 $this->logger->debug("Erreur génération navigation", ['error' => $e->getMessage()]);
             }
             return [];

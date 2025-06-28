@@ -29,12 +29,18 @@ try {
     // Récupérer l'instance singleton de TwigManager
     $twigManager = TwigManager::getInstance();
 
+    // Préparer le logger : utiliser le logger Monolog s'il est disponible
+    $loggerForTwig = null;
+    if (isset($logger) && $logger) {
+        $loggerForTwig = $logger; // Passer directement le logger Monolog
+    }
+
     // Initialiser TwigManager avec les services disponibles
     $twigManager->initialize(
         $config,                // Toujours disponible à cette étape
         $router ?? null,        // Peut ne pas être disponible
         $rightsManager ?? null, // Peut ne pas être disponible
-        $logger ?? null         // Peut ne pas être disponible
+        $loggerForTwig          // Logger compatible (Monolog ou null)
     );
 
     $twigStats['manager_initialized'] = true;
