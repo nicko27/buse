@@ -7,6 +7,8 @@
  * VERSION MODIFIÉE : Log des variables Twig en mode debug
  */
 
+use Commun\Logger\Logger;
+
 $renderStats = [
     'render_attempted'   => false,
     'render_successful'  => false,
@@ -22,6 +24,7 @@ $renderStats = [
 ];
 
 try {
+    $logger = Logger::getInstance();
     // Vérifier que nous avons tout ce qu'il faut
     if (! isset($twig) || ! $twig) {
         throw new \Exception("Environnement Twig non disponible pour le rendu");
@@ -201,9 +204,9 @@ try {
     ];
 
     // Ajouter les variables de rendu à Twig
-    foreach ($renderVars as $key => $value) {
+    /*foreach ($renderVars as $key => $value) {
         $twig->addGlobal($key, $value);
-    }
+    }*/
 
     // Rendu du layout principal
     ob_start();

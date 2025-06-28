@@ -1,5 +1,4 @@
 <?php
-
 namespace Commun\Ldap;
 
 use Commun\Logger\Logger;
@@ -51,7 +50,7 @@ class LdapConfig
 
     public function getBaseDN(): BaseDNConfig
     {
-        return $this->baseDN ;
+        return $this->baseDN;
     }
 }
 
@@ -87,7 +86,7 @@ class LdapManager
     private function configureTLS(): void
     {
         if ($this->config->useLdaps) {
-            if (!$this->config->validateCert) {
+            if (! $this->config->validateCert) {
                 putenv('LDAPTLS_REQCERT=never');
             }
 
@@ -130,7 +129,7 @@ class LdapManager
                 $bound = @ldap_bind($this->connection, $this->config->user, $this->config->password);
             }
 
-            if (!$bound) {
+            if (! $bound) {
                 throw new \Exception("LDAP bind failed: " . ldap_error($this->connection));
             }
 
@@ -232,7 +231,7 @@ class LdapManager
 
     private function search(string $base_dn, string $filter, array $attributes = [], string $sort = '', int $limit = 0): array
     {
-        if (!$this->connection && !$this->connect()) {
+        if (! $this->connection && ! $this->connect()) {
             return [];
         }
 
@@ -242,7 +241,7 @@ class LdapManager
                 $this->logger->error("Échec de la recherche LDAP", [
                     'base_dn' => $base_dn,
                     'filter'  => $filter,
-                    'error'   => ldap_error($this->connection)
+                    'error'   => ldap_error($this->connection),
                 ]);
                 return [];
             }

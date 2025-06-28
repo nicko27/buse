@@ -1,8 +1,6 @@
 <?php
 namespace Commun\Config;
 
-use ArrayAccess;
-
 /**
  * Classe centrale de configuration applicative
  *
@@ -12,10 +10,22 @@ use ArrayAccess;
  * - Expose un accès centralisé, sans define()
  * - Compatible avec un accès direct (array) ou via méthode
  * - Gère la liste des variables à injecter dans Twig
+ *
+ * @package Commun\Config
+ * @author Application Framework
+ * @version 1.0
+ *
+ * Types de valeurs supportés pour typeval:
+ * - 'int', 'integer': Conversion en entier
+ * - 'float', 'double': Conversion en nombre à virgule flottante
+ * - 'bool', 'boolean': Conversion en booléen (supporte 'true', 'yes', 'on', 'oui', '1')
+ * - 'json', 'array': Décodage JSON en tableau associatif
+ * - 'date', 'datetime': Retourne la valeur telle quelle (peut être étendu pour DateTime)
+ * - 'string' ou autre: Conversion en chaîne de caractères (par défaut)
  */
-class Config implements ArrayAccess
+class Config
 {
-    /** @var self|null Singleton */
+    /** @var self|null Instance unique (singleton) */
     private static ?Config $instance = null;
 
     /** @var array<string, mixed> Variables d'environnement du .env */
@@ -38,6 +48,8 @@ class Config implements ArrayAccess
 
     /**
      * Retourne l'instance unique de configuration
+     *
+     * @return self Instance unique
      */
     public static function getInstance(): self
     {
@@ -53,11 +65,16 @@ class Config implements ArrayAccess
     private function __construct()
     {
         $this->loadEnv();
-        $this->envVars['DEBUG_MODE'] = $this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev';
+        // CORRECTION 1: Récupérer la vraie valeur de DEBUG_MODE au lieu d'une expression booléenne
+        $this->debugMode = $this->get('DEBUG_MODE', false) ||
+            ($this->get('TWIG_DEBUG', false) || $this->get('ENV') === 'dev');
     }
 
     /**
      * Charge les variables d'environnement à partir du .env avec vlucas/phpdotenv
+     *
+     * @return void
+     * @throws \Exception Si erreur lors du chargement du .env
      */
     private function loadEnv(): void
     {
@@ -66,18 +83,23 @@ class Config implements ArrayAccess
             return; // Pas de fichier .env trouvé
         }
 
-        $dotenv = \Dotenv\Dotenv::createImmutable($envPath);
-        $dotenv->safeLoad(); // safeLoad n'écrase pas les variables déjà définies
+        try {
+            $dotenv = \Dotenv\Dotenv::createImmutable($envPath);
+            $dotenv->safeLoad(); // safeLoad n'écrase pas les variables déjà définies
 
-        // Copier dans notre tableau local pour compatibilité
-        foreach ($_ENV as $key => $value) {
-            $this->envVars[$key] = $value;
+            // Copier dans notre tableau local pour compatibilité
+            foreach ($_ENV as $key => $value) {
+                $this->envVars[$key] = $value;
+            }
+        } catch (\Exception $e) {
+            throw new \Exception("Erreur lors du chargement du fichier .env : " . $e->getMessage());
         }
-        $this->buildPagesAndSubpagesArrays();
     }
 
     /**
      * Trouve le répertoire contenant le fichier .env
+     *
+     * @return string|null Chemin vers le répertoire contenant .env ou null si non trouvé
      */
     private function findEnvPath(): ?string
     {
@@ -110,20 +132,38 @@ class Config implements ArrayAccess
      * Charge la configuration depuis une source de données
      *
      * @param \Commun\Database\BDDManager $dbManager Gestionnaire de base de données
+     * @return void
      * @throws \Exception Si erreur lors du chargement
      */
     public function loadFromDatabase(\Commun\Database\BDDManager $dbManager): void
     {
         try {
+            // CORRECTION 21: Vérifier que les tables existent avant de les utiliser
+            if (! $dbManager->tableExists('configuration_types')) {
+                throw new \Exception("Table 'configuration_types' non trouvée");
+            }
+
+            if (! $dbManager->tableExists('configuration')) {
+                throw new \Exception("Table 'configuration' non trouvée");
+            }
+
             // Récupérer les types pour typage automatique
-            $types     = [];
-            $typesData = $dbManager->getAllContentTable('configuration_types');
-            foreach ($typesData as $row) {
-                $types[$row['id']] = $row;
+            $types = [];
+            try {
+                $typesData = $dbManager->getAllContentTable('configuration_types');
+                foreach ($typesData as $row) {
+                    $types[$row['id']] = $row;
+                }
+            } catch (\Exception $e) {
+                throw new \Exception("Erreur lors du chargement des types de configuration : " . $e->getMessage());
             }
 
             // Charger la configuration principale
-            $configData = $dbManager->getAllContentTable('configuration');
+            try {
+                $configData = $dbManager->getAllContentTable('configuration');
+            } catch (\Exception $e) {
+                throw new \Exception("Erreur lors du chargement de la configuration : " . $e->getMessage());
+            }
 
             // Réinitialiser les données
             $this->config   = [];
@@ -154,7 +194,6 @@ class Config implements ArrayAccess
             }
 
             $this->databaseLoaded = true;
-            $this->buildPagesAndSubpagesArrays();
 
         } catch (\Exception $e) {
             throw new \Exception("Erreur lors du chargement de la configuration : " . $e->getMessage());
@@ -166,7 +205,7 @@ class Config implements ArrayAccess
      *
      * @param string $key Nom de la variable
      * @param mixed $default Valeur par défaut
-     * @return mixed
+     * @return mixed La valeur de la variable ou la valeur par défaut
      */
     public function get(string $key, $default = null)
     {
@@ -190,6 +229,8 @@ class Config implements ArrayAccess
 
     /**
      * Retourne toutes les variables de configuration (BDD uniquement)
+     *
+     * @return array<string, mixed> Variables de configuration
      */
     public function all(): array
     {
@@ -198,6 +239,8 @@ class Config implements ArrayAccess
 
     /**
      * Retourne toutes les variables d'environnement
+     *
+     * @return array<string, mixed> Variables d'environnement
      */
     public function getAllEnv(): array
     {
@@ -206,6 +249,8 @@ class Config implements ArrayAccess
 
     /**
      * Retourne toutes les variables à injecter dans Twig
+     *
+     * @return array<string, mixed> Variables Twig
      */
     public function getTwigVars(): array
     {
@@ -214,6 +259,9 @@ class Config implements ArrayAccess
 
     /**
      * Retourne les métadonnées d'une variable
+     *
+     * @param string $key Nom de la variable
+     * @return array<string, mixed>|null Métadonnées ou null si non trouvées
      */
     public function getMeta(string $key): ?array
     {
@@ -222,6 +270,8 @@ class Config implements ArrayAccess
 
     /**
      * Indique si la configuration BDD a été chargée
+     *
+     * @return bool True si chargée, false sinon
      */
     public function isDatabaseLoaded(): bool
     {
@@ -232,6 +282,8 @@ class Config implements ArrayAccess
      * Recharge la configuration depuis la base de données
      *
      * @param \Commun\Database\BDDManager $dbManager Gestionnaire de base de données
+     * @return void
+     * @throws \Exception Si erreur lors du rechargement
      */
     public function reload(\Commun\Database\BDDManager $dbManager): void
     {
@@ -239,96 +291,11 @@ class Config implements ArrayAccess
     }
 
     /**
-     * Construit les tableaux PAGES_LIST et SUBPAGES_MAIN_LIST à partir des variables de configuration
-     */
-    private function buildPagesAndSubpagesArrays(): void
-    {
-        if ($this->debugMode) {
-            error_log("Config: Construction des tableaux PAGES et SUBPAGES");
-        }
-
-        $pages    = [];
-        $subpages = [];
-
-        // Préserver les tableaux existants s'ils existent déjà
-        if (isset($this->config['PAGES_LIST']) && is_array($this->config['PAGES_LIST'])) {
-            $pages = $this->config['PAGES_LIST'];
-        }
-        if (isset($this->config['SUBPAGES_MAIN_LIST']) && is_array($this->config['SUBPAGES_MAIN_LIST'])) {
-            $subpages = $this->config['SUBPAGES_MAIN_LIST'];
-        }
-
-        // Chercher dans TOUTES les sources (BDD ET .env)
-        $allConfig = array_merge($this->envVars, $this->config);
-
-        $pagesCount    = 0;
-        $subpagesCount = 0;
-
-        foreach ($allConfig as $key => $value) {
-            // Construire le tableau des pages (PAGES_0, PAGES_1, etc.)
-            if (str_starts_with($key, 'PAGES_')) {
-                $suffix = substr($key, 6); // Récupérer ce qui suit "PAGES_"
-                if (is_numeric($suffix)) {
-                    $pageId         = (int) $suffix;
-                    $pages[$pageId] = $value;
-                    $pagesCount++;
-                }
-            }
-
-            // Construire le tableau des sous-pages (SUBPAGES_0, SUBPAGES_1, etc.)
-            if (str_starts_with($key, 'SUBPAGES_')) {
-                $suffix = substr($key, 9); // Récupérer ce qui suit "SUBPAGES_"
-                if (is_numeric($suffix)) {
-                    $subpageId            = (int) $suffix;
-                    $subpages[$subpageId] = $value;
-                    $subpagesCount++;
-                }
-            }
-        }
-
-        // Trier les tableaux par clé pour s'assurer de l'ordre
-        ksort($pages);
-        ksort($subpages);
-
-        // Ajouter les tableaux à la configuration
-        $this->config['PAGES_LIST']         = $pages;
-        $this->config['SUBPAGES_MAIN_LIST'] = $subpages;
-
-        // Ajouter aussi aux variables Twig
-        $this->twigVars['PAGES_LIST']         = $pages;
-        $this->twigVars['SUBPAGES_MAIN_LIST'] = $subpages;
-
-        if ($this->debugMode && ($pagesCount > 0 || $subpagesCount > 0)) {
-            error_log("Config: Construit $pagesCount pages et $subpagesCount sous-pages");
-        }
-    }
-
-    /**
-     * Debug : affiche toutes les clés de configuration qui commencent par PAGES_ ou SUBPAGES_
-     */
-    public function debugPagesConfig(): void
-    {
-        error_log("=== DEBUG Config PAGES ===");
-        error_log("Variables CONFIG: " . count($this->config));
-        error_log("Variables ENV: " . count($this->envVars));
-
-        $pagesKeys = [];
-        $allConfig = array_merge($this->envVars, $this->config);
-
-        foreach ($allConfig as $key => $value) {
-            if (str_starts_with($key, 'PAGES_') || str_starts_with($key, 'SUBPAGES_')) {
-                $pagesKeys[] = "$key = " . (is_array($value) ? json_encode($value) : $value);
-            }
-        }
-
-        error_log("Clés trouvées: " . implode(', ', $pagesKeys));
-        error_log("PAGES_LIST final: " . json_encode($this->get('PAGES_LIST')));
-        error_log("SUBPAGES_MAIN_LIST final: " . json_encode($this->get('SUBPAGES_MAIN_LIST')));
-        error_log("=== FIN DEBUG ===");
-    }
-
-    /**
      * Effectue le typage automatique en fonction du type
+     *
+     * @param mixed $value Valeur à typer
+     * @param string|null $type Type de destination
+     * @return mixed Valeur typée
      */
     private function castValue($value, ?string $type)
     {
@@ -373,30 +340,7 @@ class Config implements ArrayAccess
         }
     }
 
-    // --- Implémentation ArrayAccess ---
-
-    public function offsetExists(mixed $offset): bool
-    {
-        return $this->get($offset) !== null;
-    }
-
-    public function offsetGet(mixed $offset): mixed
-    {
-        return $this->get($offset);
-    }
-
-    public function offsetSet(mixed $offset, mixed $value): void
-    {
-        if ($offset === null) {
-            throw new \InvalidArgumentException("Cannot append to Config array");
-        }
-        $this->config[$offset] = $value;
-    }
-
-    public function offsetUnset(mixed $offset): void
-    {
-        unset($this->config[$offset]);
-        unset($this->meta[$offset]);
-        unset($this->twigVars[$offset]);
-    }
+    // --- SUPPRESSION de l'implémentation ArrayAccess (problème 37) ---
+    // L'interface ArrayAccess n'est pas vraiment utilisée ailleurs dans le code
+    // et complique inutilement la classe. Suppression complète.
 }

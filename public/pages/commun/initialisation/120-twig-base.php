@@ -59,127 +59,6 @@ try {
 
     $twigStats['views_directory'] = realpath($viewsDir);
 
-    // ===== CRÉATION DES TEMPLATES ESSENTIELS =====
-
-    $essentialTemplates = [
-        'layouts/default.twig' => '<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ app.name|default("Application") }}{% endblock %}</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        header { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        main { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 60vh; }
-        .alert { padding: 15px; margin: 15px 0; border-radius: 6px; }
-        .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
-        .alert-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
-        .alert-danger { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; text-decoration: none; display: inline-block; cursor: pointer; }
-        .btn-primary { background: #007bff; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-    </style>
-    {% block head %}{% endblock %}
-</head>
-<body>
-    <div class="container">
-        {% block header %}
-            <header>
-                <h1>{{ app.name|default("Application") }}</h1>
-                {% if user.authenticated|default(false) %}
-                    <p>Connecté en tant que <strong>{{ user.name|default("Utilisateur") }}</strong></p>
-                {% endif %}
-            </header>
-        {% endblock %}
-
-        <main>
-            {% block content %}
-                <h2>Bienvenue</h2>
-                <p>Template par défaut chargé avec succès.</p>
-            {% endblock %}
-        </main>
-    </div>
-    {% block scripts %}{% endblock %}
-</body>
-</html>',
-
-        'errors/404.twig'      => '{% extends "layouts/default.twig" %}
-{% block title %}404 - Page non trouvée{% endblock %}
-{% block content %}
-    <div style="text-align: center; padding: 40px;">
-        <h1 style="font-size: 72px; color: #e74c3c; margin: 0;">404</h1>
-        <h2>Page non trouvée</h2>
-        <p>La page demandée n\'existe pas.</p>
-        <a href="/" class="btn btn-primary">Retour à l\'accueil</a>
-    </div>
-{% endblock %}',
-
-        'errors/403.twig'      => '{% extends "layouts/default.twig" %}
-{% block title %}403 - Accès refusé{% endblock %}
-{% block content %}
-    <div style="text-align: center; padding: 40px;">
-        <h1 style="font-size: 72px; color: #e67e22; margin: 0;">403</h1>
-        <h2>Accès refusé</h2>
-        <p>Vous n\'avez pas les droits pour accéder à cette page.</p>
-        <a href="/" class="btn btn-primary">Retour à l\'accueil</a>
-    </div>
-{% endblock %}',
-
-        'errors/500.twig'      => '{% extends "layouts/default.twig" %}
-{% block title %}500 - Erreur serveur{% endblock %}
-{% block content %}
-    <div style="text-align: center; padding: 40px;">
-        <h1 style="font-size: 72px; color: #c0392b; margin: 0;">500</h1>
-        <h2>Erreur serveur</h2>
-        <p>Une erreur interne s\'est produite.</p>
-        <a href="/" class="btn btn-primary">Retour à l\'accueil</a>
-    </div>
-{% endblock %}',
-
-        'index/index.twig'     => '{% extends "layouts/default.twig" %}
-{% block title %}Accueil{% endblock %}
-{% block content %}
-    <h1>Bienvenue</h1>
-    {% if user.authenticated|default(false) %}
-        <div class="alert alert-info">
-            <strong>Bonjour {{ user.name|default("Utilisateur") }} !</strong><br>
-            Vous êtes connecté avec succès.
-        </div>
-    {% else %}
-        <div class="alert alert-warning">
-            <strong>Authentification requise</strong><br>
-            Connectez-vous pour accéder aux fonctionnalités.
-        </div>
-    {% endif %}
-{% endblock %}',
-    ];
-
-    foreach ($essentialTemplates as $templatePath => $content) {
-        $fullPath    = $viewsDir . '/' . $templatePath;
-        $templateDir = dirname($fullPath);
-
-        // Créer le répertoire si nécessaire
-        if (! is_dir($templateDir)) {
-            mkdir($templateDir, 0755, true);
-        }
-
-        // Créer le template s'il n'existe pas
-        if (! file_exists($fullPath)) {
-            file_put_contents($fullPath, $content);
-            $twigStats['templates_found'][] = $templatePath . ' (créé)';
-
-            if ($logger) {
-                $logger->info("Template créé automatiquement", ['template' => $templatePath]);
-            }
-        } else {
-            $twigStats['templates_found'][] = $templatePath . ' (existant)';
-        }
-    }
-
-    // ===== CONFIGURATION DE L'ENVIRONNEMENT TWIG =====
-
     // Vérification finale de l'accessibilité
     if (! is_readable($viewsDir)) {
         throw new \Exception("Le dossier des vues n'est pas lisible : $viewsDir");
@@ -192,7 +71,7 @@ try {
     // Configuration des options Twig
     $twigOptions = [
         'cache'            => $config->get('TWIG_CACHE', false),
-        'debug'            => $config->get('TWIG_DEBUG', $config->get('ENV') === 'dev'),
+        'debug'            => $config->get('TWIG_DEBUG', $config->get('DEBUG_MODE')),
         'strict_variables' => $config->get('TWIG_STRICT_VARIABLES', false),
         'autoescape'       => $config->get('TWIG_AUTOESCAPE', 'html'),
         'optimizations'    => $config->get('TWIG_OPTIMIZATIONS', -1),
@@ -248,7 +127,7 @@ try {
     $baseGlobals = [
         'app'     => [
             'name'        => $config->get('SITE', 'Application'),
-            'version'     => $config->get('APP_VERSION', '1.0.0'),
+            'version'     => $config->get('VERSION', '1.0.0'),
             'environment' => $config->get('ENV', 'production'),
             'debug'       => $twigOptions['debug'],
         ],
