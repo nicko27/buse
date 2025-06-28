@@ -32,6 +32,7 @@ $requiredClasses = [
     __DIR__ . "/../classes/Security/SSOlocal.php",
 
     // Routage
+    __DIR__ . "/../classes/Router/RouterConfig.php",
     __DIR__ . "/../classes/Router/Router.php",
 
     // Templates

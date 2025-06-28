@@ -2,7 +2,6 @@
 ├── buse.sql
 ├── composer.json
 ├── composer.lock
-├── debug-buse-routing.php
 ├── files
 ├── index.php
 ├── logs
@@ -28,7 +27,16 @@
 │   │   │   │   ├── Ldap
 │   │   │   │   │   └── LdapManager.php
 │   │   │   │   ├── Logger
-│   │   │   │   │   └── Logger.php
+│   │   │   │   │   ├── BufferedLogger.php
+│   │   │   │   │   ├── DeduplicatedLogger.php
+│   │   │   │   │   ├── EnhancedLogger.php
+│   │   │   │   │   ├── LoggerConfigManager.php
+│   │   │   │   │   ├── Logger.php
+│   │   │   │   │   ├── LogSearchEngine.php
+│   │   │   │   │   ├── LogViewerAuth.php
+│   │   │   │   │   ├── LogViewerController.php
+│   │   │   │   │   └── templates
+│   │   │   │   │       └── dashboard.php
 │   │   │   │   ├── Mail
 │   │   │   │   │   └── EMLGenerator.php
 │   │   │   │   ├── Router
@@ -237,8 +245,7 @@
 ├── PUSH.md
 ├── push.sh
 ├── test.php
-├── tree.txt
 ├── tree_vendor_assets.txt
 └── tree_vendor.txt
 
-78 directories, 163 files
+79 directories, 169 files
