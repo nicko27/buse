@@ -40,6 +40,7 @@
 │   │   │   │   ├── Mail
 │   │   │   │   │   └── EMLGenerator.php
 │   │   │   │   ├── Router
+│   │   │   │   │   ├── RouterConfig.php
 │   │   │   │   │   └── Router.php
 │   │   │   │   ├── Security
 │   │   │   │   │   ├── CsrfManager.php
@@ -248,4 +249,4 @@
 ├── tree_vendor_assets.txt
 └── tree_vendor.txt
 
-79 directories, 169 files
+79 directories, 170 files
