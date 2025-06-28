@@ -25,6 +25,9 @@ $requiredClasses = [
     __DIR__ . "/../classes/Router/Router.php",
 
     // Templates
+    __DIR__ . "/../classes/Template/RenderContext.php",
+    __DIR__ . "/../classes/Template/VariableInjector.php",
+    __DIR__ . "/../classes/Template/TwigManager.php",
     __DIR__ . "/../classes/Template/TwigExtensions.php",
 
     // Utilitaires
