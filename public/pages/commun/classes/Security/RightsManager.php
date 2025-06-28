@@ -3,7 +3,6 @@ namespace Commun\Security;
 
 use Commun\Database\SqlManager;
 use Commun\Logger\Logger;
-use SSOlocal;
 
 /**
  * Classe RightsManager - Gestion des droits utilisateurs
@@ -48,6 +47,7 @@ class RightsManager
 
     /** @var bool Indique si on est en debug */
     private $debug = false;
+
     /**
      * Constructeur privé pour empêcher l'instanciation directe
      */
@@ -71,13 +71,62 @@ class RightsManager
      */
     public function initialize(int $debug = 0, array $userArray = []): void
     {
-        // Initialiser les droits de l'utilisateur
-        if (($debug == 1) && ! empty($userArray)) {
+        $this->debug = ($debug === 1);
+
+        // CORRECTION 1: Logique de détection du mode améliorée
+        $isLocalhost = $this->isLocalhostEnvironment();
+
+        // En mode debug OU sur localhost OU si des données de debug sont fournies
+        if ($this->debug || $isLocalhost || ! empty($userArray)) {
             $this->initUserFromDebug($userArray);
         } else {
-            require_once "SSOlocal.php";
             $this->initUserFromSSO();
         }
+    }
+
+    /**
+     * Détecte si on est dans un environnement localhost (méthode statique)
+     *
+     * @return bool
+     */
+    public static function isLocalhost(): bool
+    {
+        // Vérifier l'adresse du serveur
+        $serverAddr = $_SERVER['SERVER_ADDR'] ?? $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
+
+        // Adresses localhost typiques
+        $localhostAddresses = ['127.0.0.1', '::1', 'localhost'];
+
+        if (in_array($serverAddr, $localhostAddresses)) {
+            return true;
+        }
+
+        // Vérifier l'host
+        $httpHost = $_SERVER['HTTP_HOST'] ?? '';
+        if (in_array($httpHost, $localhostAddresses) ||
+            str_ends_with($httpHost, '.local') ||
+            str_contains($httpHost, 'localhost')) {
+            return true;
+        }
+
+        // Vérifier les IP privées
+        if (filter_var($serverAddr, FILTER_VALIDATE_IP)) {
+            if (filter_var($serverAddr, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                return true; // IP privée ou réservée
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Détecte si on est dans un environnement localhost
+     *
+     * @return bool
+     */
+    public function isLocalhostEnvironment(): bool
+    {
+        return self::isLocalhost();
     }
 
     /**
@@ -137,14 +186,24 @@ class RightsManager
     private function initUserFromDebug(array $userArray): bool
     {
         try {
-            $this->userId   = $userArray['employeenumber'] ?? null;
-            $this->userName = ($userArray['title'] ?? '') . " " . ($userArray['sn'] ?? '') . " " . ($userArray['givenname'] ?? '');
-            $this->userMail = $userArray['mail'] ?? null;
-            $this->userUnit = $userArray['ou'] ?? null;
-            $this->userCu   = $userArray['codeunite'] ?? null;
-            $this->logger->info("Cu RightsManager Debug:" . $this->userCu);
+            // CORRECTION 2: Utiliser des données de fallback si l'array est vide
+            if (empty($userArray)) {
+                $userArray = $this->getDefaultDebugUser();
+            }
+
+            $this->userId        = $userArray['employeenumber'] ?? null;
+            $this->userName      = ($userArray['title'] ?? '') . " " . ($userArray['sn'] ?? '') . " " . ($userArray['givenname'] ?? '');
+            $this->userMail      = $userArray['mail'] ?? null;
+            $this->userUnit      = $userArray['ou'] ?? null;
+            $this->userCu        = $userArray['codeunite'] ?? null;
             $this->userShortName = $userArray['sn'] ?? null;
-            $this->debug         = true;
+
+            $this->logger->info("RightsManager Debug Mode", [
+                'userId'      => $this->userId,
+                'cu'          => $this->userCu,
+                'environment' => 'debug',
+            ]);
+
             if ($this->userId) {
                 $this->isAuthenticated = true;
                 $this->loadUserRights();
@@ -162,6 +221,24 @@ class RightsManager
     }
 
     /**
+     * Retourne un utilisateur de debug par défaut
+     *
+     * @return array
+     */
+    private function getDefaultDebugUser(): array
+    {
+        return [
+            "employeenumber" => "224286",
+            "title"          => "ADJ",
+            "sn"             => "VOIRIN",
+            "givenname"      => "Nicolas",
+            "mail"           => "nicolas.voirin@gendarmerie.interieur.gouv.fr",
+            "ou"             => "SOLC BDRIJ GGD27",
+            "codeunite"      => "12027",
+        ];
+    }
+
+    /**
      * Initialise l'utilisateur à partir des informations du SSO
      *
      * @return bool True si l'utilisateur a été correctement authentifié
@@ -169,24 +246,45 @@ class RightsManager
     private function initUserFromSSO(): bool
     {
         try {
+            // CORRECTION 3: Chemin corrigé pour SSOlocal.php
+            $ssoLocalPath = __DIR__ . '/SSOlocal.php';
+
+            if (! file_exists($ssoLocalPath)) {
+                throw new \Exception("Fichier SSOlocal.php non trouvé : $ssoLocalPath");
+            }
+
+            // CORRECTION 4: Inclure le fichier SSOlocal au lieu de require_once dans initUserFromSSO
+            require_once $ssoLocalPath;
+
+            // Vérifier que la classe SSOlocal existe
+            if (! class_exists('SSOlocal')) {
+                throw new \Exception("Classe SSOlocal non trouvée après inclusion");
+            }
+
             if (! isset($_SESSION['user'])) {
-                SSOlocal::authenticate();
+                \SSOlocal::authenticate();
             }
 
             // Vérifie si l'authentification a réussi
-            if (! SSOlocal::user()) {
+            if (! \SSOlocal::user()) {
                 $this->logger->warning("Échec d'authentification SSO");
                 return false;
             }
 
-            $this->userId   = SSOlocal::user()->nigend ?? null;
-            $this->userName = (SSOlocal::user()->title ?? '') . " " . (SSOlocal::user()->sn ?? '') . " " . (SSOlocal::user()->givenName ?? '');
-            $this->userMail = SSOlocal::user()->mail ?? null;
-            $this->userUnit = SSOlocal::user()->unite ?? null;
-            $this->userCu   = SSOlocal::user()->codeUnite ?? null;
-            $this->logger->info("Cu RightsManager SSO:" . $this->userCu);
-            $this->userShortName = SSOlocal::user()->sn ?? null;
-            $this->debug         = 0;
+            $user = \SSOlocal::user();
+
+            $this->userId        = $user->nigend ?? null;
+            $this->userName      = ($user->title ?? '') . " " . ($user->sn ?? '') . " " . ($user->givenName ?? '');
+            $this->userMail      = $user->mail ?? null;
+            $this->userUnit      = $user->unite ?? null;
+            $this->userCu        = $user->codeUnite ?? null;
+            $this->userShortName = $user->sn ?? null;
+
+            $this->logger->info("RightsManager SSO Mode", [
+                'userId'      => $this->userId,
+                'cu'          => $this->userCu,
+                'environment' => 'sso',
+            ]);
 
             if ($this->userId) {
                 $this->isAuthenticated = true;
@@ -486,6 +584,36 @@ class RightsManager
     public function isAuthenticated(): bool
     {
         return $this->isAuthenticated;
+    }
+
+    /**
+     * CORRECTION 5: Méthode pour récupérer les informations utilisateur courantes
+     * Compatible avec LogViewerAuth
+     */
+    public function getCurrentUser(): array
+    {
+        if (! $this->isAuthenticated) {
+            return [];
+        }
+
+        return [
+            'id'            => $this->userId,
+            'username'      => $this->userShortName,
+            'name'          => $this->userName,
+            'email'         => $this->userMail,
+            'unit'          => $this->userUnit,
+            'cu'            => $this->userCu,
+            'authenticated' => true,
+            'debug_mode'    => $this->debug,
+        ];
+    }
+
+    /**
+     * Alias pour isAuthenticated (compatibilité LogViewerAuth)
+     */
+    public function isUserAuthenticated(): bool
+    {
+        return $this->isAuthenticated();
     }
 
     /**
